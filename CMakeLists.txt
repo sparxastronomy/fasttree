@@ -44,31 +44,27 @@ find_package(HDF5 COMPONENTS C HL REQUIRED)
 include_directories(${HDF5_C_INCLUDE_DIRS})
 
 #
-# Find SYCL libraries
+# Find SYCL libraries (AdaptiveCpp)
 #
-find_package(IntelSYCL REQUIRED)
+find_package(AdaptiveCpp REQUIRED)
 
 # Add source files
-# header files should be detected automatically
 set(FASTTREE_SRC
-    src/main.cpp
+    test/main.cpp
 )
-
-# set compiler flags for SYCL
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${INTELSYCL_CXX_FLAGS}")
 
 # Create executable
 add_executable(fasttree ${FASTTREE_SRC})
 target_compile_features(fasttree PRIVATE cxx_std_23)
 
-target_include_directories(fasttree PRIVATE src/include src src/domain)
-target_compile_options(fasttree PRIVATE -O3 -march=skylake -mavx2)
+target_include_directories(fasttree PRIVATE src)
+target_compile_options(fasttree PRIVATE -O3)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Intel" OR CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
-    target_link_options(fasttree PRIVATE -static-intel)
-    message(STATUS "Intel compiler detected: using -static-intel for Intel runtime linkage")
-else()
-    message(STATUS "Non-Intel compiler detected: skipping -static-intel, compiled binary might be slow due to missing non-intel runtime optimizations")
+# Default to omp backend if not specified
+if(NOT ACPP_TARGETS)
+    set(ACPP_TARGETS "omp")
 endif()
 
-target_link_libraries(fasttree ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${INTELSYCL_LIBRARIES})
+add_sycl_to_target(TARGET fasttree SOURCES ${FASTTREE_SRC})
+
+target_link_libraries(fasttree PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
