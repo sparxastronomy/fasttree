@@ -51,6 +51,8 @@ When you start a new session, orient yourself:
     Rules:
     - Update PROGRESS.md after every meaningful unit of work.
     - Check off completed items with dates.
+    - Write down the basic approach you took for each task, even if it was a dead end. This helps maintain a record of what was attempted and prevents re-attempting failed approaches.
+    - Also store the failed approaches in a separate section of PROGRESS.md to keep track of what doesn't work. This is crucial for avoiding wasted time on approaches that have already been proven ineffective.
     - Note what worked, what didn't, what's blocked.
     - Record failed approaches so they aren't re-attempted. E.g.: "Tried using Tsit5 for perturbation ODE -- doesn't work, system is too stiff. Switched to Kvaerno5."
     - Add new tasks discovered during implementation.

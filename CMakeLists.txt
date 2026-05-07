@@ -40,13 +40,13 @@ include_directories(${MPI_C_INCLUDE_DIRS} ${MPI_CXX_INCLUDE_DIRS})
 #
 # Find HDF5 libraries
 #
-find_package(HDF5 COMPONENTS C HL REQUIRED)
-include_directories(${HDF5_C_INCLUDE_DIRS})
+# find_package(HDF5 COMPONENTS C HL REQUIRED)
+# include_directories(${HDF5_C_INCLUDE_DIRS})
 
 #
 # Find SYCL libraries (AdaptiveCpp)
 #
-find_package(AdaptiveCpp REQUIRED)
+find_package(IntelSYCL REQUIRED)
 
 # Add source files
 set(FASTTREE_SRC
@@ -67,4 +67,4 @@ endif()
 
 add_sycl_to_target(TARGET fasttree SOURCES ${FASTTREE_SRC})
 
-target_link_libraries(fasttree PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
+target_link_libraries(fasttree PRIVATE ${MPI_CXX_LIBRARIES})
