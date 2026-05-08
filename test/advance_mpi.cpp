@@ -1,0 +1,184 @@
+#include "../src/hlbvh.hpp"
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <sycl/sycl.hpp>
+#include <mpi.h>
+#include <iomanip>
+
+using namespace fasttree;
+
+int main(int argc, char** argv) {
+    MPI_Init(&argc, &argv);
+    
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    if (size != 2) {
+        if (rank == 0) std::cerr << "Advance MPI test requires exactly 2 ranks.\n";
+        MPI_Finalize();
+        return 0;
+    }
+
+    sycl::queue q;
+    const int n = 100000;
+    
+    // Domain setup:
+    // Rank 0 owns [0, 100] in X. Halo region is [90, 100].
+    // Rank 1 owns [100, 200] in X. Halo region is [100, 110].
+    float domain_min = rank * 100.0f;
+    float halo_min, halo_max;
+    int neighbor;
+    
+    if (rank == 0) {
+        halo_min = 90.0f; halo_max = 100.0f;
+        neighbor = 1;
+    } else {
+        halo_min = 100.0f; halo_max = 110.0f;
+        neighbor = 0;
+    }
+
+    particles<float> p;
+    p.pos_x.resize(n);
+    p.pos_y.resize(n);
+    p.pos_z.resize(n);
+    
+    // Generate uniform particles across the domain
+    for (int i = 0; i < n; ++i) {
+        p.pos_x[i] = domain_min + static_cast<float>(i) / n * 100.0f;
+        p.pos_y[i] = static_cast<float>(rand()) / RAND_MAX * 100.0f;
+        p.pos_z[i] = static_cast<float>(rand()) / RAND_MAX * 100.0f;
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    double t_start = MPI_Wtime();
+    
+    TreeSoA local_tree(q, n);
+    build_bvh(q, p, local_tree);
+    q.wait();
+    
+    double t_build_local = MPI_Wtime() - t_start;
+
+    // Identify and extract halo particles
+    particles<float> hp;
+    for (int i = 0; i < n; ++i) {
+        if (p.pos_x[i] >= halo_min && p.pos_x[i] <= halo_max) {
+            hp.pos_x.push_back(p.pos_x[i]);
+            hp.pos_y.push_back(p.pos_y[i]);
+            hp.pos_z.push_back(p.pos_z[i]);
+        }
+    }
+    
+    int num_halo = hp.pos_x.size();
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    t_start = MPI_Wtime();
+    
+    TreeSoA halo_tree(q, num_halo);
+    if (num_halo > 0) {
+        build_bvh(q, hp, halo_tree);
+    }
+    q.wait();
+    
+    double t_build_halo = MPI_Wtime() - t_start;
+
+    // Exchange sizes
+    uint64_t send_dims[2] = {
+        static_cast<uint64_t>(halo_tree.num_leaves), 
+        static_cast<uint64_t>(halo_tree.num_internal)
+    };
+    uint64_t recv_dims[2];
+    
+    MPI_Barrier(MPI_COMM_WORLD);
+    t_start = MPI_Wtime();
+    
+    MPI_Sendrecv(send_dims, 2, MPI_UINT64_T, neighbor, 0,
+                 recv_dims, 2, MPI_UINT64_T, neighbor, 0,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 
+    size_t recv_num_leaves = recv_dims[0];
+    size_t recv_num_internal = recv_dims[1];
+    size_t recv_total_nodes = recv_num_leaves + recv_num_internal;
+    size_t send_total_nodes = halo_tree.num_leaves + halo_tree.num_internal;
+
+    TreeSoA recv_tree(q, recv_num_leaves);
+    
+    // Helper to exchange SoA arrays
+    auto exchange_array = [&](auto send_buf, int send_count, auto recv_buf, int recv_count, MPI_Datatype type, int tag) {
+        MPI_Sendrecv(send_buf, send_count, type, neighbor, tag,
+                     recv_buf, recv_count, type, neighbor, tag,
+                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    };
+
+    if (send_total_nodes > 0 || recv_total_nodes > 0) {
+        exchange_array(halo_tree.min_x, send_total_nodes, recv_tree.min_x, recv_total_nodes, MPI_FLOAT, 1);
+        exchange_array(halo_tree.max_x, send_total_nodes, recv_tree.max_x, recv_total_nodes, MPI_FLOAT, 2);
+        exchange_array(halo_tree.min_y, send_total_nodes, recv_tree.min_y, recv_total_nodes, MPI_FLOAT, 3);
+        exchange_array(halo_tree.max_y, send_total_nodes, recv_tree.max_y, recv_total_nodes, MPI_FLOAT, 4);
+        exchange_array(halo_tree.min_z, send_total_nodes, recv_tree.min_z, recv_total_nodes, MPI_FLOAT, 5);
+        exchange_array(halo_tree.max_z, send_total_nodes, recv_tree.max_z, recv_total_nodes, MPI_FLOAT, 6);
+        exchange_array(halo_tree.parent, send_total_nodes, recv_tree.parent, recv_total_nodes, MPI_INT, 7);
+    }
+    
+    if (halo_tree.num_internal > 0 || recv_num_internal > 0) {
+        exchange_array(halo_tree.left_child, halo_tree.num_internal, recv_tree.left_child, recv_num_internal, MPI_INT, 8);
+        exchange_array(halo_tree.right_child, halo_tree.num_internal, recv_tree.right_child, recv_num_internal, MPI_INT, 9);
+    }
+    
+    q.wait();
+    double t_transmission = MPI_Wtime() - t_start;
+    
+    // Verify the received tree via a query
+    MPI_Barrier(MPI_COMM_WORLD);
+    t_start = MPI_Wtime();
+    
+    if (recv_num_leaves > 0) {
+        float *dqx = sycl::malloc_shared<float>(1, q);
+        float *dqy = sycl::malloc_shared<float>(1, q);
+        float *dqz = sycl::malloc_shared<float>(1, q);
+        float *drm = sycl::malloc_shared<float>(1, q);
+        float *dRM = sycl::malloc_shared<float>(1, q);
+        int *res = sycl::malloc_shared<int>(10, q);
+        int *res_cnt = sycl::malloc_shared<int>(1, q);
+
+        // Query the center of the received halo
+        dqx[0] = (rank == 0) ? 105.0f : 95.0f; // Center of neighbor's halo
+        dqy[0] = 50.0f; dqz[0] = 50.0f;
+        drm[0] = 0.0f; dRM[0] = 5.0f;
+        res_cnt[0] = 0;
+
+        range_query(q, recv_tree, dqx, dqy, dqz, drm, dRM, 1, res, res_cnt, 10);
+        q.wait();
+        
+        sycl::free(dqx, q); sycl::free(dqy, q); sycl::free(dqz, q);
+        sycl::free(drm, q); sycl::free(dRM, q);
+        sycl::free(res, q); sycl::free(res_cnt, q);
+    }
+    
+    double t_verify = MPI_Wtime() - t_start;
+
+    // Output timings
+    for (int r = 0; r < 2; ++r) {
+        if (rank == r) {
+            std::cout << "\n=== Rank " << rank << " Halo Exchange Report ===\n";
+            std::cout << "  Local Particles        : " << n << "\n";
+            std::cout << "  Halo Particles         : " << num_halo << "\n";
+            std::cout << "  Received LET Leaves    : " << recv_num_leaves << "\n";
+            std::cout << std::fixed << std::setprecision(4);
+            std::cout << "  [Timing] Local Tree Build  : " << t_build_local * 1000.0 << " ms\n";
+            std::cout << "  [Timing] Halo Tree Build   : " << t_build_halo * 1000.0 << " ms\n";
+            std::cout << "  [Timing] MPI Transmission  : " << t_transmission * 1000.0 << " ms\n";
+            std::cout << "  [Timing] Tree Verification : " << t_verify * 1000.0 << " ms\n";
+            std::cout << "========================================\n";
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+    
+    local_tree.free(q);
+    halo_tree.free(q);
+    recv_tree.free(q);
+    
+    MPI_Finalize();
+    return 0;
+}

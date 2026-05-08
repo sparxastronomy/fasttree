@@ -42,3 +42,6 @@ The tree builder executes a modified LBVH pipeline optimized for temporal cohere
 
 ## 5. Integration
 The project is designed to be included as a Git submodule. The core implementation is confined to a single, easily included header file (`src/hlbvh.hpp`) to prevent complex CMake linking chains in the downstream simulation frameworks.
+
+## 6. Naming Conventions
+- For both testing and prodduction use cases, the compiled executable should follow the nameing comvention: `file.hpp`/`file.cpp` -> `file.exe` so that executables are easily identifiable and can be added to `.gitignore`

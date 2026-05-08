@@ -67,4 +67,20 @@ endif()
 
 add_sycl_to_target(TARGET fasttree SOURCES ${FASTTREE_SRC})
 
-target_link_libraries(fasttree PRIVATE ${MPI_CXX_LIBRARIES})
+target_link_libraries(fasttree PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
+
+# MPI Test Executable
+add_executable(test_mpi test/test_mpi.cpp)
+target_compile_features(test_mpi PRIVATE cxx_std_23)
+target_include_directories(test_mpi PRIVATE src)
+target_compile_options(test_mpi PRIVATE -O3)
+add_sycl_to_target(TARGET test_mpi SOURCES test/test_mpi.cpp)
+target_link_libraries(test_mpi PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
+
+# Advanced MPI Halo-Exchange Test Executable
+add_executable(advance_mpi test/advance_mpi.cpp)
+target_compile_features(advance_mpi PRIVATE cxx_std_23)
+target_include_directories(advance_mpi PRIVATE src)
+target_compile_options(advance_mpi PRIVATE -O3)
+add_sycl_to_target(TARGET advance_mpi SOURCES test/advance_mpi.cpp)
+target_link_libraries(advance_mpi PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})

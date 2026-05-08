@@ -9,7 +9,7 @@
 
 ## Planned Tasks
 - [ ] Performance benchmarking on NVIDIA GPUs
-- [ ] MPI serialization tests
+- [x] MPI serialization tests (2026-05-07)
 - [ ] Re-enable oneDPL and PSTL for high-performance builds on supported environments
 
 ## Notes
