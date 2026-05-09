@@ -55,5 +55,11 @@ When you start a new session, orient yourself:
     - Also store the failed approaches in a separate section of PROGRESS.md to keep track of what doesn't work. This is crucial for avoiding wasted time on approaches that have already been proven ineffective.
     - Note what worked, what didn't, what's blocked.
     - Record failed approaches so they aren't re-attempted. E.g.: "Tried using Tsit5 for perturbation ODE -- doesn't work, system is too stiff. Switched to Kvaerno5."
+    - Every failed / bug / broken implementation attempt must be documented in details with the following structure:
+        - **Date:** When the attempt was made.
+        - **Description:** A detailed description of what was attempted, including code snippets if relevant.
+        - **Reason:** Why you thought this approach would work / or what is the source of the bug
+        - **Outcome:** What happened as a result of the attempt (e.g., error messages, performance issues, incorrect results).
+        - **Next Steps:** What you plan to try next based on the outcome of this attempt.
     - Add new tasks discovered during implementation.
     - When stuck, maintain a running doc of attempts in PROGRESS.md.

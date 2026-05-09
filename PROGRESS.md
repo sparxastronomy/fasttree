@@ -1,4 +1,6 @@
 # Progress: SYCL-HLBVH Implementation
+**Target release version:** 1.0 (2026-05-07)
+
 
 ## Completed Tasks
 - [x] Basic Morton encoding/decoding (2026-05-07)
@@ -6,6 +8,10 @@
 - [x] HLBVH Tree Construction (SoA, pointer-free) (2026-05-07)
 - [x] Range Query implementation (2026-05-07)
 - [x] kNN Query implementation (2026-05-07)
+- [x] Benchmark suite implementation (2026-05-08)
+  - Implemented `BenchmarkUtils.hpp` for timing and HDF5 loading.
+  - Implemented scaling tests for Morton, Sort, Tree Build, Range Query, and kNN Query.
+  - Integrated benchmarks into CMake.
 
 ## Planned Tasks
 - [ ] Performance benchmarking on NVIDIA GPUs

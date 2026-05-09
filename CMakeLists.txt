@@ -54,33 +54,35 @@ set(FASTTREE_SRC
 )
 
 # Create executable
-add_executable(fasttree ${FASTTREE_SRC})
-target_compile_features(fasttree PRIVATE cxx_std_23)
+add_executable(fasttree.exe ${FASTTREE_SRC})
+target_compile_features(fasttree.exe PRIVATE cxx_std_23)
 
-target_include_directories(fasttree PRIVATE src)
-target_compile_options(fasttree PRIVATE -O3)
+target_include_directories(fasttree.exe PRIVATE src)
+target_compile_options(fasttree.exe PRIVATE -O3)
 
 # Default to omp backend if not specified
 if(NOT ACPP_TARGETS)
     set(ACPP_TARGETS "omp")
 endif()
 
-add_sycl_to_target(TARGET fasttree SOURCES ${FASTTREE_SRC})
+add_sycl_to_target(TARGET fasttree.exe SOURCES ${FASTTREE_SRC})
 
-target_link_libraries(fasttree PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
+target_link_libraries(fasttree.exe PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
 
 # MPI Test Executable
-add_executable(test_mpi test/test_mpi.cpp)
-target_compile_features(test_mpi PRIVATE cxx_std_23)
-target_include_directories(test_mpi PRIVATE src)
-target_compile_options(test_mpi PRIVATE -O3)
-add_sycl_to_target(TARGET test_mpi SOURCES test/test_mpi.cpp)
-target_link_libraries(test_mpi PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
+add_executable(test_mpi.exe test/test_mpi.cpp)
+target_compile_features(test_mpi.exe PRIVATE cxx_std_23)
+target_include_directories(test_mpi.exe PRIVATE src)
+target_compile_options(test_mpi.exe PRIVATE -O3)
+add_sycl_to_target(TARGET test_mpi.exe SOURCES test/test_mpi.cpp)
+target_link_libraries(test_mpi.exe PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
 
 # Advanced MPI Halo-Exchange Test Executable
-add_executable(advance_mpi test/advance_mpi.cpp)
-target_compile_features(advance_mpi PRIVATE cxx_std_23)
-target_include_directories(advance_mpi PRIVATE src)
-target_compile_options(advance_mpi PRIVATE -O3)
-add_sycl_to_target(TARGET advance_mpi SOURCES test/advance_mpi.cpp)
-target_link_libraries(advance_mpi PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
+add_executable(advance_mpi.exe test/advance_mpi.cpp)
+target_compile_features(advance_mpi.exe PRIVATE cxx_std_23)
+target_include_directories(advance_mpi.exe PRIVATE src)
+target_compile_options(advance_mpi.exe PRIVATE -O3)
+add_sycl_to_target(TARGET advance_mpi.exe SOURCES test/advance_mpi.cpp)
+target_link_libraries(advance_mpi.exe PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
+
+add_subdirectory(test/benchmark)

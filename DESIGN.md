@@ -23,6 +23,11 @@ The code is written in SYCL (DPC++) targeting NVIDIA GPUs via the Codeplay plugi
 * **Why:** Provides a single-source C++ standard for heterogeneous computing.
 * **How:** We utilize `oneapi::dpl` as the direct equivalent to NVIDIA Thrust for parallel primitives (sort, compact, scan) and `sycl::local_accessor` to map to GPU Shared Memory.
 
+### 2.4. Naming Conventions & Code Organization
+* The core implementation should be confined to either a single file (`src/hlbvh.hpp`) or a strict `.h`/`.cpp` pair to facilitate easy inclusion as a Git submodule in downstream projects.
+* Executables should follow the naming convention: `file.hpp`/`file.cpp` -> `file.exe` to ensure clarity and ease of use.
+* Code that are compiled for a gpu target should be suffixed with `.gpu_<vendor>`, eg. : `file.hpp`/`file.cpp` -> `file.gpu_nvidia.exe` to clearly indicate the target platform and avoid confusion in multi-target environments.
+
 ## 3. Algorithm: HLBVH Pipeline
 The tree builder executes a modified LBVH pipeline optimized for temporal coherence in dynamic datasets:
 1.  **Morton Code Generation:** 30-bit spatial hashing of particle coordinates.
@@ -43,5 +48,36 @@ The tree builder executes a modified LBVH pipeline optimized for temporal cohere
 ## 5. Integration
 The project is designed to be included as a Git submodule. The core implementation is confined to a single, easily included header file (`src/hlbvh.hpp`) to prevent complex CMake linking chains in the downstream simulation frameworks.
 
-## 6. Naming Conventions
-- For both testing and prodduction use cases, the compiled executable should follow the nameing comvention: `file.hpp`/`file.cpp` -> `file.exe` so that executables are easily identifiable and can be added to `.gitignore`
+## 6. Testing and Benchmarking
+- A comprehensive suite of unit tests will be implemented in the `test/` directory
+- At `test/benchmark/`, all the benchmarking test should reside. The sole purpose of this sub-directory is to do scaling tests and performance benchmarks. Here are minimal scaling tests that shold be checked off:
+  - `morton_scaling.cpp`: Scaling of morton code generation with increasing particle counts sampled from a cosmological simulations (1K, 10K, 100K, 1M, 10M, 100M).
+  - `radix_sort_scaling.cpp`: Scaling of radix sort with increasing particle counts (1K, 10K, 100K, 1M, 10M, 100M).
+  - `intra_voxel_sort_scaling.cpp`: Scaling of intra-voxel odd-even sort with increasing particle counts (1K, 10K, 100K, 1M, 10M, 100M).
+  - `tree_build_scaling.cpp`: Scaling of the entire tree build pipeline with increasing particle counts (1K, 10K, 100K, 1M, 10M, 100M).
+  - `range_query_scaling.cpp`: Scaling of range query performance with increasing particle counts (1K, 10K, 100K, 1M, 10M) aggreagated over different query location and different radius values (0.01, 0.1, 1.0, 10.0, 100.0, 200.0).
+  - `knn_query_scaling.cpp`: Scaling of kNN query performance with increasing k values (1, 2, 4, 8, 16, 32, 64, 128) agreegated over different query location and different particle counts (1K, 10K, 100K, 1M, 10M).
+- The particle distribution for the tests are listed in the `test/benchmark/config.txt` file with the following format: `Count path_to_hdf5_file`.
+  - Counts should be in the format of 1K, 10K, 100K, 1M, 10M, 100M.
+  - The HDF5 files should contain the following datasets: `Coordinates` (Nx3), `Velocities` (Nx3), `Masses` (N) under the group `/PartType0/`
+
+- All the benchmark should also store the memory usage relevant for the test (e.g. for morton_scaling, the memory used for the morton code array and the intermediate integer arrays should be stored. )
+- All the test timings should be recorded in a tabular format in `docs/benchmark_results.md` with the following columns:
+  - Test Name
+  - Hardware Used (e.g., NVIDIA A100, AMD MI250, Intel Xe along with number of GPUs/CPUs used)
+  - Particle Count
+  - Query Parameters (e.g., radius for range query, k for knn query and number of particles for aggregation)
+  - Time Taken (seconds)
+  - Memory Usage (MB)
+  - Notes (e.g. any anomalies observed)
+
+### What not to profile / benchmark:
+- For the first release, we will not be focusing on micro-optimization of the code. 
+- Therefore things such as GPU occupancy, register usage, shared memory usage, and other low-level performance metrics will not be profiled or benchmarked in the initial release.
+- For now the GPU scaling is only limited to 1 GPU, so all the GPU benchmarks should be run on a single GPU. Multi-GPU scaling will be considered in future releases.
+- No MPI benchmark for the initial release 
+  - No scaling test for Tree communication time over MPI
+  - No scaling test for LET construction time over MPI
+  - No scaling test for overall simulation time with and without the tree utility in a distributed setting
+
+- No scaling of the Heirarchial consitruction i.e time to rebuild the tree after the particles have slightly moved. This will be considered in the next release (i.e Version 2.0+) after we have the initial tree build and query working.

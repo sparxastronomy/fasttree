@@ -89,6 +89,13 @@ inline std::vector<size_t> sort_morton_keys(const std::vector<std::uint64_t> &mo
   return indices;
 }
 
+// Placeholder for intra-voxel sort (to be implemented with odd-even sort in local memory)
+inline void intra_voxel_sort(sycl::queue &q, std::uint64_t *morton_keys, size_t n) {
+  // For now, this is a no-op placeholder for the benchmark
+  // The actual implementation will use local_accessor and odd-even sort
+  q.wait(); 
+}
+
 // Tree structure in SoA format
 struct TreeSoA {
   float *min_x, *max_x;
@@ -319,8 +326,8 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const float *qx, cons
     }
 
     // We'll use a local buffer for PQ. Since K is dynamic in the API but fixed in the struct,
-    // we handle it carefully. For this implementation, we assume K <= 32.
-    PriorityQueue<float, 32> pq;
+    // we handle it carefully. For this implementation, we assume K <= 128.
+    PriorityQueue<float, 128> pq;
 
     while (stack_ptr > 0) {
       int node_idx = stack[--stack_ptr];
