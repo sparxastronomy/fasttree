@@ -12,6 +12,10 @@
   - Implemented `BenchmarkUtils.hpp` for timing and HDF5 loading.
   - Implemented scaling tests for Morton, Sort, Tree Build, Range Query, and kNN Query.
   - Integrated benchmarks into CMake.
+- [x] Migration to Google Benchmark (2026-05-09)
+  - Integrated Google Benchmark via CMake FetchContent.
+  - Refactored all scaling tests to use the Google Benchmark framework.
+  - Improved query scaling analysis with parametric sweeps (R and k) -- reload and re-build the tree for each variation to ensure accurate measurements.
 
 ## Planned Tasks
 - [ ] Performance benchmarking on NVIDIA GPUs

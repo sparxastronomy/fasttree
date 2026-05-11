@@ -1,23 +1,35 @@
 #include "hlbvh.hpp"
 #include "BenchmarkUtils.hpp"
 #include <sycl/sycl.hpp>
+#include <benchmark/benchmark.h>
 #include <iostream>
 #include <vector>
 #include <string>
+#include <map>
 
 using namespace fasttree;
-using namespace fasttree::benchmark;
+using namespace fasttree::bench_utils;
 
-int main() {
+std::map<std::string, size_t> counts;
+
+static void BM_IntraVoxelSort(benchmark::State& state, const std::string& label) {
     sycl::queue q;
-    std::string device_name = q.get_device().get_info<sycl::info::device::name>();
-    std::cout << "Benchmarking Intra-Voxel Sort Scaling on: " << device_name << std::endl;
+    size_t n = counts[label];
+    uint64_t *morton_keys = sycl::malloc_shared<uint64_t>(n, q);
+    q.fill(morton_keys, 0ULL, n).wait();
 
-    std::ifstream config("config.txt");
-    if (!config.is_open()) {
-        std::cerr << "Error: Could not open config.txt" << std::endl;
-        return 1;
+    for (auto _ : state) {
+        intra_voxel_sort(q, morton_keys, n);
+        q.wait();
     }
+    
+    state.SetItemsProcessed(state.iterations() * n);
+    sycl::free(morton_keys, q);
+}
+
+int main(int argc, char** argv) {
+    std::ifstream config("config.txt");
+    if (!config.is_open()) return 1;
 
     std::string line;
     while (std::getline(config, line)) {
@@ -26,27 +38,18 @@ int main() {
         std::string count_str, file_path;
         ss >> count_str >> file_path;
 
+        // For this placeholder, we just need the count
+        // We'll estimate count from the string (1K -> 1000) or just load metadata
         ParticleData data;
-        if (!load_hdf5_data(file_path, data)) {
-            continue;
+        if (load_hdf5_data(file_path, data)) {
+            counts[count_str] = data.count;
+            benchmark::RegisterBenchmark(("IntraVoxelSort/" + count_str).c_str(), BM_IntraVoxelSort, count_str)
+                ->Unit(benchmark::kMicrosecond);
         }
-
-        size_t n = data.count;
-        uint64_t *morton_keys = sycl::malloc_shared<uint64_t>(n, q);
-
-        // Fill with dummy morton keys for sorting benchmark
-        q.fill(morton_keys, 0ULL, n).wait();
-
-        Timer timer("intra_voxel_sort");
-        intra_voxel_sort(q, morton_keys, n);
-        q.wait();
-        double elapsed = timer.stop();
-
-        size_t memory = get_peak_rss();
-        print_benchmark_row("intra_voxel_sort_scaling", device_name, n, "-", elapsed, memory);
-
-        sycl::free(morton_keys, q);
     }
 
+    benchmark::Initialize(&argc, argv);
+    benchmark::RunSpecifiedBenchmarks();
+    benchmark::Shutdown();
     return 0;
 }

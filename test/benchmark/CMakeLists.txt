@@ -4,9 +4,22 @@ project(fasttree_benchmarks)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# --- Google Benchmark Integration ---
+include(FetchContent)
+FetchContent_Declare(
+  benchmark
+  GIT_REPOSITORY https://github.com/google/benchmark.git
+  GIT_TAG        v1.9.1
+)
+set(BENCHMARK_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_DOWNLOAD_DEPENDENCIES OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(benchmark)
+# ------------------------------------
+
 find_package(IntelSYCL REQUIRED)
 find_package(MPI REQUIRED)
-# HDF5 is already found in the parent CMakeLists.txt or we can find it here too
 find_package(HDF5 COMPONENTS C HL REQUIRED)
 
 include_directories(../../src)
@@ -28,5 +41,10 @@ foreach(app ${BENCHMARK_APPS})
     target_include_directories(${exe_name} PRIVATE ../../src .)
     target_compile_options(${exe_name} PRIVATE -O3)
     add_sycl_to_target(TARGET ${exe_name} SOURCES ${app}.cpp)
-    target_link_libraries(${exe_name} PRIVATE ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${MPI_CXX_LIBRARIES})
+    target_link_libraries(${exe_name} PRIVATE 
+        benchmark::benchmark 
+        ${HDF5_C_LIBRARIES} 
+        ${HDF5_HL_LIBRARIES} 
+        ${MPI_CXX_LIBRARIES}
+    )
 endforeach()

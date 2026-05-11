@@ -13,7 +13,7 @@
 #include <unistd.h>
 
 namespace fasttree {
-namespace benchmark {
+namespace bench_utils {
 
 struct Timer {
     std::chrono::high_resolution_clock::time_point start_time;
@@ -138,7 +138,7 @@ void print_benchmark_row(const std::string& test_name, const std::string& hardwa
               << " | " << std::setw(20) << notes << " |" << std::endl;
 }
 
-} // namespace benchmark
+} // namespace bench_utils
 } // namespace fasttree
 
 #endif // FASTTREE_BENCHMARK_UTILS_HPP
