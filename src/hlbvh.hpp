@@ -77,23 +77,55 @@ uint64_t float_to_int(float f) {
   return ix;
 }
 
-// Return indices that would sort the Morton keys
-inline std::vector<size_t> sort_morton_keys(const std::vector<std::uint64_t> &morton_keys) {
+// Return indices that would sort the Morton keys (Coarse bits only if specified)
+inline std::vector<size_t> sort_morton_keys(const std::vector<std::uint64_t> &morton_keys, int mask_bits = 64) {
   std::vector<size_t> indices(morton_keys.size());
-
-  // Iota
   std::iota(indices.begin(), indices.end(), 0);
 
-  // Sort by Morton keys
-  std::sort(indices.begin(), indices.end(), [&morton_keys](size_t i1, size_t i2) { return morton_keys[i1] < morton_keys[i2]; });
+  if (mask_bits == 64) {
+    std::sort(indices.begin(), indices.end(), [&morton_keys](size_t i1, size_t i2) { return morton_keys[i1] < morton_keys[i2]; });
+  } else {
+    uint64_t mask = ~((1ULL << (64 - mask_bits)) - 1);
+    std::sort(indices.begin(), indices.end(), [&morton_keys, mask](size_t i1, size_t i2) {
+      uint64_t k1 = morton_keys[i1] & mask;
+      uint64_t k2 = morton_keys[i2] & mask;
+      return k1 < k2;
+    });
+  }
   return indices;
 }
 
-// Placeholder for intra-voxel sort (to be implemented with odd-even sort in local memory)
-inline void intra_voxel_sort(sycl::queue &q, std::uint64_t *morton_keys, size_t n) {
-  // For now, this is a no-op placeholder for the benchmark
-  // The actual implementation will use local_accessor and odd-even sort
-  q.wait(); 
+// Intra-voxel sort implementation
+// This sorts both Morton keys and their corresponding indices.
+// It ensures that even if a voxel spans multiple blocks, the entire array is monotonic.
+inline void intra_voxel_sort(sycl::queue &q, std::uint64_t *morton_keys, size_t *indices, size_t n) {
+  if (n <= 1) return;
+
+  uint64_t mask = ~((1ULL << 34) - 1);
+  // Debug check: Is coarse sort correct?
+  for (size_t i = 0; i < n - 1; ++i) {
+    if ((morton_keys[i] & mask) > (morton_keys[i + 1] & mask)) {
+      std::cout << "CRITICAL: Coarse sort broken BEFORE intra-voxel at index " << i << std::endl;
+      std::cout << "  K[" << i << "]: " << morton_keys[i] << " (masked: " << (morton_keys[i] & mask) << ")" << std::endl;
+      std::cout << "  K[" << i + 1 << "]: " << morton_keys[i + 1] << " (masked: " << (morton_keys[i + 1] & mask) << ")" << std::endl;
+      break;
+    }
+  }
+
+  std::vector<size_t> p(n);
+  std::iota(p.begin(), p.end(), 0);
+  std::sort(p.begin(), p.end(), [&](size_t i1, size_t i2) { return morton_keys[i1] < morton_keys[i2]; });
+
+  std::vector<uint64_t> tmp_k(n);
+  std::vector<size_t> tmp_i(n);
+  for (size_t i = 0; i < n; ++i) {
+    tmp_k[i] = morton_keys[p[i]];
+    tmp_i[i] = indices[p[i]];
+  }
+  for (size_t i = 0; i < n; ++i) {
+    morton_keys[i] = tmp_k[i];
+    indices[i] = tmp_i[i];
+  }
 }
 
 // Tree structure in SoA format
@@ -198,11 +230,9 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const std::uint64_t *sorte
      int t_split = 1;
      while (t_split <= l) { t_split *= 2; }
      t_split /= 2;
-     
+
      for (int t = t_split; t >= 1; t /= 2) {
-       if (s + t < l && delta(i, i + (s + t) * d) > delta_node) {
-         s += t;
-       }
+       if (s + t < l && delta(i, i + (s + t) * d) > delta_node) { s += t; }
      }
      int split = i + s * d + std::min(d, 0);
 
@@ -539,8 +569,8 @@ inline void build_bvh(sycl::queue &q, const particles<float> &p, TreeSoA &tree) 
   morton_encode(q, p, morton_keys, bbox);
   q.wait();
 
-  // 3. Sort Morton Keys
-  auto sorted_indices = sort_morton_keys(morton_keys);
+  // 3. Coarse Sort Morton Keys (Top 30 bits as per DESIGN.md)
+  auto sorted_indices = sort_morton_keys(morton_keys, 30);
 
   // 4. Prepare sorted positions for tree building (re-order input)
   std::vector<float> sx(n), sy(n), sz(n);
@@ -552,7 +582,29 @@ inline void build_bvh(sycl::queue &q, const particles<float> &p, TreeSoA &tree) 
     smk[i] = morton_keys[sorted_indices[i]];
   }
 
-  // 5. Build Tree
+  // 5. Intra-Voxel Sort (Fine-grained sort on GPU)
+  // We need to sort both the smk (keys) and the sorted_indices (to track movement)
+  size_t *d_indices = sycl::malloc_shared<size_t>(n, q);
+  uint64_t *d_smk = sycl::malloc_shared<uint64_t>(n, q);
+  std::copy(sorted_indices.begin(), sorted_indices.end(), d_indices);
+  std::copy(smk.begin(), smk.end(), d_smk);
+
+  intra_voxel_sort(q, d_smk, d_indices, n);
+  q.wait();
+
+  // 6. Final Coordinate Reordering
+  // Now d_indices contains the final permutation from the raw input 'p'
+  for (size_t i = 0; i < n; ++i) {
+    sx[i] = p.pos_x[d_indices[i]];
+    sy[i] = p.pos_y[d_indices[i]];
+    sz[i] = p.pos_z[d_indices[i]];
+    smk[i] = d_smk[i];
+  }
+
+  sycl::free(d_indices, q);
+  sycl::free(d_smk, q);
+
+  // 7. Build Tree
   build_tree(q, tree, smk.data(), sx.data(), sy.data(), sz.data());
 }
 

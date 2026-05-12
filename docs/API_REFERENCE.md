@@ -24,9 +24,15 @@ struct TreeSoA {
   void free(sycl::queue &q);
 };
 ```
-- **Leaves vs Internal Nodes:** The tree stores exactly $N$ leaves (particles) and $N-1$ internal nodes.
-- **Indexing:** Internal nodes are indexed from $0$ to $N-2$. The root is always at index $0$. Leaves are indexed from $N-1$ to $2N-2$.
-- **Memory:** All arrays are allocated using `sycl::malloc_shared`, making them accessible from both Host and Device (Unified Shared Memory).
+- **Leaves vs Internal Nodes:** The tree stores exactly $N$ leaves (representing the actual particles) and $N-1$ internal nodes (representing spatial bounding volumes that group leaves or other internal nodes).
+  - **Leaf Nodes:** A leaf node has no children (`left_child` and `right_child` are invalid). Its bounding box `(min_x, min_y, min_z)` to `(max_x, max_y, max_z)` is degenerate and exactly equals the physical $(x, y, z)$ coordinate of the single particle it represents.
+  - **Internal Nodes:** An internal node always has exactly two children (either two leaves, two internal nodes, or one of each). Its bounding box geometrically encloses all particles contained within its left and right sub-trees.
+- **Indexing & The Flat Array:** Instead of allocating nodes individually in memory, the entire tree is flattened into contiguous arrays of size $2N - 1$.
+  - Internal nodes are stored at indices from $0$ to $N-2$. The root of the entire tree is always at index $0$.
+  - Leaves are stored continuously after the internal nodes, at indices from $N-1$ to $2N-2$.
+- **Architectural Rationale:** 
+  1. **GPU Performance (Coalesced Access):** Grouping all node data into contiguous arrays of floats and ints (Structure of Arrays) ensures that when a GPU warp traverses the tree, memory reads are coalesced, maximizing bandwidth utilization.
+  2. **MPI Serialization:** Because relationships are defined by integer indices (e.g., `left_child[i] = 5`) rather than memory pointers (e.g., `Node* left`), the entire tree can be trivially copied and transmitted across the network via MPI raw byte transfers without needing complex serialization/deserialization logic.
 
 ### `particles<T>`
 A basic SoA container for input spatial coordinates.

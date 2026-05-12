@@ -5,26 +5,37 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <map>
 
 using namespace fasttree;
 using namespace fasttree::bench_utils;
 
-std::map<std::string, size_t> counts;
-
-static void BM_IntraVoxelSort(benchmark::State& state, const std::string& label) {
+static void BM_IntraVoxelSort_Lazy(benchmark::State& state, std::string path) {
     sycl::queue q;
-    size_t n = counts[label];
+    ParticleData data;
+    if (!load_hdf5_data(path, data)) return;
+    
+    size_t n = data.count;
     uint64_t *morton_keys = sycl::malloc_shared<uint64_t>(n, q);
+    size_t *indices = sycl::malloc_shared<size_t>(n, q);
+    
     q.fill(morton_keys, 0ULL, n).wait();
+    q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
+        indices[idx] = idx[0];
+    }).wait();
+
+    // Warm up
+    intra_voxel_sort(q, morton_keys, indices, n);
+    q.wait();
 
     for (auto _ : state) {
-        intra_voxel_sort(q, morton_keys, n);
+        intra_voxel_sort(q, morton_keys, indices, n);
         q.wait();
     }
     
     state.SetItemsProcessed(state.iterations() * n);
+    state.counters["PeakRSS_MB"] = (double)get_peak_rss() / 1024.0;
     sycl::free(morton_keys, q);
+    sycl::free(indices, q);
 }
 
 int main(int argc, char** argv) {
@@ -38,14 +49,9 @@ int main(int argc, char** argv) {
         std::string count_str, file_path;
         ss >> count_str >> file_path;
 
-        // For this placeholder, we just need the count
-        // We'll estimate count from the string (1K -> 1000) or just load metadata
-        ParticleData data;
-        if (load_hdf5_data(file_path, data)) {
-            counts[count_str] = data.count;
-            benchmark::RegisterBenchmark(("IntraVoxelSort/" + count_str).c_str(), BM_IntraVoxelSort, count_str)
-                ->Unit(benchmark::kMicrosecond);
-        }
+        benchmark::RegisterBenchmark(("IntraVoxelSort/" + count_str).c_str(), 
+            [file_path](benchmark::State& st) { BM_IntraVoxelSort_Lazy(st, file_path); })
+            ->Unit(benchmark::kMicrosecond);
     }
 
     benchmark::Initialize(&argc, argv);
