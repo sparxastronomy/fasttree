@@ -1,6 +1,9 @@
 #ifndef SYCL_FASTTREE_HLBVH_HPP
 #define SYCL_FASTTREE_HLBVH_HPP
 
+#include <oneapi/dpl/algorithm>
+#include <oneapi/dpl/execution>
+#include <oneapi/dpl/iterator>
 #include <sycl/sycl.hpp>
 #include <algorithm>
 #include <bit>
@@ -72,60 +75,9 @@ inline int get_common_prefix_length(std::uint64_t c1, std::uint64_t c2) {
 }
 
 uint64_t float_to_int(float f) {
-  std::uint32_t bits = std::bit_cast<std::uint32_t>(f);
+  std::uint32_t bits = sycl::bit_cast<std::uint32_t>(f);
   std::uint64_t ix = (bits & 0x7FFFFFu) >> (23 - BITS_PER_DIM);
   return ix;
-}
-
-// Return indices that would sort the Morton keys (Coarse bits only if specified)
-inline std::vector<size_t> sort_morton_keys(const std::vector<std::uint64_t> &morton_keys, int mask_bits = 64) {
-  std::vector<size_t> indices(morton_keys.size());
-  std::iota(indices.begin(), indices.end(), 0);
-
-  if (mask_bits == 64) {
-    std::sort(indices.begin(), indices.end(), [&morton_keys](size_t i1, size_t i2) { return morton_keys[i1] < morton_keys[i2]; });
-  } else {
-    uint64_t mask = ~((1ULL << (64 - mask_bits)) - 1);
-    std::sort(indices.begin(), indices.end(), [&morton_keys, mask](size_t i1, size_t i2) {
-      uint64_t k1 = morton_keys[i1] & mask;
-      uint64_t k2 = morton_keys[i2] & mask;
-      return k1 < k2;
-    });
-  }
-  return indices;
-}
-
-// Intra-voxel sort implementation
-// This sorts both Morton keys and their corresponding indices.
-// It ensures that even if a voxel spans multiple blocks, the entire array is monotonic.
-inline void intra_voxel_sort(sycl::queue &q, std::uint64_t *morton_keys, size_t *indices, size_t n) {
-  if (n <= 1) return;
-
-  uint64_t mask = ~((1ULL << 34) - 1);
-  // Debug check: Is coarse sort correct?
-  for (size_t i = 0; i < n - 1; ++i) {
-    if ((morton_keys[i] & mask) > (morton_keys[i + 1] & mask)) {
-      std::cout << "CRITICAL: Coarse sort broken BEFORE intra-voxel at index " << i << std::endl;
-      std::cout << "  K[" << i << "]: " << morton_keys[i] << " (masked: " << (morton_keys[i] & mask) << ")" << std::endl;
-      std::cout << "  K[" << i + 1 << "]: " << morton_keys[i + 1] << " (masked: " << (morton_keys[i + 1] & mask) << ")" << std::endl;
-      break;
-    }
-  }
-
-  std::vector<size_t> p(n);
-  std::iota(p.begin(), p.end(), 0);
-  std::sort(p.begin(), p.end(), [&](size_t i1, size_t i2) { return morton_keys[i1] < morton_keys[i2]; });
-
-  std::vector<uint64_t> tmp_k(n);
-  std::vector<size_t> tmp_i(n);
-  for (size_t i = 0; i < n; ++i) {
-    tmp_k[i] = morton_keys[p[i]];
-    tmp_i[i] = indices[p[i]];
-  }
-  for (size_t i = 0; i < n; ++i) {
-    morton_keys[i] = tmp_k[i];
-    indices[i] = tmp_i[i];
-  }
 }
 
 // Tree structure in SoA format
@@ -482,16 +434,11 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const float *qx, co
   });
 }
 
-inline void morton_encode(sycl::queue &q,                           // SYCL queue for offloading
-                          const particles<float> &particles,        // Input particle data
-                          std::vector<std::uint64_t> &morton_keys,  // USM compatible vector for output
-                          const BoundingBox &bbox                   // Bounding box for normalization
-) {
+inline void morton_encode(sycl::queue &q, const particles<float> &particles, std::uint64_t *keys, const BoundingBox &bbox) {
   size_t num_particles = particles.pos_x.size();
   const float *pos_x = particles.pos_x.data();
   const float *pos_y = particles.pos_y.data();
   const float *pos_z = particles.pos_z.data();
-  std::uint64_t *keys = morton_keys.data();
 
   float dx = bbox.max_x - bbox.min_x;
   float dy = bbox.max_y - bbox.min_y;
@@ -514,6 +461,10 @@ inline void morton_encode(sycl::queue &q,                           // SYCL queu
 
     keys[i] = spread3_u64(ix) | (spread3_u64(iy) << 1) | (spread3_u64(iz) << 2);
   });
+}
+
+inline void morton_encode(sycl::queue &q, const particles<float> &particles, std::vector<std::uint64_t> &morton_keys, const BoundingBox &bbox) {
+  morton_encode(q, particles, morton_keys.data(), bbox);
 }
 
 inline void morton_decode(sycl::queue &q, const std::vector<std::uint64_t> &morton_keys, const BoundingBox &bbox, particles<float> &particles) {
@@ -553,7 +504,6 @@ inline void build_bvh(sycl::queue &q, const particles<float> &p, TreeSoA &tree) 
   if (n == 0) return;
 
   // 1. Compute Bounding Box
-  // For production, this should be done in parallel (sycl::reduce)
   BoundingBox bbox = {p.pos_x[0], p.pos_x[0], p.pos_y[0], p.pos_y[0], p.pos_z[0], p.pos_z[0]};
   for (size_t i = 1; i < n; ++i) {
     bbox.min_x = std::min(bbox.min_x, p.pos_x[i]);
@@ -564,48 +514,37 @@ inline void build_bvh(sycl::queue &q, const particles<float> &p, TreeSoA &tree) 
     bbox.max_z = std::max(bbox.max_z, p.pos_z[i]);
   }
 
-  // 2. Morton Encoding
-  std::vector<std::uint64_t> morton_keys(n);
-  morton_encode(q, p, morton_keys, bbox);
-  q.wait();
-
-  // 3. Coarse Sort Morton Keys (Top 30 bits as per DESIGN.md)
-  auto sorted_indices = sort_morton_keys(morton_keys, 30);
-
-  // 4. Prepare sorted positions for tree building (re-order input)
-  std::vector<float> sx(n), sy(n), sz(n);
-  std::vector<std::uint64_t> smk(n);
-  for (size_t i = 0; i < n; ++i) {
-    sx[i] = p.pos_x[sorted_indices[i]];
-    sy[i] = p.pos_y[sorted_indices[i]];
-    sz[i] = p.pos_z[sorted_indices[i]];
-    smk[i] = morton_keys[sorted_indices[i]];
-  }
-
-  // 5. Intra-Voxel Sort (Fine-grained sort on GPU)
-  // We need to sort both the smk (keys) and the sorted_indices (to track movement)
-  size_t *d_indices = sycl::malloc_shared<size_t>(n, q);
+  // 2. Allocate USM memory for keys and indices
   uint64_t *d_smk = sycl::malloc_shared<uint64_t>(n, q);
-  std::copy(sorted_indices.begin(), sorted_indices.end(), d_indices);
-  std::copy(smk.begin(), smk.end(), d_smk);
+  size_t *d_indices = sycl::malloc_shared<size_t>(n, q);
 
-  intra_voxel_sort(q, d_smk, d_indices, n);
+  // 3. Morton Encoding and Index Initialization
+  morton_encode(q, p, d_smk, bbox);
+  q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) { d_indices[idx] = idx[0]; });
   q.wait();
 
-  // 6. Final Coordinate Reordering
-  // Now d_indices contains the final permutation from the raw input 'p'
+  // 4. Single-Pass Full GPU Sort using oneDPL
+  auto policy = oneapi::dpl::execution::make_device_policy(q);
+  auto zip_begin = oneapi::dpl::make_zip_iterator(d_smk, d_indices);
+  auto zip_end = zip_begin + n;
+
+  oneapi::dpl::sort(policy, zip_begin, zip_end, [](auto a, auto b) { return std::get<0>(a) < std::get<0>(b); });
+  q.wait();
+
+  // 5. Coordinate Reordering
+  std::vector<float> sx(n), sy(n), sz(n);
   for (size_t i = 0; i < n; ++i) {
     sx[i] = p.pos_x[d_indices[i]];
     sy[i] = p.pos_y[d_indices[i]];
     sz[i] = p.pos_z[d_indices[i]];
-    smk[i] = d_smk[i];
   }
 
-  sycl::free(d_indices, q);
-  sycl::free(d_smk, q);
+  // 6. Build Tree
+  build_tree(q, tree, d_smk, sx.data(), sy.data(), sz.data());
 
-  // 7. Build Tree
-  build_tree(q, tree, smk.data(), sx.data(), sy.data(), sz.data());
+  // Cleanup
+  sycl::free(d_smk, q);
+  sycl::free(d_indices, q);
 }
 
 }  // namespace fasttree

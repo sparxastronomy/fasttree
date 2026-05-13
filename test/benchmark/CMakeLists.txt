@@ -28,8 +28,7 @@ include_directories(${MPI_CXX_INCLUDE_DIRS})
 
 set(BENCHMARK_APPS
     morton_scaling
-    radix_sort_scaling
-    intra_voxel_sort_scaling
+    gpu_sort_scaling
     tree_build_scaling
     range_query_scaling
     knn_query_scaling
@@ -47,4 +46,8 @@ foreach(app ${BENCHMARK_APPS})
         ${HDF5_HL_LIBRARIES} 
         ${MPI_CXX_LIBRARIES}
     )
+    if(ENABLE_NVIDIA_GPU)
+        target_compile_options(${exe_name} PRIVATE ${NVIDIA_SYCL_FLAGS})
+        target_link_options(${exe_name} PRIVATE ${NVIDIA_SYCL_FLAGS})
+    endif()
 endforeach()

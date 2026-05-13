@@ -68,7 +68,7 @@ vcpkg_installed/
 Testing/
 .cache/
 core*
-
+*.txt
 
 # Visual Studio Code
 .vscode/
