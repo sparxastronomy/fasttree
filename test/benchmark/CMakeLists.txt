@@ -5,6 +5,10 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # --- Google Benchmark Integration ---
+set(HAVE_STD_REGEX ON CACHE BOOL "Force HAVE_STD_REGEX to true to bypass icpx try_compile bug" FORCE)
+set(HAVE_POSIX_REGEX OFF CACHE BOOL "" FORCE)
+set(HAVE_GNU_POSIX_REGEX OFF CACHE BOOL "" FORCE)
+
 include(FetchContent)
 FetchContent_Declare(
   benchmark
@@ -18,7 +22,11 @@ set(BENCHMARK_DOWNLOAD_DEPENDENCIES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(benchmark)
 # ------------------------------------
 
-find_package(IntelSYCL REQUIRED)
+find_package(IntelSYCL QUIET)
+if(NOT IntelSYCL_FOUND)
+    macro(add_sycl_to_target)
+    endmacro()
+endif()
 find_package(MPI REQUIRED)
 find_package(HDF5 COMPONENTS C HL REQUIRED)
 
@@ -46,8 +54,8 @@ foreach(app ${BENCHMARK_APPS})
         ${HDF5_HL_LIBRARIES} 
         ${MPI_CXX_LIBRARIES}
     )
-    if(ENABLE_NVIDIA_GPU)
-        target_compile_options(${exe_name} PRIVATE ${NVIDIA_SYCL_FLAGS})
-        target_link_options(${exe_name} PRIVATE ${NVIDIA_SYCL_FLAGS})
+    if(GPU_SYCL_FLAGS)
+        target_compile_options(${exe_name} PRIVATE ${GPU_SYCL_FLAGS})
+        target_link_options(${exe_name} PRIVATE ${GPU_SYCL_FLAGS})
     endif()
 endforeach()

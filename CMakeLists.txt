@@ -27,6 +27,9 @@ message(STATUS "C++ compiler version: ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "C++ compiler path: ${CMAKE_CXX_COMPILER}")
 message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
 
+# Force clang to use the newer GCC 15 toolchain instead of the default system GCC 7
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=/mpcdf/soft/SLE_15/packages/x86_64/gcc/15.1.0")
+
 # set C++ standard to C++ 23, find SYCL, MPI
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -37,6 +40,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(MPI REQUIRED COMPONENTS C CXX)
 include_directories(${MPI_C_INCLUDE_DIRS} ${MPI_CXX_INCLUDE_DIRS})
 
+# Include oneDPL headers since the custom DPC++ compiler might not bundle them
+include_directories(/u/bipra/ptmp/library/oneDPL/include)
+
 #
 # Find HDF5 libraries
 #
@@ -46,7 +52,12 @@ include_directories(${MPI_C_INCLUDE_DIRS} ${MPI_CXX_INCLUDE_DIRS})
 #
 # Find SYCL libraries (AdaptiveCpp)
 #
-find_package(IntelSYCL REQUIRED)
+find_package(IntelSYCL QUIET)
+if(NOT IntelSYCL_FOUND)
+    macro(add_sycl_to_target)
+        # We manually add -fsycl flags below, so this can be a no-op if IntelSYCL isn't found
+    endmacro()
+endif()
 
 # Add source files
 set(FASTTREE_SRC
@@ -60,14 +71,24 @@ target_compile_features(fasttree.exe PRIVATE cxx_std_23)
 target_include_directories(fasttree.exe PRIVATE src)
 target_compile_options(fasttree.exe PRIVATE -O3)
 
-# Default to omp backend if not specified
-if(NOT ACPP_TARGETS)
-    set(ACPP_TARGETS "omp")
+# Target GPU Option
+set(TARGET_GPU "" CACHE STRING "Target GPU architecture: nvidia, amd, or empty for CPU")
+set(GPU_SYCL_FLAGS "")
+if(TARGET_GPU STREQUAL "nvidia")
+    set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=nvptx64-nvidia-cuda,native_cpu;-Xsycl-target-backend=nvptx64-nvidia-cuda;--cuda-gpu-arch=sm_80")
+elseif(TARGET_GPU STREQUAL "amd")
+    set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=amdgcn-amd-amdhsa")
 endif()
+
+# We apply these flags to our targets manually to prevent breaking third-party dependencies like benchmark
 
 add_sycl_to_target(TARGET fasttree.exe SOURCES ${FASTTREE_SRC})
 
 target_link_libraries(fasttree.exe PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
+if(GPU_SYCL_FLAGS)
+    target_compile_options(fasttree.exe PRIVATE ${GPU_SYCL_FLAGS})
+    target_link_options(fasttree.exe PRIVATE ${GPU_SYCL_FLAGS})
+endif()
 
 # MPI Test Executable
 add_executable(test_mpi.exe test/test_mpi.cpp)
@@ -76,6 +97,10 @@ target_include_directories(test_mpi.exe PRIVATE src)
 target_compile_options(test_mpi.exe PRIVATE -O3)
 add_sycl_to_target(TARGET test_mpi.exe SOURCES test/test_mpi.cpp)
 target_link_libraries(test_mpi.exe PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
+if(GPU_SYCL_FLAGS)
+    target_compile_options(test_mpi.exe PRIVATE ${GPU_SYCL_FLAGS})
+    target_link_options(test_mpi.exe PRIVATE ${GPU_SYCL_FLAGS})
+endif()
 
 # Advanced MPI Halo-Exchange Test Executable
 add_executable(advance_mpi.exe test/advance_mpi.cpp)
@@ -84,5 +109,9 @@ target_include_directories(advance_mpi.exe PRIVATE src)
 target_compile_options(advance_mpi.exe PRIVATE -O3)
 add_sycl_to_target(TARGET advance_mpi.exe SOURCES test/advance_mpi.cpp)
 target_link_libraries(advance_mpi.exe PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
+if(GPU_SYCL_FLAGS)
+    target_compile_options(advance_mpi.exe PRIVATE ${GPU_SYCL_FLAGS})
+    target_link_options(advance_mpi.exe PRIVATE ${GPU_SYCL_FLAGS})
+endif()
 
 add_subdirectory(test/benchmark)

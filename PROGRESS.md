@@ -22,7 +22,7 @@
   - Achieved Exascale performance target: 10M particle tree build reduced from ~2.2s to ~421ms.
 
 ## Planned Tasks
-- [ ] Performance benchmarking on NVIDIA GPUs
+- [x] Performance benchmarking on NVIDIA GPUs (2026-05-15) - CMake configured, custom compiler tested, tests pass on NVIDIA A100.
 - [x] MPI serialization tests (2026-05-07)
 - [x] Re-enable oneDPL and PSTL for high-performance builds on supported environments (2026-05-12)
 
@@ -31,6 +31,12 @@
 - Tree structure is strictly SoA and pointer-free (uses integer indices).
 - Parallel hierarchy construction based on Karras (2012).
 - Range and kNN queries use non-recursive stack-based traversal.
+- **CMake & Environment (2026-05-15):** 
+  - Added `TARGET_GPU` (`nvidia` or `amd`) support in CMake.
+  - When targeting NVIDIA, CMake configures the compiler with `-fsycl;-fsycl-targets=nvptx64-nvidia-cuda,native_cpu;-Xsycl-target-backend=nvptx64-nvidia-cuda;--cuda-gpu-arch=sm_80`. 
+  - *Module Issue:* Use `cuda/12.1` rather than `cuda/13.0` during compilation; the Intel llvm linker passes the `-image` flag to `fatbinary`, which CUDA 13.0 removed, causing build failures. 
+  - *Execution Success:* A custom SYCL+CUDA environment with an open-source Intel LLVM build (`mpiicpx`) was provided. It correctly bundles the `libsycl-pi-cuda.so` plugin and the `native_cpu` module.
+  - Using `ONEAPI_DEVICE_SELECTOR=cuda:gpu`, the `fasttree.exe` validation tests (Morton key monotonicity, Range Query brute-force comparison, and kNN execution) **successfully ran on the NVIDIA A100-SXM4-40GB GPU!**
 - **Bug identified (2026-05-07):**
   - **Memory Ordering:** The bottom-up bounding box computation in the tree builder had a memory visibility bug due to using `sycl::memory_order::relaxed` with atomic counters. Fixed by switching to `sycl::memory_order::acq_rel`.
   - **Topology Issue:** The Karras topology builder binary search to find the split point `s` used mathematically incorrect integer halving (`t = (l+1)/2; t/=2`) for non-power-of-2 ranges. This created heavily disconnected trees. Fixed by replacing it with a robust power-of-two decomposition search.

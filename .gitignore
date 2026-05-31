@@ -57,6 +57,7 @@ compile_commands.json
 *.log
 *.bak
 *.swp
+build*/
 
 # vcpkg
 vcpkg_installed/
@@ -69,6 +70,12 @@ Testing/
 .cache/
 core*
 *.txt
+!CMakeLists.txt
+!docs/benchmark_gpu.txt
 
 # Visual Studio Code
 .vscode/
+
+# Agents related files
+.antigravitycli/
+.geminiignore
