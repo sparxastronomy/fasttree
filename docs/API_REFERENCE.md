@@ -76,8 +76,32 @@ void range_query(sycl::queue &q, const TreeSoA &tree,
                  int num_queries, int *results, int *result_counts, 
                  int max_results_per_query);
 ```
-- **Traversal Strategy:** Pushes overlapping children onto a local statically-sized stack (`MAX_STACK_DEPTH = 64`).
+- **Traversal Strategy:** Pushes overlapping children onto a local statically-sized stack (`MAX_STACK_DEPTH = 64`). By avoiding recursion, it prevents stack overflows and minimizes divergent thread execution on the GPU.
 - **Returns:** The indices of the particles (relative to the original sorted arrays) and the total count found per query.
+- **Algorithm & Pseudo-code:**
+  The algorithm iterates through the tree using a stack. For each node, it calculates the minimum bounding box distance to the query point. If this distance is within the maximum search radius, the node is processed. For internal nodes, their children are pushed to the stack. For leaf nodes, the exact distance is checked against both the minimum and maximum radii to determine if the particle should be included in the results.
+
+  ```text
+  Initialize stack with the root node index
+  Initialize count = 0
+  
+  while stack is not empty:
+      node = pop(stack)
+      dist_sq = min_squared_dist(query_point, node.bounding_box)
+      
+      if dist_sq <= max_radius_squared:
+          if node is leaf:
+              if dist_sq >= min_radius_squared and count < max_results:
+                  add node.particle_index to results
+                  increment count
+          else:
+              push(stack, node.right_child)
+              push(stack, node.left_child)
+  ```
+
+### `PriorityQueue`
+A simple, fixed-capacity priority queue designed specifically for GPU kernels.
+- **Need & Usage:** Standard library dynamic memory containers (like `std::priority_queue`) cannot be used within SYCL device kernels due to dynamic allocation constraints. This custom `PriorityQueue` relies on a statically sized array. It maintains the $k$-nearest elements sorted by distance, replacing the furthest element when a closer one is found. Insertion sort is used internally as $k$ is expected to be small, keeping register usage low and execution fast.
 
 ### `knn_query`
 Finds the $k$-nearest neighbors to a given query point.
@@ -89,3 +113,30 @@ void knn_query(sycl::queue &q, const TreeSoA &tree,
 ```
 - **Traversal Strategy:** Maintains a custom, statically sized GPU `PriorityQueue` during tree traversal.
 - **Optimization:** To quickly prune the search space, the traversal heuristically visits the child node whose bounding box is geometrically closer to the query point first.
+- **Algorithm & Pseudo-code:**
+  The tree is traversed using a statically-sized stack, bounding the search using the $k$-th nearest neighbor's distance currently in the priority queue. If a node's bounding box is closer than the furthest known neighbor (or if fewer than $k$ neighbors have been found), the traversal continues into the node. For internal nodes, the distances to both children are calculated, and the closer child is pushed to the stack *last* so it gets popped and evaluated *first* (LIFO order).
+  
+  ```text
+  Initialize stack with the root node index
+  Initialize PriorityQueue pq of size k
+  
+  while stack is not empty:
+      node = pop(stack)
+      dist_sq = min_squared_dist(query_point, node.bounding_box)
+      
+      if pq.size < k or dist_sq < pq.max_distance:
+          if node is leaf:
+              pq.push(dist_sq, node.particle_index)
+          else:
+              left_dist = min_squared_dist(query_point, left_child.bounding_box)
+              right_dist = min_squared_dist(query_point, right_child.bounding_box)
+              
+              if left_dist < right_dist:
+                  push(stack, right_child)
+                  push(stack, left_child)
+              else:
+                  push(stack, left_child)
+                  push(stack, right_child)
+                  
+  Write pq contents to results array
+  ```

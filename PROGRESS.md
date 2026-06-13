@@ -20,6 +20,9 @@
   - Replaced CPU fallback `std::sort` with high-performance `oneapi::dpl::sort`.
   - Implemented single-pass 64-bit GPU sorting of zipped Morton keys and particle indices.
   - Achieved Exascale performance target: 10M particle tree build reduced from ~2.2s to ~421ms.
+- [x] Update API Reference (2026-06-13)
+  - Added algorithmic choices and pseudo-code for `kNN` and `range_query`.
+  - Documented the need and usage of the statically sized `PriorityQueue` for GPU kernels.
 
 ## Planned Tasks
 - [x] Performance benchmarking on NVIDIA GPUs (2026-05-15) - CMake configured, custom compiler tested, tests pass on NVIDIA A100.
