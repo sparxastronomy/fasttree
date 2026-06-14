@@ -81,3 +81,12 @@ The project is designed to be included as a Git submodule. The core implementati
   - No scaling test for overall simulation time with and without the tree utility in a distributed setting
 
 - No scaling of the Heirarchial consitruction i.e time to rebuild the tree after the particles have slightly moved. This will be considered in the next release (i.e Version 2.0+) after we have the initial tree build and query working.
+
+
+## 7. Release Plan
+- [x] **v.1.0.0-beta1 :** Initial implmentation of the HLBVH tree builder, range_query and kNN query and benchmark suite.
+  - This release will focus on the core implementation of the HLBVH tree builder and the query functions, along with a basic benchmark suite to validate performance on either a single NVIDIA GPU or a single AMD GPU or a single compute node.
+  - The tree sturcture will be stirctly pointer-free and should support basic MPI serialization tests.
+
+- [ ] **v.1.0.0-beta2 :** This release should focus on implementing domain decomposition.
+  - The initial plan is listed in `PLAN.md` where domain decomposition is carried out to top level splitting. 

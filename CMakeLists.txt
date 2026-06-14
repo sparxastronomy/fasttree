@@ -78,6 +78,8 @@ if(TARGET_GPU STREQUAL "nvidia")
     set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=nvptx64-nvidia-cuda,native_cpu;-Xsycl-target-backend=nvptx64-nvidia-cuda;--cuda-gpu-arch=sm_80")
 elseif(TARGET_GPU STREQUAL "amd")
     set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=amdgcn-amd-amdhsa")
+else()
+    set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=native_cpu")
 endif()
 
 # We apply these flags to our targets manually to prevent breaking third-party dependencies like benchmark

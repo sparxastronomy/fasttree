@@ -1,6 +1,6 @@
 # Progress: SYCL-HLBVH Implementation
-**Target release version:** 1.0 (2026-05-07)
-
+**Current release version:** v.1.0.0-beta1 (2026-06-13)
+**Target release version:** v.1.0.0-beta2
 
 ## Completed Tasks
 - [x] Basic Morton encoding/decoding (2026-05-07)
@@ -23,6 +23,8 @@
 - [x] Update API Reference (2026-06-13)
   - Added algorithmic choices and pseudo-code for `kNN` and `range_query`.
   - Documented the need and usage of the statically sized `PriorityQueue` for GPU kernels.
+- [x] Fix CPU/Native Compilation for Custom clang/clang++ (2026-06-13)
+  - Added default fallback `-fsycl` compile/link option in `CMakeLists.txt` when `TARGET_GPU` is empty and `IntelSYCL` is not found.
 
 ## Planned Tasks
 - [x] Performance benchmarking on NVIDIA GPUs (2026-05-15) - CMake configured, custom compiler tested, tests pass on NVIDIA A100.

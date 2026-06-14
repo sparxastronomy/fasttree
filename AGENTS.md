@@ -10,8 +10,9 @@ All relationships between tree nodes must be expressed as integer indices refere
 ## Orientation (read this first when starting a session)
 When you start a new session, orient yourself:
 1. Read `DESIGN.md` for the architectural overview and constraints of the implementation.
-2. Read `PROGRESS.md` to see what's done and what's next.
+2. Read `PROGRESS.md` to see what's done, what's next, what is the current release and what is the target release.
 3. When you finish a unit of work, update `PROGRESS.md` before stopping.
+4. Read `PLAN.md` to understand the high-level roadmap, milestones, or plan for any given release.
 
 ## Coding Rules & Heuristics
 
