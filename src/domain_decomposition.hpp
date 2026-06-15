@@ -1,0 +1,605 @@
+#ifndef SYCL_FASTTREE_DOMAIN_DECOMPOSITION_HPP
+#define SYCL_FASTTREE_DOMAIN_DECOMPOSITION_HPP
+
+#include "hlbvh.hpp"
+#include <sycl/sycl.hpp>
+#include <algorithm>
+#include <limits>
+#include <numeric>
+#include <vector>
+#include <mpi.h>
+
+namespace fasttree {
+
+// Phase 1: Global Bounding Box Calculation
+inline BoundingBox get_global_bounding_box(sycl::queue &q, const particles<float> &p) {
+  size_t n = p.pos_x.size();
+
+  // 1. Handle empty particle array: return empty box and let MPI allreduce resolve it
+  if (n == 0) {
+    float min_val = std::numeric_limits<float>::max();
+    float max_val = -std::numeric_limits<float>::max();
+    float local_min_x = min_val, local_max_x = max_val;
+    float local_min_y = min_val, local_max_y = max_val;
+    float local_min_z = min_val, local_max_z = max_val;
+
+    float global_min_x, global_max_x;
+    float global_min_y, global_max_y;
+    float global_min_z, global_max_z;
+
+    MPI_Allreduce(&local_min_x, &global_min_x, 1, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_max_x, &global_max_x, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_min_y, &global_min_y, 1, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_max_y, &global_max_y, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_min_z, &global_min_z, 1, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_max_z, &global_max_z, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+
+    return BoundingBox{global_min_x, global_max_x, global_min_y, global_max_y, global_min_z, global_max_z};
+  }
+
+  // 2. Allocate USM shared memory for reduction outputs on host/device
+  float *d_min_x = sycl::malloc_shared<float>(1, q);
+  float *d_max_x = sycl::malloc_shared<float>(1, q);
+  float *d_min_y = sycl::malloc_shared<float>(1, q);
+  float *d_max_y = sycl::malloc_shared<float>(1, q);
+  float *d_min_z = sycl::malloc_shared<float>(1, q);
+  float *d_max_z = sycl::malloc_shared<float>(1, q);
+
+  // 3. Initialize local min/max arrays to extreme values
+  d_min_x[0] = std::numeric_limits<float>::max();
+  d_max_x[0] = -std::numeric_limits<float>::max();
+  d_min_y[0] = std::numeric_limits<float>::max();
+  d_max_y[0] = -std::numeric_limits<float>::max();
+  d_min_z[0] = std::numeric_limits<float>::max();
+  d_max_z[0] = -std::numeric_limits<float>::max();
+
+  // 4. Retrieve raw data pointers from the particle lists
+  const float *pos_x = p.pos_x.data();
+  const float *pos_y = p.pos_y.data();
+  const float *pos_z = p.pos_z.data();
+
+  // 5. Submit parallel reduction kernel using SYCL reduction objects
+  q.submit([&](sycl::handler &cgh) {
+     cgh.parallel_for(sycl::range<1>(n), sycl::reduction(d_min_x, std::numeric_limits<float>::max(), sycl::minimum<float>()),
+                      sycl::reduction(d_max_x, -std::numeric_limits<float>::max(), sycl::maximum<float>()),
+                      sycl::reduction(d_min_y, std::numeric_limits<float>::max(), sycl::minimum<float>()),
+                      sycl::reduction(d_max_y, -std::numeric_limits<float>::max(), sycl::maximum<float>()),
+                      sycl::reduction(d_min_z, std::numeric_limits<float>::max(), sycl::minimum<float>()),
+                      sycl::reduction(d_max_z, -std::numeric_limits<float>::max(), sycl::maximum<float>()),
+                      [=](sycl::id<1> idx, auto &min_x, auto &max_x, auto &min_y, auto &max_y, auto &min_z, auto &max_z) {
+                        size_t i = idx[0];
+                        min_x.combine(pos_x[i]);
+                        max_x.combine(pos_x[i]);
+                        min_y.combine(pos_y[i]);
+                        max_y.combine(pos_y[i]);
+                        min_z.combine(pos_z[i]);
+                        max_z.combine(pos_z[i]);
+                      });
+   }).wait();
+
+  // 6. Retrieve local reduction results from shared memory
+  float local_min_x = d_min_x[0];
+  float local_max_x = d_max_x[0];
+  float local_min_y = d_min_y[0];
+  float local_max_y = d_max_y[0];
+  float local_min_z = d_min_z[0];
+  float local_max_z = d_max_z[0];
+
+  // 7. Free allocated shared memory
+  sycl::free(d_min_x, q);
+  sycl::free(d_max_x, q);
+  sycl::free(d_min_y, q);
+  sycl::free(d_max_y, q);
+  sycl::free(d_min_z, q);
+  sycl::free(d_max_z, q);
+
+  // 8. Perform global MPI reductions to synchronize bounding box across all ranks
+  float global_min_x, global_max_x;
+  float global_min_y, global_max_y;
+  float global_min_z, global_max_z;
+
+  MPI_Allreduce(&local_min_x, &global_min_x, 1, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
+  MPI_Allreduce(&local_max_x, &global_max_x, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+  MPI_Allreduce(&local_min_y, &global_min_y, 1, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
+  MPI_Allreduce(&local_max_y, &global_max_y, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+  MPI_Allreduce(&local_min_z, &global_min_z, 1, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
+  MPI_Allreduce(&local_max_z, &global_max_z, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+
+  return BoundingBox{global_min_x, global_max_x, global_min_y, global_max_y, global_min_z, global_max_z};
+}
+
+// Phase 2: Coarse-Grid Histogram Calculation
+/**
+ * Computes a global histogram of particle counts across a coarse grid defined by the global bounding box and Morton encoding,
+ * returning the histogram as a vector of counts per bucket.
+ *
+ * @param q SYCL queue
+ * @param p Local particles for this rank
+ * @param global_bbox Global bounding box used for Morton encoding
+ * @param m Number of bits used for Morton encoding (default 20, giving 1 million buckets)
+ * @return Global histogram vector where each entry corresponds to the total count of particles in that bucket across all MPI ranks
+ */
+inline std::vector<int> get_global_histogram(sycl::queue &q, const particles<float> &p, const BoundingBox &global_bbox, int m = 20) {
+  size_t n = p.pos_x.size();
+  int num_buckets = 1 << m;
+
+  // 1. Allocate local histogram in USM and initialize it to zero
+  int *d_local_hist = sycl::malloc_shared<int>(num_buckets, q);
+  q.fill(d_local_hist, 0, num_buckets).wait();
+
+  // 2. Generate Morton keys and compute bucket indices if particles exist locally
+  if (n > 0) {
+    uint64_t *d_keys = sycl::malloc_shared<uint64_t>(n, q);
+    morton_encode(q, p, d_keys, global_bbox);
+    q.wait();
+
+    // 3. Increment histogram buckets using atomic additions on the GPU
+    q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
+       size_t i = idx[0];
+       uint32_t bucket_idx = static_cast<uint32_t>(d_keys[i] >> (63 - m));
+       auto atomic_ref = sycl::atomic_ref<int, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space>(
+           d_local_hist[bucket_idx]);
+       atomic_ref.fetch_add(1);
+     }).wait();
+
+    sycl::free(d_keys, q);
+  }
+
+  // 4. Copy local histogram from device/shared memory back to host
+  std::vector<int> local_hist(num_buckets);
+  q.copy(d_local_hist, local_hist.data(), num_buckets).wait();
+  sycl::free(d_local_hist, q);
+
+  // 5. Perform global MPI reduction to sum histograms across all MPI ranks
+  std::vector<int> global_hist(num_buckets);
+  MPI_Allreduce(local_hist.data(), global_hist.data(), num_buckets, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  return global_hist;
+}
+
+// Phase 3: Splitter Generation
+inline std::vector<uint32_t> generate_splitters(const std::vector<int> &global_hist, int P, int m = 20) {
+  int num_buckets = 1 << m;
+  long long total_particles = 0;
+  for (int count : global_hist) { total_particles += count; }
+
+  // 1. Calculate target load balance per MPI rank
+  long long target_load = total_particles / P;
+  std::vector<uint32_t> rank_splitters(P + 1);
+  rank_splitters[0] = 0;
+
+  long long current_particles = 0;
+  int current_rank = 1;
+
+  // 2. Scan through buckets to assign splitter boundaries when cumulative load targets are reached
+  for (uint32_t bucket = 0; bucket < static_cast<uint32_t>(num_buckets); ++bucket) {
+    current_particles += global_hist[bucket];
+    while (current_rank < P && current_particles >= target_load * current_rank) {
+      rank_splitters[current_rank] = bucket;
+      current_rank++;
+    }
+  }
+
+  // 3. Initialize any remaining ranks with the maximum bucket ID (e.g. for empty ranks/voids)
+  while (current_rank <= P) {
+    rank_splitters[current_rank] = num_buckets;
+    current_rank++;
+  }
+
+  return rank_splitters;
+}
+
+// Helper: Normalize/prepare particle attributes for reordering
+inline void normalize_particles(particles<float> &p, size_t n) {
+  // 1. Ensure position vectors are correctly sized
+  if (p.pos_x.size() < n) p.pos_x.resize(n, 0.0f);
+  if (p.pos_y.size() < n) p.pos_y.resize(n, 0.0f);
+  if (p.pos_z.size() < n) p.pos_z.resize(n, 0.0f);
+
+  // 2. Populate mass array with default value if uninitialized
+  if (p.mass.size() < n) p.mass.resize(n, 1.0f);
+
+  // 3. Initialize sequence of particle IDs if uninitialized
+  if (p.id.size() < n) {
+    size_t prev_size = p.id.size();
+    p.id.resize(n);
+    for (size_t i = prev_size; i < n; ++i) { p.id[i] = static_cast<uint32_t>(i); }
+  }
+
+  // 4. Default is_ghost flag to 0 (locally owned)
+  if (p.is_ghost.size() < n) p.is_ghost.resize(n, 0);
+}
+
+// Phase 4: Local Binning & Network Routing
+/**
+ * Redistributes particles according to the rank splitters, returning the new local particle set for this rank after redistribution.
+
+ * @param q SYCL queue
+ * @param p Local particles before redistribution
+ * @param rank_splitters Vector of bucket indices that define the splitters for each rank
+ * @param global_bbox Global bounding box used for Morton encoding
+ * @param m Number of bits used for Morton encoding (default 20, giving 1 million buckets)
+ * @return New local particles for this rank after redistribution
+ */
+inline particles<float> redistribute_particles(sycl::queue &q, particles<float> &p, const std::vector<uint32_t> &rank_splitters,
+                                               const BoundingBox &global_bbox, int m = 20) {
+  int rank, P;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &P);
+
+  size_t n = p.pos_x.size();
+
+  // 1. Ensure all local particle properties are fully normalized/allocated
+  normalize_particles(p, n);
+
+  // 2. Allocate USM structures for keys, destination ranks, and indices
+  uint64_t *d_keys = sycl::malloc_shared<uint64_t>(n > 0 ? n : 1, q);
+  int *d_dest_ranks = sycl::malloc_shared<int>(n > 0 ? n : 1, q);
+  size_t *d_indices = sycl::malloc_shared<size_t>(n > 0 ? n : 1, q);
+
+  if (n > 0) {
+    // 3. Morton encode local particles
+    morton_encode(q, p, d_keys, global_bbox);
+    q.wait();
+
+    // 4. Copy splitters to USM shared memory for GPU kernel access
+    uint32_t *d_splitters = sycl::malloc_shared<uint32_t>(P + 1, q);
+    q.copy(rank_splitters.data(), d_splitters, P + 1).wait();
+
+    // 5. Run binary search to identify target destination rank for each particle
+    q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
+       size_t i = idx[0];
+       d_indices[i] = i;
+       uint32_t bucket_id = static_cast<uint32_t>(d_keys[i] >> (63 - m));
+
+       int low = 0;
+       int high = P - 1;
+       int dest_rank = 0;
+       while (low <= high) {
+         int mid = low + (high - low) / 2;
+         if (bucket_id >= d_splitters[mid]) {
+           dest_rank = mid;
+           low = mid + 1;
+         } else {
+           high = mid - 1;
+         }
+       }
+       d_dest_ranks[i] = dest_rank;
+     }).wait();
+
+    sycl::free(d_splitters, q);
+  }
+
+  // 6. Build local send count histogram on CPU
+  std::vector<int> send_counts(P, 0);
+  if (n > 0) {
+    std::vector<int> host_dest_ranks(n);
+    q.copy(d_dest_ranks, host_dest_ranks.data(), n).wait();
+    for (size_t i = 0; i < n; ++i) { send_counts[host_dest_ranks[i]]++; }
+  }
+
+  // 7. Sort particle indices by destination rank on GPU (using oneDPL zip_iterator)
+  if (n > 0) {
+    auto policy = oneapi::dpl::execution::make_device_policy(q);
+    auto zip_begin = oneapi::dpl::make_zip_iterator(d_dest_ranks, d_indices);
+    auto zip_end = zip_begin + n;
+    oneapi::dpl::sort(policy, zip_begin, zip_end, [](auto a, auto b) { return std::get<0>(a) < std::get<0>(b); });
+    q.wait();
+  }
+
+  // 8. Allocate GPU USM buffers for packed send attributes
+  float *send_pos_x = sycl::malloc_shared<float>(n > 0 ? n : 1, q);
+  float *send_pos_y = sycl::malloc_shared<float>(n > 0 ? n : 1, q);
+  float *send_pos_z = sycl::malloc_shared<float>(n > 0 ? n : 1, q);
+  float *send_mass = sycl::malloc_shared<float>(n > 0 ? n : 1, q);
+  uint32_t *send_id = sycl::malloc_shared<uint32_t>(n > 0 ? n : 1, q);
+  int8_t *send_ghost = sycl::malloc_shared<int8_t>(n > 0 ? n : 1, q);
+
+  // 9. Pack particle attributes into GPU send buffers in sorted destination rank order
+  if (n > 0) {
+    const float *pos_x = p.pos_x.data();
+    const float *pos_y = p.pos_y.data();
+    const float *pos_z = p.pos_z.data();
+    const float *p_mass = p.mass.data();
+    const uint32_t *p_id = p.id.data();
+    const int8_t *p_ghost = p.is_ghost.data();
+
+    q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
+       size_t i = idx[0];
+       size_t orig_idx = d_indices[i];
+       send_pos_x[i] = pos_x[orig_idx];
+       send_pos_y[i] = pos_y[orig_idx];
+       send_pos_z[i] = pos_z[orig_idx];
+       send_mass[i] = p_mass[orig_idx];
+       send_id[i] = p_id[orig_idx];
+       send_ghost[i] = p_ghost[orig_idx];
+     }).wait();
+  }
+
+  // 10. Exchange send counts via MPI_Alltoall to determine receive counts from other ranks
+  std::vector<int> recv_counts(P, 0);
+  MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
+
+  // 11. Compute send/receive displacements and total expected received count
+  std::vector<int> send_displs(P, 0);
+  std::vector<int> recv_displs(P, 0);
+  int total_recv = 0;
+  for (int i = 0; i < P; ++i) {
+    send_displs[i] = (i == 0) ? 0 : send_displs[i - 1] + send_counts[i - 1];
+    recv_displs[i] = (i == 0) ? 0 : recv_displs[i - 1] + recv_counts[i - 1];
+    total_recv += recv_counts[i];
+  }
+
+  // 12. Allocate output host vectors and matching GPU USM buffers for received particles
+  particles<float> recv_p;
+  recv_p.pos_x.resize(total_recv);
+  recv_p.pos_y.resize(total_recv);
+  recv_p.pos_z.resize(total_recv);
+  recv_p.mass.resize(total_recv);
+  recv_p.id.resize(total_recv);
+  recv_p.is_ghost.resize(total_recv);
+
+  float *recv_pos_x = sycl::malloc_shared<float>(total_recv > 0 ? total_recv : 1, q);
+  float *recv_pos_y = sycl::malloc_shared<float>(total_recv > 0 ? total_recv : 1, q);
+  float *recv_pos_z = sycl::malloc_shared<float>(total_recv > 0 ? total_recv : 1, q);
+  float *recv_mass = sycl::malloc_shared<float>(total_recv > 0 ? total_recv : 1, q);
+  uint32_t *recv_id = sycl::malloc_shared<uint32_t>(total_recv > 0 ? total_recv : 1, q);
+  int8_t *recv_ghost = sycl::malloc_shared<int8_t>(total_recv > 0 ? total_recv : 1, q);
+
+  // 13. Perform MPI_Alltoallv to distribute/collect particle attributes across network
+  MPI_Alltoallv(send_pos_x, send_counts.data(), send_displs.data(), MPI_FLOAT, recv_pos_x, recv_counts.data(), recv_displs.data(), MPI_FLOAT,
+                MPI_COMM_WORLD);
+  MPI_Alltoallv(send_pos_y, send_counts.data(), send_displs.data(), MPI_FLOAT, recv_pos_y, recv_counts.data(), recv_displs.data(), MPI_FLOAT,
+                MPI_COMM_WORLD);
+  MPI_Alltoallv(send_pos_z, send_counts.data(), send_displs.data(), MPI_FLOAT, recv_pos_z, recv_counts.data(), recv_displs.data(), MPI_FLOAT,
+                MPI_COMM_WORLD);
+  MPI_Alltoallv(send_mass, send_counts.data(), send_displs.data(), MPI_FLOAT, recv_mass, recv_counts.data(), recv_displs.data(), MPI_FLOAT,
+                MPI_COMM_WORLD);
+  MPI_Alltoallv(send_id, send_counts.data(), send_displs.data(), MPI_UINT32_T, recv_id, recv_counts.data(), recv_displs.data(), MPI_UINT32_T,
+                MPI_COMM_WORLD);
+  MPI_Alltoallv(send_ghost, send_counts.data(), send_displs.data(), MPI_INT8_T, recv_ghost, recv_counts.data(), recv_displs.data(), MPI_INT8_T,
+                MPI_COMM_WORLD);
+
+  q.wait();
+
+  // 14. Copy received particles from GPU shared buffers back to host vector structures
+  if (total_recv > 0) {
+    q.copy(recv_pos_x, recv_p.pos_x.data(), total_recv);
+    q.copy(recv_pos_y, recv_p.pos_y.data(), total_recv);
+    q.copy(recv_pos_z, recv_p.pos_z.data(), total_recv);
+    q.copy(recv_mass, recv_p.mass.data(), total_recv);
+    q.copy(recv_id, recv_p.id.data(), total_recv);
+    q.copy(recv_ghost, recv_p.is_ghost.data(), total_recv);
+    q.wait();
+  }
+
+  // 15. Free all allocated USM memory
+  sycl::free(d_keys, q);
+  sycl::free(d_dest_ranks, q);
+  sycl::free(d_indices, q);
+  sycl::free(send_pos_x, q);
+  sycl::free(send_pos_y, q);
+  sycl::free(send_pos_z, q);
+  sycl::free(send_mass, q);
+  sycl::free(send_id, q);
+  sycl::free(send_ghost, q);
+  sycl::free(recv_pos_x, q);
+  sycl::free(recv_pos_y, q);
+  sycl::free(recv_pos_z, q);
+  sycl::free(recv_mass, q);
+  sycl::free(recv_id, q);
+  sycl::free(recv_ghost, q);
+
+  return recv_p;
+}
+
+// Phase 5: Explicit Halo Exchange (Static Ghosting)
+inline particles<float> exchange_halos(sycl::queue &q, particles<float> &p, float h_max) {
+  int rank, P;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &P);
+
+  size_t n = p.pos_x.size();
+
+  // 1. Ensure all local particles are properly normalized
+  normalize_particles(p, n);
+
+  // 2. Compute the local spatial bounding box for the rank's particles
+  BoundingBox my_bbox;
+  if (n == 0) {
+    my_bbox = BoundingBox{0, 0, 0, 0, 0, 0};
+  } else {
+    my_bbox = {p.pos_x[0], p.pos_x[0], p.pos_y[0], p.pos_y[0], p.pos_z[0], p.pos_z[0]};
+    // TODO: This can be parallelized with parallel reduction.
+    for (size_t i = 1; i < n; ++i) {
+      my_bbox.min_x = std::min(my_bbox.min_x, p.pos_x[i]);
+      my_bbox.max_x = std::max(my_bbox.max_x, p.pos_x[i]);
+      my_bbox.min_y = std::min(my_bbox.min_y, p.pos_y[i]);
+      my_bbox.max_y = std::max(my_bbox.max_y, p.pos_y[i]);
+      my_bbox.min_z = std::min(my_bbox.min_z, p.pos_z[i]);
+      my_bbox.max_z = std::max(my_bbox.max_z, p.pos_z[i]);
+    }
+  }
+
+  // 3. Share local bounding boxes globally across all ranks via MPI_Allgather
+  std::vector<float> local_box_floats = {my_bbox.min_x, my_bbox.max_x, my_bbox.min_y, my_bbox.max_y, my_bbox.min_z, my_bbox.max_z};
+  std::vector<float> all_box_floats(P * 6);
+  MPI_Allgather(local_box_floats.data(), 6, MPI_FLOAT, all_box_floats.data(), 6, MPI_FLOAT, MPI_COMM_WORLD);
+
+  std::vector<BoundingBox> all_bboxes(P);
+  for (int i = 0; i < P; ++i) {
+    all_bboxes[i] = BoundingBox{all_box_floats[i * 6 + 0], all_box_floats[i * 6 + 1], all_box_floats[i * 6 + 2],
+                                all_box_floats[i * 6 + 3], all_box_floats[i * 6 + 4], all_box_floats[i * 6 + 5]};
+  }
+
+  // 4. Filter and identify direct spatial neighbors (overlapping within search radius h_max) on CPU
+  std::vector<int> neighbor_ranks;
+  for (int r = 0; r < P; ++r) {
+    if (r == rank) continue;
+    if (all_bboxes[r].min_x > all_bboxes[r].max_x) continue;  // empty rank
+    if (my_bbox.min_x - h_max <= all_bboxes[r].max_x && my_bbox.max_x + h_max >= all_bboxes[r].min_x &&
+        my_bbox.min_y - h_max <= all_bboxes[r].max_y && my_bbox.max_y + h_max >= all_bboxes[r].min_y &&
+        my_bbox.min_z - h_max <= all_bboxes[r].max_z && my_bbox.max_z + h_max >= all_bboxes[r].min_z) {
+      neighbor_ranks.push_back(r);
+    }
+  }
+
+  // 5. Allocate USM shared array to record indices of matching particles
+  size_t max_sends = n * neighbor_ranks.size() + 1;
+  size_t *d_matched_indices = sycl::malloc_shared<size_t>(max_sends, q);
+  std::vector<int> send_counts(P, 0);
+  int total_sends = 0;
+
+  // 6. Find local boundary particles overlapping with neighbor domains and write compact indices
+  if (n > 0 && !neighbor_ranks.empty()) {
+    const float *pos_x = p.pos_x.data();
+    const float *pos_y = p.pos_y.data();
+    const float *pos_z = p.pos_z.data();
+
+    for (size_t k = 0; k < neighbor_ranks.size(); ++k) {
+      int r = neighbor_ranks[k];
+      BoundingBox neighbor_box = all_bboxes[r];
+      float min_x = neighbor_box.min_x - h_max;
+      float max_x = neighbor_box.max_x + h_max;
+      float min_y = neighbor_box.min_y - h_max;
+      float max_y = neighbor_box.max_y + h_max;
+      float min_z = neighbor_box.min_z - h_max;
+      float max_z = neighbor_box.max_z + h_max;
+
+      int *d_count = sycl::malloc_shared<int>(1, q);
+      d_count[0] = 0;
+      size_t *matched_out = d_matched_indices + total_sends;
+
+      q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
+         size_t i = idx[0];
+         if (pos_x[i] >= min_x && pos_x[i] <= max_x && pos_y[i] >= min_y && pos_y[i] <= max_y && pos_z[i] >= min_z && pos_z[i] <= max_z) {
+           auto atomic_ref =
+               sycl::atomic_ref<int, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space>(d_count[0]);
+           int pos = atomic_ref.fetch_add(1);
+           matched_out[pos] = i;
+         }
+       }).wait();
+
+      int count = d_count[0];
+      send_counts[r] = count;
+      total_sends += count;
+      sycl::free(d_count, q);
+    }
+  }
+
+  // 7. Allocate send buffers for ghost particle attributes on GPU
+  float *send_pos_x = sycl::malloc_shared<float>(total_sends > 0 ? total_sends : 1, q);
+  float *send_pos_y = sycl::malloc_shared<float>(total_sends > 0 ? total_sends : 1, q);
+  float *send_pos_z = sycl::malloc_shared<float>(total_sends > 0 ? total_sends : 1, q);
+  float *send_mass = sycl::malloc_shared<float>(total_sends > 0 ? total_sends : 1, q);
+  uint32_t *send_id = sycl::malloc_shared<uint32_t>(total_sends > 0 ? total_sends : 1, q);
+  int8_t *send_ghost = sycl::malloc_shared<int8_t>(total_sends > 0 ? total_sends : 1, q);
+
+  // 8. Pack attributes of particles to send and mark receiver-side is_ghost flag as 1
+  if (total_sends > 0) {
+    const float *pos_x = p.pos_x.data();
+    const float *pos_y = p.pos_y.data();
+    const float *pos_z = p.pos_z.data();
+    const float *p_mass = p.mass.data();
+    const uint32_t *p_id = p.id.data();
+
+    q.parallel_for(sycl::range<1>(total_sends), [=](sycl::id<1> idx) {
+       size_t i = idx[0];
+       size_t orig_idx = d_matched_indices[i];
+       send_pos_x[i] = pos_x[orig_idx];
+       send_pos_y[i] = pos_y[orig_idx];
+       send_pos_z[i] = pos_z[orig_idx];
+       send_mass[i] = p_mass[orig_idx];
+       send_id[i] = p_id[orig_idx];
+       send_ghost[i] = 1;  // Receive on other side as ghost particle
+     }).wait();
+  }
+
+  // 9. Exchange send counts via MPI_Alltoall to determine receive counts from other ranks
+  std::vector<int> recv_counts(P, 0);
+  MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
+
+  // 10. Compute send and receive offsets and count total expected received ghosts
+  std::vector<int> send_displs(P, 0);
+  std::vector<int> recv_displs(P, 0);
+  int total_recv = 0;
+  for (int i = 0; i < P; ++i) {
+    send_displs[i] = (i == 0) ? 0 : send_displs[i - 1] + send_counts[i - 1];
+    recv_displs[i] = (i == 0) ? 0 : recv_displs[i - 1] + recv_counts[i - 1];
+    total_recv += recv_counts[i];
+  }
+
+  // 11. Allocate GPU USM buffers for received ghost particle attributes
+  float *recv_pos_x = sycl::malloc_shared<float>(total_recv > 0 ? total_recv : 1, q);
+  float *recv_pos_y = sycl::malloc_shared<float>(total_recv > 0 ? total_recv : 1, q);
+  float *recv_pos_z = sycl::malloc_shared<float>(total_recv > 0 ? total_recv : 1, q);
+  float *recv_mass = sycl::malloc_shared<float>(total_recv > 0 ? total_recv : 1, q);
+  uint32_t *recv_id = sycl::malloc_shared<uint32_t>(total_recv > 0 ? total_recv : 1, q);
+  int8_t *recv_ghost = sycl::malloc_shared<int8_t>(total_recv > 0 ? total_recv : 1, q);
+
+  // 12. Exchange ghost particle attributes via MPI_Alltoallv
+  MPI_Alltoallv(send_pos_x, send_counts.data(), send_displs.data(), MPI_FLOAT, recv_pos_x, recv_counts.data(), recv_displs.data(), MPI_FLOAT,
+                MPI_COMM_WORLD);
+  MPI_Alltoallv(send_pos_y, send_counts.data(), send_displs.data(), MPI_FLOAT, recv_pos_y, recv_counts.data(), recv_displs.data(), MPI_FLOAT,
+                MPI_COMM_WORLD);
+  MPI_Alltoallv(send_pos_z, send_counts.data(), send_displs.data(), MPI_FLOAT, recv_pos_z, recv_counts.data(), recv_displs.data(), MPI_FLOAT,
+                MPI_COMM_WORLD);
+  MPI_Alltoallv(send_mass, send_counts.data(), send_displs.data(), MPI_FLOAT, recv_mass, recv_counts.data(), recv_displs.data(), MPI_FLOAT,
+                MPI_COMM_WORLD);
+  MPI_Alltoallv(send_id, send_counts.data(), send_displs.data(), MPI_UINT32_T, recv_id, recv_counts.data(), recv_displs.data(), MPI_UINT32_T,
+                MPI_COMM_WORLD);
+  MPI_Alltoallv(send_ghost, send_counts.data(), send_displs.data(), MPI_INT8_T, recv_ghost, recv_counts.data(), recv_displs.data(), MPI_INT8_T,
+                MPI_COMM_WORLD);
+
+  q.wait();
+
+  // 13. Create combined particle set of local particles followed by received ghost particles
+  particles<float> combined_p;
+  size_t total_combined = n + total_recv;
+  combined_p.pos_x.resize(total_combined);
+  combined_p.pos_y.resize(total_combined);
+  combined_p.pos_z.resize(total_combined);
+  combined_p.mass.resize(total_combined);
+  combined_p.id.resize(total_combined);
+  combined_p.is_ghost.resize(total_combined);
+
+  // 14. Copy local particles to the starting segment of the combined vectors
+  std::copy(p.pos_x.begin(), p.pos_x.end(), combined_p.pos_x.begin());
+  std::copy(p.pos_y.begin(), p.pos_y.end(), combined_p.pos_y.begin());
+  std::copy(p.pos_z.begin(), p.pos_z.end(), combined_p.pos_z.begin());
+  std::copy(p.mass.begin(), p.mass.end(), combined_p.mass.begin());
+  std::copy(p.id.begin(), p.id.end(), combined_p.id.begin());
+  std::copy(p.is_ghost.begin(), p.is_ghost.end(), combined_p.is_ghost.begin());
+
+  // 15. Copy received ghost particles from GPU USM buffers to the trailing segment
+  if (total_recv > 0) {
+    q.copy(recv_pos_x, combined_p.pos_x.data() + n, total_recv);
+    q.copy(recv_pos_y, combined_p.pos_y.data() + n, total_recv);
+    q.copy(recv_pos_z, combined_p.pos_z.data() + n, total_recv);
+    q.copy(recv_mass, combined_p.mass.data() + n, total_recv);
+    q.copy(recv_id, combined_p.id.data() + n, total_recv);
+    q.copy(recv_ghost, combined_p.is_ghost.data() + n, total_recv);
+    q.wait();
+  }
+
+  // 16. Free all allocated USM memory
+  sycl::free(d_matched_indices, q);
+  sycl::free(send_pos_x, q);
+  sycl::free(send_pos_y, q);
+  sycl::free(send_pos_z, q);
+  sycl::free(send_mass, q);
+  sycl::free(send_id, q);
+  sycl::free(send_ghost, q);
+  sycl::free(recv_pos_x, q);
+  sycl::free(recv_pos_y, q);
+  sycl::free(recv_pos_z, q);
+  sycl::free(recv_mass, q);
+  sycl::free(recv_id, q);
+  sycl::free(recv_ghost, q);
+
+  return combined_p;
+}
+
+}  // namespace fasttree
+
+#endif  // SYCL_FASTTREE_DOMAIN_DECOMPOSITION_HPP

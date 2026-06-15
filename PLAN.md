@@ -25,18 +25,15 @@ Before generating Morton keys, all MPI ranks must agree on the exact same global
 Instead of sorting billions of particles globally, we sort the *virtual voxels* they fall into. We will use the top $m$ bits of the 64-bit key to define these buckets.
 
 * *Recommendation:* 
-    - Use $m = 20$ bits. This creates $2^{20} \approx 1.04$ million global buckets. This is small enough to send over the network instantly, but granular enough to finely slice dense galaxy clusters.
-
-    - Or use $m$ such that the gloabal buckets is equal to the number of MPI-ranks. This is the most straightforward approach.
-
+    - Use $m = 20$ bits. Since `hlbvh.hpp` uses `BITS_PER_DIM = 21`, the Morton key is 63 bits total (bit 63 is always 0). To extract exactly $m=20$ bits, we must shift the keys by `63 - 20 = 43` bits. This creates $2^{20} \approx 1.04$ million active buckets.
+    - Or use $m$ such that the global buckets is equal to the number of MPI-ranks. This is the most straightforward approach.
 
 1. **Allocate Local Histogram:** Allocate an array `int local_hist[1048576]` initialized to zero.
 2. **Populate Local Histogram (SYCL):** Launch a kernel over your local particles.
     ```cpp
-    uint32_t bucket_idx = morton_keys[i] >> (64 - 20); // Extract top 20 bits
+    uint32_t bucket_idx = morton_keys[i] >> (63 - 20); // Extract top 20 active bits (shift by 43)
     sycl::atomic_ref<int, ...>(local_hist[bucket_idx]).fetch_add(1);
     ```
-
 
 3. **Global Histogram (MPI):**
     ```cpp
@@ -45,12 +42,11 @@ Instead of sorting billions of particles globally, we sort the *virtual voxels* 
     ```
     Now we know exactly how many particles fall into each of the 1.04 million buckets across the entire nodes.
 
-
 *Result:* Every rank now knows the exact spatial distribution of every particle in the entire supercomputer.
 
 ## Phase 3: Curve Partitioning (Splitter Generation)
 
-We must divide the 1.04 million buckets into $P$ chunks so that each chunk contains exactly `target_load = Total_Particles / P` particles.
+We must divide the 1.04 million buckets into $P$ chunks so that each chunk contains approximately `target_load = Total_Particles / P` particles.
 Because `global_hist` is identical on all nodes, every rank can compute this redundantly without further communication.
 
 1. **Prefix Sum & Splitting:**
@@ -64,15 +60,20 @@ Because `global_hist` is identical on all nodes, every rank can compute this red
     for(uint32_t bucket = 0; bucket < 1048576; ++bucket) {
         current_particles += global_hist[bucket];
 
-        // If we hit the target load, record the bucket as the boundary for the next rank
-        if (current_particles >= target_load * current_rank) {
+        // Safely catch any bucket jumps caused by extreme clustering
+        while (current_rank < P && current_particles >= target_load * current_rank) {
             rank_splitters[current_rank] = bucket;
             current_rank++;
         }
     }
-    rank_splitters[P] = 1048576; // The last rank gets the rest
+    // Fill remaining splitters if current_rank did not reach P
+    while (current_rank <= P) {
+        rank_splitters[current_rank] = 1048576;
+        current_rank++;
+    }
     ```
 
+*Note on Load Balancing:* If a single coarse bucket contains $N_{clustered}$ particles where $N_{clustered} > \text{target\_load}$ (due to dense halos), that bucket cannot be split. The rank assigned to it will receive all of them. Therefore, while partitioning is designed to balance the load, we do not have a hard guarantee that no rank will receive more than `target_load`. We must allocate receive buffers dynamically.
 
 *Result:* `rank_splitters` now tells us exactly which coarse Morton bits belong to which MPI rank.
 
@@ -81,29 +82,35 @@ Because `global_hist` is identical on all nodes, every rank can compute this red
 Now every rank must prepare its data to be sent across the network.
 
 1. **Bucket Particles (SYCL):**
-Launch a kernel that reads a particle's top 20 bits, checks `rank_splitters`, and determines its destination rank (0 to $P-1$).
+Launch a kernel that reads a particle's top 20 bits, checks `rank_splitters` via **binary search** to determine its destination rank (0 to $P-1$) in $O(\log P)$ time.
     ```cpp
     // Inside SYCL kernel for a single local particle
-    uint32_t bucket_id = local_morton_keys[i] >> (64 - 20); // Extract bucket ID
+    uint32_t bucket_id = local_morton_keys[i] >> (63 - 20); // Extract bucket ID
 
+    int low = 0;
+    int high = P - 1;
     int dest_rank = 0;
-    // Find which rank's boundaries contain this bucket_id
-    for (int r = 0; r < P; ++r) {
-        if (bucket_id >= rank_splitters[r] && bucket_id < rank_splitters[r + 1]) {
-            dest_rank = r;
-            break;
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        if (bucket_id >= rank_splitters[mid]) {
+            dest_rank = mid;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
         }
     }
     ```
 
+2. **Local Reordering & Binning:**
+To group particles by `dest_rank`:
+- Compute a histogram of `dest_rank` (size $P$) on the GPU to determine `send_counts`.
+- Sort particle indices by their `dest_rank` on the GPU using `oneapi::dpl::sort`.
+- Use the sorted indices to pack particle properties (`pos_x`, `pos_y`, `pos_z`, `mass`, `id`, etc.) into contiguous send buffers.
 
-2. **Local Prefix Sum:**
-Use `oneapi::dpl::exclusive_scan` to group your local particles by their destination rank. This should pack atlesast `x`, `y`, `z`, `mass`, etc., into contiguous send buffers that can fully utilize the network bandwidth.
-    - Extra care must be taken if one is running a full scale hydro / N body sims, as the particles will have other attributes like `velocity`, temperature, etc. 
 3. **The Grand Shuffle (MPI):**
-Execute `MPI_Alltoallv`.
-* Rank $A$ sends the contiguous block of particles destined for Rank $B$.
-* Because of Phase 3, we mathematically guarantee that no rank will receive more than `target_load` particles, completely preventing Out-Of-Memory (OOM) crashes!
+- First, call `MPI_Alltoall` to exchange `send_counts` and obtain `recv_counts` from all ranks.
+- Allocate receive buffers and compute receive displacements `rdispls`.
+- Execute `MPI_Alltoallv` to shuffle particle data across ranks.
 
 ## Phase 5: Explicit Halo Exchange (Static Ghosting)
 We do an explicit Halo-exchange after the shuffle to ensure that every rank has the necessary neighboring particles to build a correct local tree and the SYCL kernels can run without divergence.

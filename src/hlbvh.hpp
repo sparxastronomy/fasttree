@@ -20,6 +20,9 @@ namespace fasttree {
 template <typename T>
 struct particles {
   std::vector<T> pos_x, pos_y, pos_z;  // Positions
+  std::vector<T> mass;                 // Masses
+  std::vector<uint32_t> id;            // IDs
+  std::vector<int8_t> is_ghost;        // 0 = Local, 1 = Ghost
 };
 
 struct BoundingBox {
@@ -88,11 +91,13 @@ struct TreeSoA {
   int *left_child;
   int *right_child;
   int *parent;
+  uint32_t *id;
+  int8_t *is_ghost;
   size_t num_leaves;
   size_t num_internal;
 
   // Constructor allocates memory for the tree nodes
-  TreeSoA(sycl::queue &q, size_t n) : num_leaves(n), num_internal(n > 0 ? n - 1 : 0) {
+  TreeSoA(sycl::queue &q, size_t n) : num_leaves(n), num_internal(n > 0 ? n - 1 : 0), id(nullptr), is_ghost(nullptr) {
     size_t total_nodes = num_leaves + num_internal;
     if (total_nodes == 0) return;
 
@@ -105,6 +110,8 @@ struct TreeSoA {
     left_child = sycl::malloc_shared<int>(num_internal, q);
     right_child = sycl::malloc_shared<int>(num_internal, q);
     parent = sycl::malloc_shared<int>(total_nodes, q);
+    id = sycl::malloc_shared<uint32_t>(total_nodes, q);
+    is_ghost = sycl::malloc_shared<int8_t>(total_nodes, q);
   }
 
   // Free memory for the tree nodes
@@ -119,13 +126,15 @@ struct TreeSoA {
     sycl::free(left_child, q);
     sycl::free(right_child, q);
     sycl::free(parent, q);
+    if (id) sycl::free(id, q);
+    if (is_ghost) sycl::free(is_ghost, q);
   }
 };
 
 inline int sgn(int x) { return (x > 0) - (x < 0); }
 
 inline void build_tree(sycl::queue &q, TreeSoA &tree, const std::uint64_t *sorted_morton_keys, const float *sorted_x, const float *sorted_y,
-                       const float *sorted_z) {
+                       const float *sorted_z, const uint32_t *sorted_id = nullptr, const int8_t *sorted_is_ghost = nullptr) {
   size_t n = tree.num_leaves;
   if (n == 1) {
     q.submit([&](sycl::handler &cgh) {
@@ -199,6 +208,8 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const std::uint64_t *sorte
    }).wait();
 
   // 2. Initialize leaf bounding boxes
+  uint32_t *p_id = tree.id;
+  int8_t *p_ghost = tree.is_ghost;
   q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
      int i = idx[0];
      int leaf_idx = i + n - 1;
@@ -208,6 +219,12 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const std::uint64_t *sorte
      p_max_y[leaf_idx] = sorted_y[i];
      p_min_z[leaf_idx] = sorted_z[i];
      p_max_z[leaf_idx] = sorted_z[i];
+     if (p_id && sorted_id) {
+       p_id[leaf_idx] = sorted_id[i];
+     }
+     if (p_ghost && sorted_is_ghost) {
+       p_ghost[leaf_idx] = sorted_is_ghost[i];
+     }
    }).wait();
 
   // 3. Compute internal bounding boxes (bottom-up)
@@ -531,20 +548,57 @@ inline void build_bvh(sycl::queue &q, const particles<float> &p, TreeSoA &tree) 
   oneapi::dpl::sort(policy, zip_begin, zip_end, [](auto a, auto b) { return std::get<0>(a) < std::get<0>(b); });
   q.wait();
 
-  // 5. Coordinate Reordering
-  std::vector<float> sx(n), sy(n), sz(n);
-  for (size_t i = 0; i < n; ++i) {
-    sx[i] = p.pos_x[d_indices[i]];
-    sy[i] = p.pos_y[d_indices[i]];
-    sz[i] = p.pos_z[d_indices[i]];
+  // 5. Coordinate and Attribute Reordering on GPU
+  float *sx = sycl::malloc_shared<float>(n, q);
+  float *sy = sycl::malloc_shared<float>(n, q);
+  float *sz = sycl::malloc_shared<float>(n, q);
+  uint32_t *sid = sycl::malloc_shared<uint32_t>(n, q);
+  int8_t *sghost = sycl::malloc_shared<int8_t>(n, q);
+
+  const float *pos_x = p.pos_x.data();
+  const float *pos_y = p.pos_y.data();
+  const float *pos_z = p.pos_z.data();
+
+  const uint32_t *p_id = nullptr;
+  std::vector<uint32_t> temp_id;
+  if (p.id.empty()) {
+    temp_id.resize(n);
+    std::iota(temp_id.begin(), temp_id.end(), 0u);
+    p_id = temp_id.data();
+  } else {
+    p_id = p.id.data();
   }
 
+  const int8_t *p_ghost = nullptr;
+  std::vector<int8_t> temp_ghost;
+  if (p.is_ghost.empty()) {
+    temp_ghost.resize(n, 0);
+    p_ghost = temp_ghost.data();
+  } else {
+    p_ghost = p.is_ghost.data();
+  }
+
+  q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
+    size_t i = idx[0];
+    size_t orig_idx = d_indices[i];
+    sx[i] = pos_x[orig_idx];
+    sy[i] = pos_y[orig_idx];
+    sz[i] = pos_z[orig_idx];
+    sid[i] = p_id[orig_idx];
+    sghost[i] = p_ghost[orig_idx];
+  }).wait();
+
   // 6. Build Tree
-  build_tree(q, tree, d_smk, sx.data(), sy.data(), sz.data());
+  build_tree(q, tree, d_smk, sx, sy, sz, sid, sghost);
 
   // Cleanup
   sycl::free(d_smk, q);
   sycl::free(d_indices, q);
+  sycl::free(sx, q);
+  sycl::free(sy, q);
+  sycl::free(sz, q);
+  sycl::free(sid, q);
+  sycl::free(sghost, q);
 }
 
 }  // namespace fasttree
