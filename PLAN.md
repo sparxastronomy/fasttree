@@ -174,7 +174,7 @@ By building the system this way, the logic is entirely contained within the MPI 
 We keep the domain decomposition code in a separte file like `domain_decomposition.hpp` and the needed MPI functions in `mpi_utils.hpp`. This way, the main tree-building and physics kernels can remain clean and focus on their specific tasks, while the complex logic of distributed load balancing is neatly encapsulated.
 
 
-## Testing & Profiling
+## Unit tests
 All the tests for the distributed domain are in the sub-folder `tests/domain_decomposition`. We design the following tests:
 
 Here are the plan for Domain Decomposition pipeline, broken down by the phases we established.
@@ -266,5 +266,15 @@ If you implemented the explicit halo exchange (Approach 2), you must test that t
     * **Action:** Run the Halo Exchange with a search radius $h$ large enough to cover the distance between the particles.
     * **Assert:** Rank 0's particle array now contains a copy of Rank 1's particle (with `is_ghost == 1`), and Rank 1 contains a copy of Rank 0's particle.
     * **Assert:** The total number of `is_ghost == 0` (real) particles across all ranks has not changed.
+
+## Profiling & Benchmark
+To understand the performance implications of the distributed domain decomposition, we will implement a profiling suite that measures the following:
+
+1. Time taken for each phase of the domain decomposition (bounding box reduction, histogram generation, splitter generation, local binning, MPI communication (Alltoallv))
+    - All of this for a range of particle counts (1K, 10K, 100K, 1M, 10M, 100M, 1B) (see DESIGN.md) and MPI ranks (2, 4, 8, 16).
+    - The MPI ranks should be distributed across different nodes as SYCL handles the node-local parallel execution. 
+    - For tests with more than 1M particles we can't  read the data into a single node, so the read must be done across different node.
+    - A bash script will be provided to automate the execution of these benchmarks across different cluster configurations and aggregate the results into a markdown tables.
+
 
 ---

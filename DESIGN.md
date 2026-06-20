@@ -80,7 +80,7 @@ The project is designed to be included as a Git submodule. The core implementati
   - No scaling test for LET construction time over MPI
   - No scaling test for overall simulation time with and without the tree utility in a distributed setting
 
-- No scaling of the Heirarchial consitruction i.e time to rebuild the tree after the particles have slightly moved. This will be considered in the next release (i.e Version 2.0+) after we have the initial tree build and query working.
+- No scaling of the Heirarchial consitruction i.e time to rebuild the tree after the particles have slightly moved. This will be considered in the next release (i.e v1.0.0-beta2) after we have the initial tree build and query working.
 
 
 ## 7. Release Plan
@@ -90,3 +90,4 @@ The project is designed to be included as a Git submodule. The core implementati
 
 - [ ] **v.1.0.0-beta2 :** This release should focus on implementing domain decomposition.
   - The initial plan is listed in `PLAN.md` where domain decomposition is carried out to top level splitting. 
+  - We also extend the benchmark suite to test rebuild  scaling -- which simulates the one time-step of a real NBody/Hydro simulation where the particles have been kicked and we need to rebuild the tree for the next step.
