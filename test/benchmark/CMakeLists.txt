@@ -38,8 +38,10 @@ set(BENCHMARK_APPS
     morton_scaling
     gpu_sort_scaling
     tree_build_scaling
+    rebuild_scaling
     range_query_scaling
     knn_query_scaling
+    domain_decomposition_scaling
 )
 
 foreach(app ${BENCHMARK_APPS})

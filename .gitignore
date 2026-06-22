@@ -23,6 +23,9 @@
 *.dll
 *.so.*
 
+# vtune_results
+vtune_results/
+
 
 # Fortran module files
 *.mod

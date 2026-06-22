@@ -67,6 +67,29 @@ TreeBuild/1M         78.4 ms         77.5 ms            9 PeakRSS_MB=201.527 ite
 TreeBuild/10M         874 ms          864 ms            1 PeakRSS_MB=548.059 items_per_second=11.5778M/s
 ```
 
+### Tree Rebuild
+```
+2026-06-20T06:31:21+02:00
+Running ./rebuild_scaling.exe
+Run on (72 X 2400 MHz CPU s)
+CPU Caches:
+  L1 Data 48 KiB (x72)
+  L1 Instruction 32 KiB (x72)
+  L2 Unified 1280 KiB (x72)
+  L3 Unified 55296 KiB (x2)
+Load Average: 2.55, 3.01, 2.65
+***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and will incur extra overhead.
+---------------------------------------------------------------------------
+Benchmark                 Time             CPU   Iterations UserCounters...
+---------------------------------------------------------------------------
+TreeRebuild/1K         1.04 ms         1.00 ms          626 PeakRSS_MB=135.523 items_per_second=997.94k/s
+TreeRebuild/10K        2.29 ms         2.25 ms          283 PeakRSS_MB=136.648 items_per_second=4.44418M/s
+TreeRebuild/100K       9.13 ms         9.11 ms          104 PeakRSS_MB=140.043 items_per_second=10.974M/s
+TreeRebuild/1M         46.4 ms         46.4 ms           15 PeakRSS_MB=190.168 items_per_second=21.5702M/s
+TreeRebuild/10M         363 ms          362 ms            2 PeakRSS_MB=630.059 items_per_second=27.5941M/s
+```
+
+
 ### Range Query
 ```
 2026-05-31T10:58:43+02:00
