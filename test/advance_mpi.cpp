@@ -8,6 +8,20 @@
 
 using namespace fasttree;
 
+// Dynamic MPI Datatype traits
+template <typename T>
+struct mpi_type_traits;
+
+template <>
+struct mpi_type_traits<float> {
+  static MPI_Datatype type() { return MPI_FLOAT; }
+};
+
+template <>
+struct mpi_type_traits<double> {
+  static MPI_Datatype type() { return MPI_DOUBLE; }
+};
+
 int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
     
@@ -27,28 +41,28 @@ int main(int argc, char** argv) {
     // Domain setup:
     // Rank 0 owns [0, 100] in X. Halo region is [90, 100].
     // Rank 1 owns [100, 200] in X. Halo region is [100, 110].
-    float domain_min = rank * 100.0f;
-    float halo_min, halo_max;
+    coord_t domain_min = rank * static_cast<coord_t>(100.0);
+    coord_t halo_min, halo_max;
     int neighbor;
     
     if (rank == 0) {
-        halo_min = 90.0f; halo_max = 100.0f;
+        halo_min = static_cast<coord_t>(90.0); halo_max = static_cast<coord_t>(100.0);
         neighbor = 1;
     } else {
-        halo_min = 100.0f; halo_max = 110.0f;
+        halo_min = static_cast<coord_t>(100.0); halo_max = static_cast<coord_t>(110.0);
         neighbor = 0;
     }
 
-    particles<float> p;
+    particles<coord_t> p;
     p.pos_x.resize(n);
     p.pos_y.resize(n);
     p.pos_z.resize(n);
     
     // Generate uniform particles across the domain
     for (int i = 0; i < n; ++i) {
-        p.pos_x[i] = domain_min + static_cast<float>(i) / n * 100.0f;
-        p.pos_y[i] = static_cast<float>(rand()) / RAND_MAX * 100.0f;
-        p.pos_z[i] = static_cast<float>(rand()) / RAND_MAX * 100.0f;
+        p.pos_x[i] = domain_min + static_cast<coord_t>(i) / n * static_cast<coord_t>(100.0);
+        p.pos_y[i] = static_cast<coord_t>(rand()) / RAND_MAX * static_cast<coord_t>(100.0);
+        p.pos_z[i] = static_cast<coord_t>(rand()) / RAND_MAX * static_cast<coord_t>(100.0);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -61,7 +75,7 @@ int main(int argc, char** argv) {
     double t_build_local = MPI_Wtime() - t_start;
 
     // Identify and extract halo particles
-    particles<float> hp;
+    particles<coord_t> hp;
     for (int i = 0; i < n; ++i) {
         if (p.pos_x[i] >= halo_min && p.pos_x[i] <= halo_max) {
             hp.pos_x.push_back(p.pos_x[i]);
@@ -112,12 +126,12 @@ int main(int argc, char** argv) {
     };
 
     if (send_total_nodes > 0 || recv_total_nodes > 0) {
-        exchange_array(halo_tree.min_x, send_total_nodes, recv_tree.min_x, recv_total_nodes, MPI_FLOAT, 1);
-        exchange_array(halo_tree.max_x, send_total_nodes, recv_tree.max_x, recv_total_nodes, MPI_FLOAT, 2);
-        exchange_array(halo_tree.min_y, send_total_nodes, recv_tree.min_y, recv_total_nodes, MPI_FLOAT, 3);
-        exchange_array(halo_tree.max_y, send_total_nodes, recv_tree.max_y, recv_total_nodes, MPI_FLOAT, 4);
-        exchange_array(halo_tree.min_z, send_total_nodes, recv_tree.min_z, recv_total_nodes, MPI_FLOAT, 5);
-        exchange_array(halo_tree.max_z, send_total_nodes, recv_tree.max_z, recv_total_nodes, MPI_FLOAT, 6);
+        exchange_array(halo_tree.min_x, send_total_nodes, recv_tree.min_x, recv_total_nodes, mpi_type_traits<coord_t>::type(), 1);
+        exchange_array(halo_tree.max_x, send_total_nodes, recv_tree.max_x, recv_total_nodes, mpi_type_traits<coord_t>::type(), 2);
+        exchange_array(halo_tree.min_y, send_total_nodes, recv_tree.min_y, recv_total_nodes, mpi_type_traits<coord_t>::type(), 3);
+        exchange_array(halo_tree.max_y, send_total_nodes, recv_tree.max_y, recv_total_nodes, mpi_type_traits<coord_t>::type(), 4);
+        exchange_array(halo_tree.min_z, send_total_nodes, recv_tree.min_z, recv_total_nodes, mpi_type_traits<coord_t>::type(), 5);
+        exchange_array(halo_tree.max_z, send_total_nodes, recv_tree.max_z, recv_total_nodes, mpi_type_traits<coord_t>::type(), 6);
         exchange_array(halo_tree.parent, send_total_nodes, recv_tree.parent, recv_total_nodes, MPI_INT, 7);
     }
     
@@ -134,18 +148,18 @@ int main(int argc, char** argv) {
     t_start = MPI_Wtime();
     
     if (recv_num_leaves > 0) {
-        float *dqx = sycl::malloc_shared<float>(1, q);
-        float *dqy = sycl::malloc_shared<float>(1, q);
-        float *dqz = sycl::malloc_shared<float>(1, q);
-        float *drm = sycl::malloc_shared<float>(1, q);
-        float *dRM = sycl::malloc_shared<float>(1, q);
+        coord_t *dqx = sycl::malloc_shared<coord_t>(1, q);
+        coord_t *dqy = sycl::malloc_shared<coord_t>(1, q);
+        coord_t *dqz = sycl::malloc_shared<coord_t>(1, q);
+        coord_t *drm = sycl::malloc_shared<coord_t>(1, q);
+        coord_t *dRM = sycl::malloc_shared<coord_t>(1, q);
         int *res = sycl::malloc_shared<int>(10, q);
         int *res_cnt = sycl::malloc_shared<int>(1, q);
 
         // Query the center of the received halo
-        dqx[0] = (rank == 0) ? 105.0f : 95.0f; // Center of neighbor's halo
-        dqy[0] = 50.0f; dqz[0] = 50.0f;
-        drm[0] = 0.0f; dRM[0] = 5.0f;
+        dqx[0] = (rank == 0) ? static_cast<coord_t>(105.0) : static_cast<coord_t>(95.0); // Center of neighbor's halo
+        dqy[0] = static_cast<coord_t>(50.0); dqz[0] = static_cast<coord_t>(50.0);
+        drm[0] = static_cast<coord_t>(0.0); dRM[0] = static_cast<coord_t>(5.0);
         res_cnt[0] = 0;
 
         range_query(q, recv_tree, dqx, dqy, dqz, drm, dRM, 1, res, res_cnt, 10);

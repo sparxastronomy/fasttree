@@ -14,14 +14,14 @@ static void BM_MortonEncode_Lazy(benchmark::State &state, std::string path) {
   ParticleData data;
   if (!load_hdf5_data(path, data)) return;
 
-  particles<float> p;
-  p.pos_x = data.pos_x;
-  p.pos_y = data.pos_y;
-  p.pos_z = data.pos_z;
+  particles<coord_t> p;
+  p.pos_x.assign(data.pos_x.begin(), data.pos_x.end());
+  p.pos_y.assign(data.pos_y.begin(), data.pos_y.end());
+  p.pos_z.assign(data.pos_z.begin(), data.pos_z.end());
   size_t n = p.pos_x.size();
   std::vector<uint64_t> morton_keys(n);
 
-  BoundingBox bbox = {p.pos_x[0], p.pos_x[0], p.pos_y[0], p.pos_y[0], p.pos_z[0], p.pos_z[0]};
+  BoundingBox<coord_t> bbox = {p.pos_x[0], p.pos_x[0], p.pos_y[0], p.pos_y[0], p.pos_z[0], p.pos_z[0]};
   for (size_t i = 1; i < n; ++i) {
     bbox.min_x = std::min(bbox.min_x, p.pos_x[i]);
     bbox.max_x = std::max(bbox.max_x, p.pos_x[i]);
@@ -32,11 +32,11 @@ static void BM_MortonEncode_Lazy(benchmark::State &state, std::string path) {
   }
 
   // Warm up JIT
-  morton_encode(q, p, morton_keys, bbox);
+  sfc_encode(q, p, morton_keys.data(), bbox);
   q.wait();
 
   for (auto _ : state) {
-    morton_encode(q, p, morton_keys, bbox);
+    sfc_encode(q, p, morton_keys.data(), bbox);
     q.wait();
   }
 

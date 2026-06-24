@@ -45,7 +45,7 @@ void test_mpi_pipeline(sycl::queue &q, int rank, int size) {
   // Simulate extreme initial load imbalance (Rank 0 has everything)
   size_t FIXED_N = 10000;
   size_t local_n = (rank == 0) ? FIXED_N : 0;
-  particles<float> p;
+  particles<coord_t> p;
   p.pos_x.resize(local_n);
   p.pos_y.resize(local_n);
   p.pos_z.resize(local_n);
@@ -55,22 +55,38 @@ void test_mpi_pipeline(sycl::queue &q, int rank, int size) {
   // Spread particles uniformly across the X axis
   if (rank == 0) {
     for (size_t i = 0; i < local_n; ++i) {
-      p.pos_x[i] = static_cast<float>(i) / local_n * 100.0f;
-      p.pos_y[i] = 50.0f;
-      p.pos_z[i] = 50.0f;
+      p.pos_x[i] = static_cast<coord_t>(i) / local_n * static_cast<coord_t>(100.0);
+      p.pos_y[i] = static_cast<coord_t>(50.0);
+      p.pos_z[i] = static_cast<coord_t>(50.0);
       p.id[i] = static_cast<uint32_t>(i);
       p.is_ghost[i] = 0;
     }
   }
 
   // Phase 1: Bounding Box
-  BoundingBox bbox = get_global_bounding_box(q, p);
+  BoundingBox<coord_t> bbox = get_global_bounding_box(q, p);
   if (rank == 0) {
-    assert(std::abs(bbox.min_x - 0.0f) < 1e-4);
-    assert(std::abs(bbox.max_x - 100.0f * (local_n - 1) / local_n) < 1e-2);
-    printf("  Phase 1 Bounding Box: [%f, %f] Passed!\n", bbox.min_x, bbox.max_x);
+    assert(std::abs(bbox.min_x - static_cast<coord_t>(0.0)) < static_cast<coord_t>(1e-4));
+    assert(std::abs(bbox.max_x - static_cast<coord_t>(100.0) * (local_n - 1) / local_n) < static_cast<coord_t>(1e-2));
+    printf("  Phase 1 Bounding Box: [%f, %f] Passed!\n", (double)bbox.min_x, (double)bbox.max_x);
   }
 
+#if defined(DCOMPOSITION_TYPE_SAMPLING)
+  // Skip Phase 2
+  // Phase 3: Splitter Generation via Sampling
+  std::vector<uint64_t> splitters = get_deterministic_splitters(q, p, bbox);
+  if (rank == 0) {
+    for (int i = 0; i < size; ++i) assert(splitters[i] <= splitters[i + 1]);
+    printf("  Phase 3 (Sampling) Splitters Monotonicity Passed!\n");
+  }
+  // Print the splitters for debugging
+  if (rank == 0) {
+    printf("  Splitters:\n");
+    for (int i = 0; i <= size; ++i) { printf("    Splitter[%d] = %llu\n", i, (unsigned long long)splitters[i]); }
+  }
+  // Phase 4: Local Binning & Network Routing
+  particles<coord_t> redistributed_p = redistribute_particles(q, p, splitters, bbox);
+#else
   // Phase 2: Histogram
   int m = 10;
   std::vector<int> global_hist = get_global_histogram(q, p, bbox, m);
@@ -85,9 +101,14 @@ void test_mpi_pipeline(sycl::queue &q, int rank, int size) {
     for (int i = 0; i < size; ++i) assert(splitters[i] <= splitters[i + 1]);
     printf("  Phase 3 Splitters Monotonicity Passed!\n");
   }
+  if (rank == 0) {
+    printf("  Splitters:\n");
+    for (int i = 0; i <= size; ++i) { printf("    Splitter[%d] = %llu\n", i, (unsigned long long)splitters[i]); }
+  }
 
   // Phase 4: Local Binning & Network Routing
-  particles<float> redistributed_p = redistribute_particles(q, p, splitters, bbox, m);
+  particles<coord_t> redistributed_p = redistribute_particles(q, p, splitters, bbox, m);
+#endif
 
   int local_count = redistributed_p.pos_x.size();
   int global_count = 0;
@@ -106,26 +127,35 @@ void test_mpi_pipeline(sycl::queue &q, int rank, int size) {
 
   // Spatial consistency check
   for (size_t i = 0; i < redistributed_p.pos_x.size(); ++i) {
-    float nx = std::min((redistributed_p.pos_x[i] - bbox.min_x) / (bbox.max_x - bbox.min_x), 0.999999f);
-    float ny = std::min((redistributed_p.pos_y[i] - bbox.min_y) / (bbox.max_y - bbox.min_y), 0.999999f);
-    float nz = std::min((redistributed_p.pos_z[i] - bbox.min_z) / (bbox.max_z - bbox.min_z), 0.999999f);
-    std::uint64_t ix = float_to_int(1.0f + nx);
-    std::uint64_t iy = float_to_int(1.0f + ny);
-    std::uint64_t iz = float_to_int(1.0f + nz);
-    std::uint64_t key = spread3_u64(ix) | (spread3_u64(iy) << 1) | (spread3_u64(iz) << 2);
-    uint32_t bucket_id = static_cast<uint32_t>(key >> (63 - m));
+    coord_t nx = std::min((redistributed_p.pos_x[i] - bbox.min_x) / (bbox.max_x - bbox.min_x), static_cast<coord_t>(0.999999));
+    coord_t ny = std::min((redistributed_p.pos_y[i] - bbox.min_y) / (bbox.max_y - bbox.min_y), static_cast<coord_t>(0.999999));
+    coord_t nz = std::min((redistributed_p.pos_z[i] - bbox.min_z) / (bbox.max_z - bbox.min_z), static_cast<coord_t>(0.999999));
+    sfc1D ix = encode_to_sfc1d(static_cast<coord_t>(1.0) + nx);
+    sfc1D iy = encode_to_sfc1d(static_cast<coord_t>(1.0) + ny);
+    sfc1D iz = encode_to_sfc1d(static_cast<coord_t>(1.0) + nz);
+    sfc_key key;
+#if defined(SFC_TYPE_PEANO_HILBERT)
+    key = sfc_encode3D(ix, iy, iz);
+#else
+    key = spread3_u64(ix) | (spread3_u64(iy) << 1) | (spread3_u64(iz) << 2);
+#endif
 
+#if defined(DCOMPOSITION_TYPE_SAMPLING)
+    assert(key >= splitters[rank] && key <= splitters[rank + 1]);
+#else
+    uint32_t bucket_id = static_cast<uint32_t>(key >> (63 - m));
     assert(bucket_id >= splitters[rank] && bucket_id <= splitters[rank + 1]);
+#endif
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
   if (rank == 0) printf("  Phase 4 Redistribution & Load Balance Passed!\n");
 
   // Phase 5: Explicit Halo Exchange
-  float h_max = 5.0f;  // 5% of the total domain width
+  coord_t h_max = static_cast<coord_t>(5.0);  // 5% of the total domain width
   size_t pre_ghost_count = redistributed_p.pos_x.size();
 
-  particles<float> ghosted_p = exchange_halos(q, redistributed_p, h_max);
+  particles<coord_t> ghosted_p = exchange_halos(q, redistributed_p, h_max);
   size_t post_ghost_count = ghosted_p.pos_x.size();
 
   // Verify Ghost Particles
@@ -152,17 +182,17 @@ void test_mpi_pipeline(sycl::queue &q, int rank, int size) {
   int n_total = ghosted_p.pos_x.size();
   if (n_total > 0) {
     // 1. Allocate device memory for queries
-    float *d_qx = sycl::malloc_shared<float>(n_total, q);
-    float *d_qy = sycl::malloc_shared<float>(n_total, q);
-    float *d_qz = sycl::malloc_shared<float>(n_total, q);
-    float *d_rmin = sycl::malloc_shared<float>(n_total, q);
-    float *d_rmax = sycl::malloc_shared<float>(n_total, q);
+    coord_t *d_qx = sycl::malloc_shared<coord_t>(n_total, q);
+    coord_t *d_qy = sycl::malloc_shared<coord_t>(n_total, q);
+    coord_t *d_qz = sycl::malloc_shared<coord_t>(n_total, q);
+    coord_t *d_rmin = sycl::malloc_shared<coord_t>(n_total, q);
+    coord_t *d_rmax = sycl::malloc_shared<coord_t>(n_total, q);
 
     // We will query around every particle using the halo radius (h_max)
     q.copy(ghosted_p.pos_x.data(), d_qx, n_total);
     q.copy(ghosted_p.pos_y.data(), d_qy, n_total);
     q.copy(ghosted_p.pos_z.data(), d_qz, n_total);
-    q.fill(d_rmin, 0.0f, n_total);
+    q.fill(d_rmin, static_cast<coord_t>(0.0), n_total);
     q.fill(d_rmax, h_max, n_total);
     q.wait();
 
@@ -224,9 +254,6 @@ void test_mpi_pipeline(sycl::queue &q, int rank, int size) {
   if (rank == 0) { printf("=== ALL MPI TESTS PASSED SECURELY ===\n\n"); }
 }
 
-/**
- * This function test range_query assuming the halo-exchange and domain decomposition are correctly implemented.
- */
 void test_ghost_visibility(sycl::queue &q) {
   printf("Running test_ghost_visibility...\n");
 
@@ -235,29 +262,29 @@ void test_ghost_visibility(sycl::queue &q) {
   int n_ghost = 2;
   int n = n_local + n_ghost;
 
-  particles<float> p;
+  particles<coord_t> p;
   p.pos_x.resize(n);
-  p.pos_y.resize(n, 0.0f);
-  p.pos_z.resize(n, 0.0f);
+  p.pos_y.resize(n, static_cast<coord_t>(0.0));
+  p.pos_z.resize(n, static_cast<coord_t>(0.0));
   p.id.resize(n);
   p.is_ghost.resize(n);
 
   // Local Particles
-  p.pos_x[0] = 1.0f;
+  p.pos_x[0] = static_cast<coord_t>(1.0);
   p.id[0] = 100;
   p.is_ghost[0] = 0;
-  p.pos_x[1] = 2.0f;
+  p.pos_x[1] = static_cast<coord_t>(2.0);
   p.id[1] = 101;
   p.is_ghost[1] = 0;
-  p.pos_x[2] = 3.0f;
+  p.pos_x[2] = static_cast<coord_t>(3.0);
   p.id[2] = 102;
   p.is_ghost[2] = 0;
 
   // Ghost Particles (simulate boundary Data received from MPI)
-  p.pos_x[3] = -1.0f;
+  p.pos_x[3] = static_cast<coord_t>(-1.0);
   p.id[3] = 200;
   p.is_ghost[3] = 1;  // Left boundary ghost
-  p.pos_x[4] = 10.0f;
+  p.pos_x[4] = static_cast<coord_t>(10.0);
   p.id[4] = 201;
   p.is_ghost[4] = 1;  // Right boundary ghost
 
@@ -278,17 +305,17 @@ void test_ghost_visibility(sycl::queue &q) {
   // Query at x = -0.5 with radius = 2.0.
   // Should hit Ghost at x = -1.0 (dist 0.5) and Local at x = 1.0 (dist 1.5).
   // =========================================================================
-  float *qx = sycl::malloc_shared<float>(1, q);
-  float *qy = sycl::malloc_shared<float>(1, q);
-  float *qz = sycl::malloc_shared<float>(1, q);
-  qx[0] = -0.5f;
-  qy[0] = 0.0f;
-  qz[0] = 0.0f;
+  coord_t *qx = sycl::malloc_shared<coord_t>(1, q);
+  coord_t *qy = sycl::malloc_shared<coord_t>(1, q);
+  coord_t *qz = sycl::malloc_shared<coord_t>(1, q);
+  qx[0] = static_cast<coord_t>(-0.5);
+  qy[0] = static_cast<coord_t>(0.0);
+  qz[0] = static_cast<coord_t>(0.0);
 
-  float *r_min = sycl::malloc_shared<float>(1, q);
-  float *r_max = sycl::malloc_shared<float>(1, q);
-  r_min[0] = 0.0f;
-  r_max[0] = 2.0f;
+  coord_t *r_min = sycl::malloc_shared<coord_t>(1, q);
+  coord_t *r_max = sycl::malloc_shared<coord_t>(1, q);
+  r_min[0] = static_cast<coord_t>(0.0);
+  r_max[0] = static_cast<coord_t>(2.0);
 
   int max_res = 10;
   int *rq_results = sycl::malloc_shared<int>(max_res, q);
@@ -320,10 +347,10 @@ void test_ghost_visibility(sycl::queue &q) {
   // Query at x = 9.5, asking for k = 2.
   // Closest is Ghost at x = 10.0 (dist 0.5). Second closest is Local at x = 3.0 (dist 6.5).
   // =========================================================================
-  qx[0] = 9.5f;
+  qx[0] = static_cast<coord_t>(9.5);
   int k = 2;
   int *knn_results = sycl::malloc_shared<int>(k, q);
-  float *knn_dists = sycl::malloc_shared<float>(k, q);
+  coord_t *knn_dists = sycl::malloc_shared<coord_t>(k, q);
 
   knn_query(q, tree, qx, qy, qz, k, 1, knn_results, knn_dists);
   q.wait();
@@ -334,12 +361,12 @@ void test_ghost_visibility(sycl::queue &q) {
   // Verify 1st neighbor is the ghost
   assert(p.is_ghost[first_neighbor_idx] == 1 && "kNN 1st neighbor should be a ghost!");
   assert(p.id[first_neighbor_idx] == 201 && "kNN hit the wrong ghost!");
-  assert(std::abs(knn_dists[0] - 0.5f) < 1e-4 && "kNN distance calculation wrong!");
+  assert(std::abs(knn_dists[0] - static_cast<coord_t>(0.5)) < 1e-4 && "kNN distance calculation wrong!");
 
   // Verify 2nd neighbor is the local particle
   assert(p.is_ghost[second_neighbor_idx] == 0 && "kNN 2nd neighbor should be local!");
   assert(p.id[second_neighbor_idx] == 102 && "kNN hit the wrong local particle!");
-  assert(std::abs(knn_dists[1] - 6.5f) < 1e-4 && "kNN distance calculation wrong!");
+  assert(std::abs(knn_dists[1] - static_cast<coord_t>(6.5)) < 1e-4 && "kNN distance calculation wrong!");
 
   printf("  kNN Query: Ghost visibility passed.\n");
 

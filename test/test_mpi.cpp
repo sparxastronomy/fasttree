@@ -7,6 +7,20 @@
 
 using namespace fasttree;
 
+// Dynamic MPI Datatype traits
+template <typename T>
+struct mpi_type_traits;
+
+template <>
+struct mpi_type_traits<float> {
+  static MPI_Datatype type() { return MPI_FLOAT; }
+};
+
+template <>
+struct mpi_type_traits<double> {
+  static MPI_Datatype type() { return MPI_DOUBLE; }
+};
+
 int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
     
@@ -27,16 +41,16 @@ int main(int argc, char** argv) {
     
     if (rank == 0) {
         std::cout << "Rank 0: Building tree...\n";
-        float *sx = sycl::malloc_shared<float>(n, q);
-        float *sy = sycl::malloc_shared<float>(n, q);
-        float *sz = sycl::malloc_shared<float>(n, q);
+        coord_t *sx = sycl::malloc_shared<coord_t>(n, q);
+        coord_t *sy = sycl::malloc_shared<coord_t>(n, q);
+        coord_t *sz = sycl::malloc_shared<coord_t>(n, q);
         uint64_t *smk = sycl::malloc_shared<uint64_t>(n, q);
 
         // Generate simple data
         for (int i = 0; i < n; ++i) {
-            sx[i] = static_cast<float>(i);
-            sy[i] = 0.0f;
-            sz[i] = 0.0f;
+            sx[i] = static_cast<coord_t>(i);
+            sy[i] = static_cast<coord_t>(0.0);
+            sz[i] = static_cast<coord_t>(0.0);
             smk[i] = static_cast<uint64_t>(i); // dummy sorted morton keys
         }
 
@@ -54,12 +68,12 @@ int main(int argc, char** argv) {
         size_t total_nodes = tree_ptr->num_leaves + tree_ptr->num_internal;
         
         // Serialize arrays
-        MPI_Send(tree_ptr->min_x, total_nodes, MPI_FLOAT, 1, 1, MPI_COMM_WORLD);
-        MPI_Send(tree_ptr->max_x, total_nodes, MPI_FLOAT, 1, 2, MPI_COMM_WORLD);
-        MPI_Send(tree_ptr->min_y, total_nodes, MPI_FLOAT, 1, 3, MPI_COMM_WORLD);
-        MPI_Send(tree_ptr->max_y, total_nodes, MPI_FLOAT, 1, 4, MPI_COMM_WORLD);
-        MPI_Send(tree_ptr->min_z, total_nodes, MPI_FLOAT, 1, 5, MPI_COMM_WORLD);
-        MPI_Send(tree_ptr->max_z, total_nodes, MPI_FLOAT, 1, 6, MPI_COMM_WORLD);
+        MPI_Send(tree_ptr->min_x, total_nodes, mpi_type_traits<coord_t>::type(), 1, 1, MPI_COMM_WORLD);
+        MPI_Send(tree_ptr->max_x, total_nodes, mpi_type_traits<coord_t>::type(), 1, 2, MPI_COMM_WORLD);
+        MPI_Send(tree_ptr->min_y, total_nodes, mpi_type_traits<coord_t>::type(), 1, 3, MPI_COMM_WORLD);
+        MPI_Send(tree_ptr->max_y, total_nodes, mpi_type_traits<coord_t>::type(), 1, 4, MPI_COMM_WORLD);
+        MPI_Send(tree_ptr->min_z, total_nodes, mpi_type_traits<coord_t>::type(), 1, 5, MPI_COMM_WORLD);
+        MPI_Send(tree_ptr->max_z, total_nodes, mpi_type_traits<coord_t>::type(), 1, 6, MPI_COMM_WORLD);
         
         MPI_Send(tree_ptr->left_child, tree_ptr->num_internal, MPI_INT, 1, 7, MPI_COMM_WORLD);
         MPI_Send(tree_ptr->right_child, tree_ptr->num_internal, MPI_INT, 1, 8, MPI_COMM_WORLD);
@@ -82,12 +96,12 @@ int main(int argc, char** argv) {
         tree_ptr = new TreeSoA(q, num_leaves);
         size_t total_nodes = num_leaves + num_internal;
         
-        MPI_Recv(tree_ptr->min_x, total_nodes, MPI_FLOAT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(tree_ptr->max_x, total_nodes, MPI_FLOAT, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(tree_ptr->min_y, total_nodes, MPI_FLOAT, 0, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(tree_ptr->max_y, total_nodes, MPI_FLOAT, 0, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(tree_ptr->min_z, total_nodes, MPI_FLOAT, 0, 5, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(tree_ptr->max_z, total_nodes, MPI_FLOAT, 0, 6, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(tree_ptr->min_x, total_nodes, mpi_type_traits<coord_t>::type(), 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(tree_ptr->max_x, total_nodes, mpi_type_traits<coord_t>::type(), 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(tree_ptr->min_y, total_nodes, mpi_type_traits<coord_t>::type(), 0, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(tree_ptr->max_y, total_nodes, mpi_type_traits<coord_t>::type(), 0, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(tree_ptr->min_z, total_nodes, mpi_type_traits<coord_t>::type(), 0, 5, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(tree_ptr->max_z, total_nodes, mpi_type_traits<coord_t>::type(), 0, 6, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         
         MPI_Recv(tree_ptr->left_child, num_internal, MPI_INT, 0, 7, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(tree_ptr->right_child, num_internal, MPI_INT, 0, 8, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -96,15 +110,15 @@ int main(int argc, char** argv) {
         std::cout << "Rank 1: Tree received successfully.\n";
         
         // Verify tree integrity by doing a range query
-        float qx = 500.5f, qy = 0.0f, qz = 0.0f;
-        float r_min = 0.0f, r_max = 10.0f;
+        coord_t qx = static_cast<coord_t>(500.5), qy = static_cast<coord_t>(0.0), qz = static_cast<coord_t>(0.0);
+        coord_t r_min = static_cast<coord_t>(0.0), r_max = static_cast<coord_t>(10.0);
         int max_res = 100;
 
-        float *dqx = sycl::malloc_shared<float>(1, q);
-        float *dqy = sycl::malloc_shared<float>(1, q);
-        float *dqz = sycl::malloc_shared<float>(1, q);
-        float *drm = sycl::malloc_shared<float>(1, q);
-        float *dRM = sycl::malloc_shared<float>(1, q);
+        coord_t *dqx = sycl::malloc_shared<coord_t>(1, q);
+        coord_t *dqy = sycl::malloc_shared<coord_t>(1, q);
+        coord_t *dqz = sycl::malloc_shared<coord_t>(1, q);
+        coord_t *drm = sycl::malloc_shared<coord_t>(1, q);
+        coord_t *dRM = sycl::malloc_shared<coord_t>(1, q);
         int *res = sycl::malloc_shared<int>(max_res, q);
         int *res_cnt = sycl::malloc_shared<int>(1, q);
 

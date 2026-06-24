@@ -16,17 +16,19 @@ static void BM_KNNQuery_Lazy(benchmark::State& state, std::string path, int k) {
     if (!load_hdf5_data(path, data)) return;
     
     size_t n = data.count;
-    particles<float> p;
-    p.pos_x = data.pos_x; p.pos_y = data.pos_y; p.pos_z = data.pos_z;
+    particles<coord_t> p;
+    p.pos_x.assign(data.pos_x.begin(), data.pos_x.end());
+    p.pos_y.assign(data.pos_y.begin(), data.pos_y.end());
+    p.pos_z.assign(data.pos_z.begin(), data.pos_z.end());
     
     TreeSoA tree(q, n);
     build_bvh(q, p, tree);
     q.wait();
 
     const int num_queries = 1000;
-    float *qx = sycl::malloc_shared<float>(num_queries, q);
-    float *qy = sycl::malloc_shared<float>(num_queries, q);
-    float *qz = sycl::malloc_shared<float>(num_queries, q);
+    coord_t *qx = sycl::malloc_shared<coord_t>(num_queries, q);
+    coord_t *qy = sycl::malloc_shared<coord_t>(num_queries, q);
+    coord_t *qz = sycl::malloc_shared<coord_t>(num_queries, q);
 
     std::mt19937 gen(42);
     std::uniform_int_distribution<size_t> dis_idx(0, n - 1);
@@ -36,7 +38,7 @@ static void BM_KNNQuery_Lazy(benchmark::State& state, std::string path, int k) {
     }
 
     int *results = sycl::malloc_shared<int>(num_queries * k, q);
-    float *result_dists = sycl::malloc_shared<float>(num_queries * k, q);
+    coord_t *result_dists = sycl::malloc_shared<coord_t>(num_queries * k, q);
 
     // Warm up
     knn_query(q, tree, qx, qy, qz, k, num_queries, results, result_dists);

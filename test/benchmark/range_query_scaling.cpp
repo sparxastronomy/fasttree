@@ -10,14 +10,16 @@
 using namespace fasttree;
 using namespace fasttree::bench_utils;
 
-static void BM_RangeQuery_Lazy(benchmark::State& state, std::string path, float radius) {
+static void BM_RangeQuery_Lazy(benchmark::State& state, std::string path, coord_t radius) {
     sycl::queue q;
     ParticleData data;
     if (!load_hdf5_data(path, data)) return;
     
     size_t n = data.count;
-    particles<float> p;
-    p.pos_x = data.pos_x; p.pos_y = data.pos_y; p.pos_z = data.pos_z;
+    particles<coord_t> p;
+    p.pos_x.assign(data.pos_x.begin(), data.pos_x.end());
+    p.pos_y.assign(data.pos_y.begin(), data.pos_y.end());
+    p.pos_z.assign(data.pos_z.begin(), data.pos_z.end());
     
     TreeSoA tree(q, n);
     build_bvh(q, p, tree);
@@ -25,11 +27,11 @@ static void BM_RangeQuery_Lazy(benchmark::State& state, std::string path, float 
 
     const int num_queries = 1000;
     const int max_results_per_query = 1000;
-    float *qx = sycl::malloc_shared<float>(num_queries, q);
-    float *qy = sycl::malloc_shared<float>(num_queries, q);
-    float *qz = sycl::malloc_shared<float>(num_queries, q);
-    float *r_min = sycl::malloc_shared<float>(num_queries, q);
-    float *r_max = sycl::malloc_shared<float>(num_queries, q);
+    coord_t *qx = sycl::malloc_shared<coord_t>(num_queries, q);
+    coord_t *qy = sycl::malloc_shared<coord_t>(num_queries, q);
+    coord_t *qz = sycl::malloc_shared<coord_t>(num_queries, q);
+    coord_t *r_min = sycl::malloc_shared<coord_t>(num_queries, q);
+    coord_t *r_max = sycl::malloc_shared<coord_t>(num_queries, q);
     int *results = sycl::malloc_shared<int>(num_queries * max_results_per_query, q);
     int *result_counts = sycl::malloc_shared<int>(num_queries, q);
 
@@ -38,7 +40,7 @@ static void BM_RangeQuery_Lazy(benchmark::State& state, std::string path, float 
     for (int i = 0; i < num_queries; ++i) {
         size_t p_idx = dis_idx(gen);
         qx[i] = p.pos_x[p_idx]; qy[i] = p.pos_y[p_idx]; qz[i] = p.pos_z[p_idx];
-        r_min[i] = 0.0f;
+        r_min[i] = static_cast<coord_t>(0.0);
         r_max[i] = radius;
     }
 
@@ -67,7 +69,14 @@ int main(int argc, char** argv) {
     std::ifstream config("config.txt");
     if (!config.is_open()) return 1;
 
-    std::vector<float> radii = {0.01f, 0.1f, 1.0f, 10.0f, 100.0f, 200.0f};
+    std::vector<coord_t> radii = {
+        static_cast<coord_t>(0.01),
+        static_cast<coord_t>(0.1),
+        static_cast<coord_t>(1.0),
+        static_cast<coord_t>(10.0),
+        static_cast<coord_t>(100.0),
+        static_cast<coord_t>(200.0)
+    };
 
     std::string line;
     while (std::getline(config, line)) {
@@ -76,7 +85,7 @@ int main(int argc, char** argv) {
         std::string count_str, file_path;
         ss >> count_str >> file_path;
 
-        for (float radius : radii) {
+        for (coord_t radius : radii) {
             std::string b_name = "RangeQuery/" + count_str + "/R=" + std::to_string(radius);
             benchmark::RegisterBenchmark(b_name.c_str(), 
                 [file_path, radius](benchmark::State& st) { BM_RangeQuery_Lazy(st, file_path, radius); })

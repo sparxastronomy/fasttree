@@ -16,9 +16,11 @@ static void BM_Rebuild_Lazy(benchmark::State& state, std::string path) {
     ParticleData data;
     if (!load_hdf5_data(path, data)) return;
     
-    particles<float> p;
-    p.pos_x = data.pos_x; p.pos_y = data.pos_y; p.pos_z = data.pos_z;
-    p.mass = data.masses;
+    particles<coord_t> p;
+    p.pos_x.assign(data.pos_x.begin(), data.pos_x.end());
+    p.pos_y.assign(data.pos_y.begin(), data.pos_y.end());
+    p.pos_z.assign(data.pos_z.begin(), data.pos_z.end());
+    p.mass.assign(data.masses.begin(), data.masses.end());
     size_t n = p.pos_x.size();
 
     // Fill IDs and ghosts
@@ -37,11 +39,11 @@ static void BM_Rebuild_Lazy(benchmark::State& state, std::string path) {
     }
 
     // Perturb coordinates using loaded velocities to simulate one time-step update
-    float dt = 0.01f;
+    coord_t dt = static_cast<coord_t>(0.01);
     for (size_t i = 0; i < n; ++i) {
-        float vx = (i < data.vel_x.size()) ? data.vel_x[i] : 1.0f;
-        float vy = (i < data.vel_y.size()) ? data.vel_y[i] : 1.0f;
-        float vz = (i < data.vel_z.size()) ? data.vel_z[i] : 1.0f;
+        coord_t vx = (i < data.vel_x.size()) ? static_cast<coord_t>(data.vel_x[i]) : static_cast<coord_t>(1.0);
+        coord_t vy = (i < data.vel_y.size()) ? static_cast<coord_t>(data.vel_y[i]) : static_cast<coord_t>(1.0);
+        coord_t vz = (i < data.vel_z.size()) ? static_cast<coord_t>(data.vel_z[i]) : static_cast<coord_t>(1.0);
         p.pos_x[i] += vx * dt;
         p.pos_y[i] += vy * dt;
         p.pos_z[i] += vz * dt;

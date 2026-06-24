@@ -1,6 +1,6 @@
 # Progress: SYCL-HLBVH Implementation
-**Current release version:** v.1.0.0-beta1 (2026-06-13)   
-**Target release version:** v.1.0.0-beta2
+**Current release version:** v.1.0.0-beta3 (2026-06-24)   
+**Target release version:** v.1.0.0 (Release Candidate)
 
 ## Completed Tasks
 - [x] Basic Morton encoding/decoding (2026-05-07)
@@ -31,6 +31,10 @@
 - [x] Create GPU-accelerated tree rebuild scaling test (`rebuild_scaling.cpp`) (2026-06-20)
 - [x] Create multi-rank load-balanced distributed domain decomposition scaling benchmark (`domain_decomposition_scaling.cpp`) (2026-06-20)
 - [x] Integrate new scaling benchmarks into CMake build options (2026-06-20)
+- [x] Template coordinate and precision representations on FloatT in `domain_decomposition.hpp` and `sfc_encode` to support high-precision double-precision simulations (2026-06-24)
+- [x] Add compile-time flag option `DCOMPOSITION_TYPE` (HISTOGRAM / SAMPLING) to `CMakeLists.txt` (2026-06-24)
+- [x] Implement deterministic stride-sampling based domain decomposition (`get_deterministic_splitters` and key-based partitioning) (2026-06-24)
+- [x] Conform and adapt all test cases and test programs to dynamic precision and SFC / partition configurations (2026-06-24)
 
 ## Planned Tasks
 - [x] Performance benchmarking on NVIDIA GPUs (2026-05-15) - CMake configured, custom compiler tested, tests pass on NVIDIA A100.
@@ -65,6 +69,12 @@
   - **Reason:** Cosmological datasets are highly clustered (dense dark matter halos vs. empty cosmic voids). When many particles fall into a single coarse bucket (exceeding `target_load = N / P`), the static splitter algorithm cannot subdivide that bucket. Consequently, the rank assigned to that spatial region receives almost the entire cluster.
   - **Outcome:** Severe load imbalance during the subsequent `build_bvh` phase. For the 10M particle dataset running on 16 MPI ranks, the average tree build time drops to **3.91 seconds** (since most ranks receive 0 particles), but the maximum tree build time remains stuck at **21.33 seconds** because the bottleneck rank is forced to build the tree for the entire cluster.
   - **Next Steps:** Implement an adaptive or recursive splitter generation scheme (e.g. dynamically subdividing coarse buckets that exceed `target_load`), or implement dynamic work-stealing during tree construction to distribute the clustered workload.
+- **Peano-Hilbert Decoder Namespace Bug (2026-06-24):**
+  - **Date:** 2026-06-24
+  - **Description:** A code replacement in `src/sfc.peano_hilbert.hpp` omitted the closing brace `}` of `decodePeano3D`.
+  - **Reason:** The replace target content started with the closing brace of `decodePeano3D` and it was accidentally omitted in the replacement string, leaving the function unclosed. This caused `sfc_decode` to be compiled inside `decodePeano3D`, and subsequently caused `<iostream>` and other system library headers to be parsed inside the `fasttree` namespace.
+  - **Outcome:** Multiple compiler errors like "unknown type name 'wostream'" and "no member named 'endl' in namespace 'fasttree::std'" in `main.cpp`.
+  - **Next Steps:** Reinserted the missing closing brace `}` of `decodePeano3D` in `src/sfc.peano_hilbert.hpp`, resolving all errors.
 
 - **Environment Warning:** AdaptiveCpp/Homebrew on macOS shows a systemic `malloc` trap during SYCL kernel execution. Code is logically verified but runtime execution on this specific machine is blocked by the environment issue.
 - **Portability:** Refactored to use standard C++ algorithms instead of oneDPL where possible to increase compatibility, though PSTL is disabled for macOS AppleClang.

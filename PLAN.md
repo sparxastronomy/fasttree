@@ -193,30 +193,30 @@ This is the most critical test. Verify that the load-balancing logic works perfe
     * **Assert:** The logic does not crash or assign fractional buckets. One rank should be forced to take Bucket 500, even if it temporarily violates the perfect $N/P$ target, while the other ranks take the empty voids.
     * **Assert:** `rank_splitters[0] == 0` and `rank_splitters[P] == num_buckets`.
 
-```cpp
-// Example GoogleTest / Catch2 snippet for Splitter Logic
-TEST_CASE("Splitter Generation handles extreme clustering") {
-    int num_buckets = 1000;
-    int P = 4;
-    std::vector<int> global_hist(num_buckets, 0);
-    
-    // Simulate a massive galaxy cluster at bucket 500
-    global_hist[500] = 9900;
-    for(int i=0; i<100; i++) global_hist[i] = 1; // Sparse background
+        ```cpp
+        // Example GoogleTest / Catch2 snippet for Splitter Logic
+        TEST_CASE("Splitter Generation handles extreme clustering") {
+            int num_buckets = 1000;
+            int P = 4;
+            std::vector<int> global_hist(num_buckets, 0);
+            
+            // Simulate a massive galaxy cluster at bucket 500
+            global_hist[500] = 9900;
+            for(int i=0; i<100; i++) global_hist[i] = 1; // Sparse background
 
-    std::vector<int> splitters = generate_splitters(global_hist, P);
+            std::vector<int> splitters = generate_splitters(global_hist, P);
 
-    REQUIRE(splitters.size() == P + 1);
-    REQUIRE(splitters[0] == 0);
-    REQUIRE(splitters[P] == num_buckets);
-    
-    // Verify monotonically increasing
-    for(int i=0; i<P; i++) {
-        REQUIRE(splitters[i] <= splitters[i+1]);
-    }
-}
+            REQUIRE(splitters.size() == P + 1);
+            REQUIRE(splitters[0] == 0);
+            REQUIRE(splitters[P] == num_buckets);
+            
+            // Verify monotonically increasing
+            for(int i=0; i<P; i++) {
+                REQUIRE(splitters[i] <= splitters[i+1]);
+            }
+        }
 
-```
+        ```
 
 ### 2. The Local Binning & Routing Test (SYCL)
 
@@ -276,5 +276,94 @@ To understand the performance implications of the distributed domain decompositi
     - For tests with more than 1M particles we can't  read the data into a single node, so the read must be done across different node.
     - A bash script will be provided to automate the execution of these benchmarks across different cluster configurations and aggregate the results into a markdown tables.
 
-
 ---
+
+
+# Release: v.1.0.0-beta3 (Dynamic Load Balancing and complete profiling)
+
+## Objective
+1. Add a compile time option to switch between Morton and Peano-Hilbert curve as the underlying space-filling curve (SFC) for domain decomposition. This will allow us to compare the load balancing and spatial locality properties of both curves in cosmological simulations.
+2. Instead of a domain decomposition based on a single global histogram determined by top $m$ bits, we add an option to perform domain decomposition by just spliting the SFC into $P$ equal segments, and then assign particles to ranks based on which segment their Morton/Peano-Hilbert key falls into. 
+3. Finally we do an extensive profiling of all the key pipelines to understand the performance implication of different SFC,  different domain decomposition, memory pressure on GPUs and communication overheads and how they scale with particle count and MPI ranks.
+
+## Phase 1: SFC selection
+1. Separate the function defination/utils for SFC into new files - `sfc.morton.hpp` and `sfc.peano_hilbert.hpp`. Each file will contain the encoding (and decoding) functions for their respective curves.
+2. The functions should have similar call signature so that they can be easily switched in the main hlbvh and domain decomposition code. For example, replace morton_encode with a more generic `sfc_encode` that internally calls the correct encoding function based on a compile-time flag.
+3. Add a compile-time flag passed via CMake (`-DSFC_TYPE` which is either `MORTON` or `PEANO_HILBERT`) to select which SFC to use. This flag will control which encoding header file to include and what function is called in the domain decomposition and tree building code.
+
+## Phase 2: Equal Segment Split Domain Decomposition
+
+- In this approach the each MPI rank samples the locally sorted Morton/Peano-Hilbert keys at a fixed stride, send it to `rank 0` which gathers all the samples, sorts them, and then determines the splitters by simply dividing the sorted sample keys into $P$ equal segments. This is a more traditional approach to domain decomposition that does not rely on a global histogram.
+- Then for rank-by-rank splitter then contains the `min` and `max` key for that rank, and every rank can independently determine which of its local particles belong to which rank by checking which splitter range their key falls into.
+
+    ```cpp
+    inline std::vector<uint64_t> get_deterministic_splitters(sycl::queue &q, const particles<float> &p, const BoundingBox &global_bbox) {
+    int rank, P;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &P);
+
+    size_t n = p.pos_x.size();
+    const int S = 128; // Number of samples per rank
+
+    std::vector<uint64_t> local_samples(S, std::numeric_limits<uint64_t>::max());
+
+    if (n > 0) {
+        // 1. Allocate and compute local Morton keys
+        uint64_t *d_keys = sycl::malloc_device<uint64_t>(n, q);
+        morton_encode(q, p, d_keys, global_bbox);
+        q.wait();
+
+        // 2. Sort the keys locally to find proper percentiles
+        auto policy = oneapi::dpl::execution::make_device_policy(q);
+        oneapi::dpl::sort(policy, d_keys, d_keys + n);
+        q.wait();
+
+        // 3. Stride-based deterministic sampling
+        uint64_t *d_samples = sycl::malloc_shared<uint64_t>(S, q);
+        
+        q.parallel_for(sycl::range<1>(S), [=](sycl::id<1> idx) {
+        int i = idx[0];
+        size_t stride = n / S;
+        size_t target_idx = i * stride;
+        if (target_idx >= n) target_idx = n - 1; // Safety clamp
+        d_samples[i] = d_keys[target_idx];
+        }).wait();
+
+        // 4. Copy samples back to host
+        q.copy(d_samples, local_samples.data(), S).wait();
+        
+        sycl::free(d_keys, q);
+        sycl::free(d_samples, q);
+    }
+
+    // 5. Gather all samples to Rank 0
+    std::vector<uint64_t> global_samples(P * S);
+    MPI_Gather(local_samples.data(), S, MPI_UINT64_T, global_samples.data(), S, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+
+    std::vector<uint64_t> splitters(P + 1);
+    splitters[0] = 0; // Minimum possible 64-bit key
+    splitters[P] = std::numeric_limits<uint64_t>::max(); // Maximum possible 64-bit key
+
+    // 6. Rank 0 calculates the perfect boundaries
+    if (rank == 0) {
+        // Sort the aggregated samples
+        std::sort(global_samples.begin(), global_samples.end());
+
+        // Extract exact percentiles to define domain boundaries
+        for (int i = 1; i < P; ++i) {
+        splitters[i] = global_samples[i * S]; 
+        }
+    }
+
+    // 7. Broadcast the final 64-bit splitters to all ranks
+    MPI_Bcast(splitters.data(), P + 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+
+    return splitters;
+    }
+    ```
+- Use a compile time flag (`-DDCOMPOSITION_TYPE` that takes either `HISTOGRAM` or `SAMPLING`) to switch between the histogram and sampling-based splitter generation methods. This will allow us to compare the two approaches in terms of load balancing and performance.
+
+## Phase 3: Profiling & Maintenance
+- The comprehensive profiling via Intel's Vtune to measure HPC metrics such as cache hit/miss rates, memory bandwidth utilization, GPU occupancy, and MPI communication times will be measured to understand the limits of the current imlementation and identify bottlenecks.
+- Redo the scaling benchmark on both CPUs and GPUs with both Morton and Peano-Hilbert curves, and with both histogram-based and sampling-based domain decomposition. This will give us a clear picture of the trade-offs between these methods in terms of load balancing, spatial locality, and overall performance.
+- Add docstring and comments to all the functions so that anyone who reads the code can understand the purpose and logic of each step.

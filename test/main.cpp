@@ -13,20 +13,20 @@ int main() {
   std::cout << "Validation Test: Comparing HLBVH Sort (Coarse+Intra) vs Full Sort & Query Correctness" << std::endl;
 
   const int n = 1000;
-  particles<float> p;
+  particles<coord_t> p;
   p.pos_x.resize(n);
   p.pos_y.resize(n);
   p.pos_z.resize(n);
 
   // Random distribution
   for (int i = 0; i < n; ++i) {
-    p.pos_x[i] = static_cast<float>(rand()) / RAND_MAX * 100.0f;
-    p.pos_y[i] = static_cast<float>(rand()) / RAND_MAX * 100.0f;
-    p.pos_z[i] = static_cast<float>(rand()) / RAND_MAX * 100.0f;
+    p.pos_x[i] = static_cast<coord_t>(rand()) / RAND_MAX * static_cast<coord_t>(100.0);
+    p.pos_y[i] = static_cast<coord_t>(rand()) / RAND_MAX * static_cast<coord_t>(100.0);
+    p.pos_z[i] = static_cast<coord_t>(rand()) / RAND_MAX * static_cast<coord_t>(100.0);
   }
 
   // 1. Calculate Bounding Box
-  BoundingBox bbox = {p.pos_x[0], p.pos_x[0], p.pos_y[0], p.pos_y[0], p.pos_z[0], p.pos_z[0]};
+  BoundingBox<coord_t> bbox = {p.pos_x[0], p.pos_x[0], p.pos_y[0], p.pos_y[0], p.pos_z[0], p.pos_z[0]};
   for (size_t i = 1; i < n; ++i) {
     bbox.min_x = std::min(bbox.min_x, p.pos_x[i]);
     bbox.max_x = std::max(bbox.max_x, p.pos_x[i]);
@@ -46,7 +46,7 @@ int main() {
 
   // Extract sorted particles from the tree leaves (offset n-1)
   int leaf_offset = n - 1;
-  particles<float> tree_parts;
+  particles<coord_t> tree_parts;
   tree_parts.pos_x.resize(n);
   tree_parts.pos_y.resize(n);
   tree_parts.pos_z.resize(n);
@@ -59,30 +59,30 @@ int main() {
   // 3. Monotonicity Check
   std::cout << "Checking Monotonicity..." << std::endl;
   std::vector<uint64_t> mk_check(n);
-  morton_encode(q, tree_parts, mk_check, bbox);
+  sfc_encode(q, tree_parts, mk_check.data(), bbox);
   q.wait();
 
   for (int i = 0; i < n - 1; ++i) {
     if (mk_check[i] > mk_check[i + 1]) {
-      std::cout << "FAILURE: Morton keys in tree are NOT monotonic (verified by lib)." << std::endl;
+      std::cout << "FAILURE: SFC keys in tree are NOT monotonic (verified by lib)." << std::endl;
       std::cout << "  MK[" << i << "]: " << mk_check[i] << std::endl;
       std::cout << "  MK[" << i + 1 << "]: " << mk_check[i + 1] << std::endl;
       success = false;
       break;
     }
   }
-  if (success) { std::cout << "SUCCESS: Morton keys in tree are strictly monotonic." << std::endl; }
+  if (success) { std::cout << "SUCCESS: SFC keys in tree are strictly monotonic." << std::endl; }
 
   // 4. Range Query Verification
-  float qx = 50.5f, qy = 50.0f, qz = 50.0f;
-  float r_min = 0.0f, r_max = 20.0f;
+  coord_t qx = static_cast<coord_t>(50.5), qy = static_cast<coord_t>(50.0), qz = static_cast<coord_t>(50.0);
+  coord_t r_min = static_cast<coord_t>(0.0), r_max = static_cast<coord_t>(20.0);
   int max_res = 1000;
 
-  float *dqx = sycl::malloc_shared<float>(1, q);
-  float *dqy = sycl::malloc_shared<float>(1, q);
-  float *dqz = sycl::malloc_shared<float>(1, q);
-  float *drm = sycl::malloc_shared<float>(1, q);
-  float *dRM = sycl::malloc_shared<float>(1, q);
+  coord_t *dqx = sycl::malloc_shared<coord_t>(1, q);
+  coord_t *dqy = sycl::malloc_shared<coord_t>(1, q);
+  coord_t *dqz = sycl::malloc_shared<coord_t>(1, q);
+  coord_t *drm = sycl::malloc_shared<coord_t>(1, q);
+  coord_t *dRM = sycl::malloc_shared<coord_t>(1, q);
   int *res = sycl::malloc_shared<int>(max_res, q);
   int *res_cnt = sycl::malloc_shared<int>(1, q);
 
@@ -100,10 +100,10 @@ int main() {
   // Brute force verify against the reordered leaf nodes
   int expected_cnt = 0;
   for (int i = 0; i < n; ++i) {
-    float dx = tree_parts.pos_x[i] - qx;
-    float dy = tree_parts.pos_y[i] - qy;
-    float dz = tree_parts.pos_z[i] - qz;
-    float dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+    coord_t dx = tree_parts.pos_x[i] - qx;
+    coord_t dy = tree_parts.pos_y[i] - qy;
+    coord_t dz = tree_parts.pos_z[i] - qz;
+    coord_t dist = std::sqrt(dx * dx + dy * dy + dz * dz);
     if (dist >= r_min && dist <= r_max) { expected_cnt++; }
   }
   std::cout << "Found " << res_cnt[0] << " particles within radius " << r_max << " of " << qx << std::endl;
@@ -119,7 +119,7 @@ int main() {
   // 5. kNN Query Verification
   int k = 5;
   int *knn_res = sycl::malloc_shared<int>(k, q);
-  float *knn_dists = sycl::malloc_shared<float>(k, q);
+  coord_t *knn_dists = sycl::malloc_shared<coord_t>(k, q);
   knn_query(q, tree, dqx, dqy, dqz, k, 1, knn_res, knn_dists);
   q.wait();
 

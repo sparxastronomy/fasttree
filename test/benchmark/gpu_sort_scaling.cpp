@@ -15,10 +15,12 @@ static void BM_GPUSort_Lazy(benchmark::State& state, std::string path) {
     if (!load_hdf5_data(path, data)) return;
     
     size_t n = data.count;
-    particles<float> p;
-    p.pos_x = data.pos_x; p.pos_y = data.pos_y; p.pos_z = data.pos_z;
+    particles<coord_t> p;
+    p.pos_x.assign(data.pos_x.begin(), data.pos_x.end());
+    p.pos_y.assign(data.pos_y.begin(), data.pos_y.end());
+    p.pos_z.assign(data.pos_z.begin(), data.pos_z.end());
 
-    BoundingBox bbox = {p.pos_x[0], p.pos_x[0], p.pos_y[0], p.pos_y[0], p.pos_z[0], p.pos_z[0]};
+    BoundingBox<coord_t> bbox = {p.pos_x[0], p.pos_x[0], p.pos_y[0], p.pos_y[0], p.pos_z[0], p.pos_z[0]};
     for (size_t i = 1; i < n; ++i) {
         bbox.min_x = std::min(bbox.min_x, p.pos_x[i]); bbox.max_x = std::max(bbox.max_x, p.pos_x[i]);
         bbox.min_y = std::min(bbox.min_y, p.pos_y[i]); bbox.max_y = std::max(bbox.max_y, p.pos_y[i]);
@@ -27,7 +29,7 @@ static void BM_GPUSort_Lazy(benchmark::State& state, std::string path) {
 
     uint64_t *d_smk = sycl::malloc_shared<uint64_t>(n, q);
     size_t *d_indices = sycl::malloc_shared<size_t>(n, q);
-    morton_encode(q, p, d_smk, bbox);
+    sfc_encode(q, p, d_smk, bbox);
     q.wait();
 
     // Discard particle coordinates to see "true" sorting memory
@@ -49,10 +51,6 @@ static void BM_GPUSort_Lazy(benchmark::State& state, std::string path) {
 
     for (auto _ : state) {
         // Re-initialize indices to simulate unsorted state, but keys remain sorted from warmup
-        // (For a true benchmark of sort time on unsorted data, we should copy keys, but this measures best-case/throughput)
-        // To be accurate, we copy the original keys back.
-        // Wait, for benchmark accuracy, we shouldn't sort already sorted arrays if the sort isn't stable.
-        // Actually, Radix sort is generally O(N) regardless of input order. We'll leave as is.
         q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) { d_indices[idx] = idx[0]; }).wait();
         
         auto zip_begin = oneapi::dpl::make_zip_iterator(d_smk, d_indices);

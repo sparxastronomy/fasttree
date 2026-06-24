@@ -88,6 +88,12 @@ The project is designed to be included as a Git submodule. The core implementati
   - This release will focus on the core implementation of the HLBVH tree builder and the query functions, along with a basic benchmark suite to validate performance on either a single NVIDIA GPU or a single AMD GPU or a single compute node.
   - The tree sturcture will be stirctly pointer-free and should support basic MPI serialization tests.
 
-- [ ] **v.1.0.0-beta2 :** This release should focus on implementing domain decomposition.
+- [X] **v.1.0.0-beta2 :** This release should focus on implementing domain decomposition.
   - The initial plan is listed in `PLAN.md` where domain decomposition is carried out to top level splitting. 
   - We also extend the benchmark suite to test rebuild  scaling -- which simulates the one time-step of a real NBody/Hydro simulation where the particles have been kicked and we need to rebuild the tree for the next step.
+
+- [ ] **v.1.0.0-beta3 :** This release should focus on dynamic load balancing and complete profiling of the code.
+  - We add an option to switch between Morton and Peano-Hilbert encoding as the underlying space-filling curve for tree construction.
+  - We will implement a better load balancing scheme to ensure that the workload is evenly distributed across all GPUs/CPUs in a multi-GPU setting (i.e. when we are doing domain decomposition)
+  - We will also perform complete profiling of the code (both CPU and GPU) to identify any bottlenecks and optimize performance further. This will include profiling GPU occupancy, register usage, shared memory usage, and other relevant metrics to ensure that we are maximizing the performance of our implementation on NVIDIA GPUs.
+  - This release adds docstrings compatible with Doxygen, followoing the LSST style guide for commetents and function and class descriptions. 
