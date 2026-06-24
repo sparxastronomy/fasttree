@@ -34,6 +34,38 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=/mpcdf/soft/SLE_15/packa
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# 
+# Set compile time flags for SFC type and coordinate type
+#
+set(SFC_TYPE "MORTON" CACHE STRING "SFC type: MORTON or PEANO_HILBERT")
+set(COORDS_TYPE "FLOAT" CACHE STRING "Coordinate type: FLOAT or DOUBLE")
+
+if(SFC_TYPE STREQUAL "PEANO_HILBERT")
+    add_compile_definitions(SFC_TYPE_PEANO_HILBERT)
+    message(STATUS "Using Peano-Hilbert space-filling-curve")
+else()
+    add_compile_definitions(SFC_TYPE_MORTON)
+    message(STATUS "Using Morton space-filing-curve")
+endif()
+
+if(COORDS_TYPE STREQUAL "DOUBLE")
+    add_compile_definitions(COORDS_TYPE_DOUBLE)
+    message(STATUS "Using double precision coordinates")
+else()
+    add_compile_definitions(COORDS_TYPE_FLOAT)
+    message(STATUS "Using single precision coordinates")
+endif()
+
+set(DCOMPOSITION_TYPE "HISTOGRAM" CACHE STRING "Decomposition type: HISTOGRAM or SAMPLING")
+
+if(DCOMPOSITION_TYPE STREQUAL "SAMPLING")
+    add_compile_definitions(DCOMPOSITION_TYPE_SAMPLING)
+    message(STATUS "Using sampling-based domain decomposition")
+else()
+    add_compile_definitions(DCOMPOSITION_TYPE_HISTOGRAM)
+    message(STATUS "Using histogram-based domain decomposition")
+endif()
+
 #
 # Find MPI libraries
 #

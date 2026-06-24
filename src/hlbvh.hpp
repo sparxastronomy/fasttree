@@ -13,8 +13,6 @@
 #include <vector>
 
 namespace fasttree {
-// Using 21 bits per dimension allows us to fit 3D coordinates (float) into a 64-bit Morton key (63 bits total)
-#define BITS_PER_DIM 21
 
 // Particle structure
 template <typename T>
@@ -25,39 +23,98 @@ struct particles {
   std::vector<int8_t> is_ghost;        // 0 = Local, 1 = Ghost
 };
 
+template <typename FloatT>
 struct BoundingBox {
-  float min_x, max_x;
-  float min_y, max_y;
-  float min_z, max_z;
+  FloatT min_x, max_x;
+  FloatT min_y, max_y;
+  FloatT min_z, max_z;
+  // Constructor for static assert float T to eiter float or double
+  BoundingBox(FloatT min_x_, FloatT max_x_, FloatT min_y_, FloatT max_y_, FloatT min_z_, FloatT max_z_)
+      : min_x(min_x_), max_x(max_x_), min_y(min_y_), max_y(max_y_), min_z(min_z_), max_z(max_z_) {
+    static_assert(std::is_same_v<FloatT, float> || std::is_same_v<FloatT, double>, "BoundingBox only supports float or double");
+  }
+};
+}  // namespace fasttree
+
+#if defined(SFC_TYPE_PEANO_HILBERT)
+#include "sfc.peano_hilbert.hpp"
+#elif defined(SFC_TYPE_MORTON)
+#include "sfc.morton.hpp"
+#else
+#error "Undefined SFC_TYPE - either SFC_TYPE_PEANO_HILBERT or SFC_TYPE_MORTON must be defined"
+#endif
+
+namespace fasttree {
+
+// Define the coordinate type
+#if defined(COORDS_TYPE_FLOAT)
+using coord_t = float;
+#elif defined(COORDS_TYPE_DOUBLE)
+using coord_t = double;
+#else
+#error "Undefined COORDS_TYPE - either COORDS_TYPE_FLOAT or COORDS_TYPE_DOUBLE must be defined"
+#endif
+
+/**
+ * Traits for IEEE 754 floating point types (float, double).
+ * Stores the number of mantissa bits and the mask for extracting the mantissa.
+ * Undefined for non-floating point types to prevent misuse.
+ */
+template <typename FloatT>
+struct ieee754_traits;
+
+template <>
+struct ieee754_traits<float> {
+  using uint_type = uint32_t;
+  static constexpr uint_type mantissa_mask = 0x007FFFFFu;  // 23 bits
+  static constexpr int mantissa_bits = 23;
+  // For f in [1,2): exponent field = 127 (0x7F), stored in bits 23..30
 };
 
-// Utilities for Morton keys
-static constexpr std::uint64_t MASK_21 = 0x1FFFFFULL;
-static constexpr std::uint64_t M1 = 0x1F00000000FFFFULL;
-static constexpr std::uint64_t M2 = 0x1F0000FF0000FFULL;
-static constexpr std::uint64_t M3 = 0x100F00F00F00F00FULL;
-static constexpr std::uint64_t M4 = 0x10C30C30C30C30C3ULL;
-static constexpr std::uint64_t M5 = 0x1249249249249249ULL;
+template <>
+struct ieee754_traits<double> {
+  using uint_type = uint64_t;
+  static constexpr uint_type mantissa_mask = 0x000FFFFFFFFFFFFFull;  // 52 bits
+  static constexpr int mantissa_bits = 52;
+  // For d in [1,2): exponent field = 1023 (0x3FF), stored in bits 52..62
+};
 
-// Spread/compact 21-bit values into/out of 64-bit Morton layout (3D)
-inline std::uint64_t spread3_u64(std::uint64_t x) {
-  x &= MASK_21;
-  x = (x | (x << 32)) & M1;
-  x = (x | (x << 16)) & M2;
-  x = (x | (x << 8)) & M3;
-  x = (x | (x << 4)) & M4;
-  x = (x | (x << 2)) & M5;
-  return x;
-}
+/**
+ *  Generic verstion of domain_double_to_int from Arepo/Gadget
+ *
+ *  @param val  Any floating point input
+ *  @return integer representation of the input value
+ *
+ *  @note
+ *    sycl::bit_cast is valid on device for both float→uint32_t
+ *    and double→uint64_t. No union punning needed.
+ *
+ *  @note
+ *    float  has 23 mantissa bits → max useful BITS_PER_DIMENSION = 23
+ *    double has 52 mantissa bits → max useful BITS_PER_DIMENSION = 21 (our limit)
+ *    For BITS_PER_DIMENSION <= 21 both types have sufficient precision.
+ */
+template <typename FloatT>
+inline sfc1D encode_to_sfc1d(FloatT val) noexcept {
+  // Compile-time guard: reject types other than float/double
+  static_assert(std::is_same_v<FloatT, float> || std::is_same_v<FloatT, double>, "encode_to_sfc1d only supports float or double");
 
-inline std::uint64_t compact3_u64(std::uint64_t x) {
-  x &= M5;
-  x = (x | (x >> 2)) & M4;
-  x = (x | (x >> 4)) & M3;
-  x = (x | (x >> 8)) & M2;
-  x = (x | (x >> 16)) & M1;
-  x = (x | (x >> 32)) & MASK_21;
-  return x;
+  // Compile-time guard: ensure the floating point type has enough
+  // mantissa bits to represent BITS_PER_DIMENSION distinct levels
+  static_assert(BITS_PER_DIMENSION <= ieee754_traits<FloatT>::mantissa_bits,
+                "BITS_PER_DIMENSION exceeds the mantissa precision of FloatT. "
+                "Use double for BITS_PER_DIMENSION > 23.");
+
+  using traits = ieee754_traits<FloatT>;
+  using uint_t = typename traits::uint_type;
+
+  // Reinterpret bits: well-defined via sycl::bit_cast (C++20 std::bit_cast)
+  const uint_t bits = sycl::bit_cast<uint_t>(val);
+
+  // Shift right to keep only the top BITS_PER_DIMENSION mantissa bits
+  constexpr int shift = traits::mantissa_bits - BITS_PER_DIMENSION;
+
+  return static_cast<sfc1D>((bits & traits::mantissa_mask) >> shift);
 }
 
 inline int get_common_prefix_length(std::uint64_t c1, std::uint64_t c2) {
@@ -77,17 +134,46 @@ inline int get_common_prefix_length(std::uint64_t c1, std::uint64_t c2) {
 #endif
 }
 
-uint64_t float_to_int(float f) {
-  std::uint32_t bits = sycl::bit_cast<std::uint32_t>(f);
-  std::uint64_t ix = (bits & 0x7FFFFFu) >> (23 - BITS_PER_DIM);
-  return ix;
+template <typename FloatT>
+inline void sfc_encode(sycl::queue &q, const particles<FloatT> &particles, sfc_key *keys, const BoundingBox<FloatT> &bbox) {
+  size_t num_particles = particles.pos_x.size();
+  if (num_particles == 0) return;
+  const FloatT *pos_x = particles.pos_x.data();
+  const FloatT *pos_y = particles.pos_y.data();
+  const FloatT *pos_z = particles.pos_z.data();
+
+  FloatT dx = bbox.max_x - bbox.min_x;
+  FloatT dy = bbox.max_y - bbox.min_y;
+  FloatT dz = bbox.max_z - bbox.min_z;
+  FloatT inv_dx = (dx == 0) ? static_cast<FloatT>(0.0) : (static_cast<FloatT>(1.0) / dx);
+  FloatT inv_dy = (dy == 0) ? static_cast<FloatT>(0.0) : (static_cast<FloatT>(1.0) / dy);
+  FloatT inv_dz = (dz == 0) ? static_cast<FloatT>(0.0) : (static_cast<FloatT>(1.0) / dz);
+
+  q.parallel_for(sycl::range<1>(num_particles), [=](sycl::id<1> idx) {
+    size_t i = idx[0];
+
+    FloatT nx = std::min((pos_x[i] - bbox.min_x) * inv_dx, static_cast<FloatT>(0.999999));
+    FloatT ny = std::min((pos_y[i] - bbox.min_y) * inv_dy, static_cast<FloatT>(0.999999));
+    FloatT nz = std::min((pos_z[i] - bbox.min_z) * inv_dz, static_cast<FloatT>(0.999999));
+
+    sfc1D ix = encode_to_sfc1d(static_cast<FloatT>(1.0) + nx);
+    sfc1D iy = encode_to_sfc1d(static_cast<FloatT>(1.0) + ny);
+    sfc1D iz = encode_to_sfc1d(static_cast<FloatT>(1.0) + nz);
+
+#if defined(SFC_TYPE_PEANO_HILBERT)
+    keys[i] = sfc_encode3D(ix, iy, iz);
+#elif defined(SFC_TYPE_MORTON)
+    keys[i] = spread3_u64(ix) | (spread3_u64(iy) << 1) | (spread3_u64(iz) << 2);
+#endif
+  });
 }
 
 // Tree structure in SoA format
 struct TreeSoA {
-  float *min_x, *max_x;
-  float *min_y, *max_y;
-  float *min_z, *max_z;
+  // TODO: Reorder in decreasing order of size for better memory coalescing
+  coord_t *min_x, *max_x;
+  coord_t *min_y, *max_y;
+  coord_t *min_z, *max_z;
   int *left_child;
   int *right_child;
   int *parent;
@@ -101,12 +187,12 @@ struct TreeSoA {
     size_t total_nodes = num_leaves + num_internal;
     if (total_nodes == 0) return;
 
-    min_x = sycl::malloc_shared<float>(total_nodes, q);
-    max_x = sycl::malloc_shared<float>(total_nodes, q);
-    min_y = sycl::malloc_shared<float>(total_nodes, q);
-    max_y = sycl::malloc_shared<float>(total_nodes, q);
-    min_z = sycl::malloc_shared<float>(total_nodes, q);
-    max_z = sycl::malloc_shared<float>(total_nodes, q);
+    min_x = sycl::malloc_shared<coord_t>(total_nodes, q);
+    max_x = sycl::malloc_shared<coord_t>(total_nodes, q);
+    min_y = sycl::malloc_shared<coord_t>(total_nodes, q);
+    max_y = sycl::malloc_shared<coord_t>(total_nodes, q);
+    min_z = sycl::malloc_shared<coord_t>(total_nodes, q);
+    max_z = sycl::malloc_shared<coord_t>(total_nodes, q);
     left_child = sycl::malloc_shared<int>(num_internal, q);
     right_child = sycl::malloc_shared<int>(num_internal, q);
     parent = sycl::malloc_shared<int>(total_nodes, q);
@@ -133,8 +219,8 @@ struct TreeSoA {
 
 inline int sgn(int x) { return (x > 0) - (x < 0); }
 
-inline void build_tree(sycl::queue &q, TreeSoA &tree, const std::uint64_t *sorted_morton_keys, const float *sorted_x, const float *sorted_y,
-                       const float *sorted_z, const uint32_t *sorted_id = nullptr, const int8_t *sorted_is_ghost = nullptr) {
+inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys, const coord_t *sorted_x, const coord_t *sorted_y,
+                       const coord_t *sorted_z, const uint32_t *sorted_id = nullptr, const int8_t *sorted_is_ghost = nullptr) {
   size_t n = tree.num_leaves;
   if (n == 1) {
     q.submit([&](sycl::handler &cgh) {
@@ -147,9 +233,9 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const std::uint64_t *sorte
     return;
   }
 
-  float *p_min_x = tree.min_x, *p_max_x = tree.max_x;
-  float *p_min_y = tree.min_y, *p_max_y = tree.max_y;
-  float *p_min_z = tree.min_z, *p_max_z = tree.max_z;
+  coord_t *p_min_x = tree.min_x, *p_max_x = tree.max_x;
+  coord_t *p_min_y = tree.min_y, *p_max_y = tree.max_y;
+  coord_t *p_min_z = tree.min_z, *p_max_z = tree.max_z;
   int *p_left_child = tree.left_child, *p_right_child = tree.right_child, *p_parent = tree.parent;
 
   if (!p_min_x || !p_parent || !p_left_child) return;
@@ -160,8 +246,8 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const std::uint64_t *sorte
   // 1. Construct internal nodes (Karras 2012)
   auto delta = [=](int i, int j) {
     if (j < 0 || j >= (int)n) return -1;
-    std::uint64_t k_i = sorted_morton_keys[i];
-    std::uint64_t k_j = sorted_morton_keys[j];
+    std::uint64_t k_i = sorted_keys[i];
+    std::uint64_t k_j = sorted_keys[j];
     if (k_i != k_j) return get_common_prefix_length(k_i, k_j);
     // Tie-breaker using indices as per Karras 2012
     return 64 + get_common_prefix_length((std::uint64_t)i, (std::uint64_t)j);
@@ -219,12 +305,8 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const std::uint64_t *sorte
      p_max_y[leaf_idx] = sorted_y[i];
      p_min_z[leaf_idx] = sorted_z[i];
      p_max_z[leaf_idx] = sorted_z[i];
-     if (p_id && sorted_id) {
-       p_id[leaf_idx] = sorted_id[i];
-     }
-     if (p_ghost && sorted_is_ghost) {
-       p_ghost[leaf_idx] = sorted_is_ghost[i];
-     }
+     if (p_id && sorted_id) { p_id[leaf_idx] = sorted_id[i]; }
+     if (p_ghost && sorted_is_ghost) { p_ghost[leaf_idx] = sorted_is_ghost[i]; }
    }).wait();
 
   // 3. Compute internal bounding boxes (bottom-up)
@@ -299,21 +381,21 @@ struct PriorityQueue {
   }
 };
 
-inline void knn_query(sycl::queue &q, const TreeSoA &tree, const float *qx, const float *qy, const float *qz, int k, int num_queries, int *results,
-                      float *result_dists) {
+inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, const coord_t *qy, const coord_t *qz, int k, int num_queries,
+                      int *results, coord_t *result_dists) {
   size_t n = tree.num_leaves;
   if (n == 0) return;
 
-  float *p_min_x = tree.min_x, *p_max_x = tree.max_x;
-  float *p_min_y = tree.min_y, *p_max_y = tree.max_y;
-  float *p_min_z = tree.min_z, *p_max_z = tree.max_z;
+  coord_t *p_min_x = tree.min_x, *p_max_x = tree.max_x;
+  coord_t *p_min_y = tree.min_y, *p_max_y = tree.max_y;
+  coord_t *p_min_z = tree.min_z, *p_max_z = tree.max_z;
   int *p_left_child = tree.left_child, *p_right_child = tree.right_child;
 
   // Use a fixed K for the priority queue in the kernel
   // In a real implementation, K would be a template parameter or handled more dynamically
   q.parallel_for(sycl::range<1>(num_queries), [=](sycl::id<1> idx) {
     int qi = idx[0];
-    float px = qx[qi], py = qy[qi], pz = qz[qi];
+    coord_t px = qx[qi], py = qy[qi], pz = qz[qi];
 
     int stack[MAX_STACK_DEPTH];
     int stack_ptr = 0;
@@ -326,19 +408,19 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const float *qx, cons
 
     // We'll use a local buffer for PQ. Since K is dynamic in the API but fixed in the struct,
     // we handle it carefully. For this implementation, we assume K <= 128.
-    PriorityQueue<float, 128> pq;
+    PriorityQueue<coord_t, 128> pq;
 
     while (stack_ptr > 0) {
       int node_idx = stack[--stack_ptr];
 
-      float bmin_x = p_min_x[node_idx], bmax_x = p_max_x[node_idx];
-      float bmin_y = p_min_y[node_idx], bmax_y = p_max_y[node_idx];
-      float bmin_z = p_min_z[node_idx], bmax_z = p_max_z[node_idx];
+      coord_t bmin_x = p_min_x[node_idx], bmax_x = p_max_x[node_idx];
+      coord_t bmin_y = p_min_y[node_idx], bmax_y = p_max_y[node_idx];
+      coord_t bmin_z = p_min_z[node_idx], bmax_z = p_max_z[node_idx];
 
-      float dx = sycl::fmax(bmin_x - px, sycl::fmax(0.0f, px - bmax_x));
-      float dy = sycl::fmax(bmin_y - py, sycl::fmax(0.0f, py - bmax_y));
-      float dz = sycl::fmax(bmin_z - pz, sycl::fmax(0.0f, pz - bmax_z));
-      float d2 = dx * dx + dy * dy + dz * dz;
+      coord_t dx = sycl::fmax(bmin_x - px, sycl::fmax(0.0f, px - bmax_x));
+      coord_t dy = sycl::fmax(bmin_y - py, sycl::fmax(0.0f, py - bmax_y));
+      coord_t dz = sycl::fmax(bmin_z - pz, sycl::fmax(0.0f, pz - bmax_z));
+      coord_t d2 = dx * dx + dy * dy + dz * dz;
 
       if (pq.count < k || d2 < pq.data[0]) {
         if (node_idx >= (int)n - 1 && n > 1) {  // Leaf
@@ -351,15 +433,15 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const float *qx, cons
           int r = p_right_child[node_idx];
 
           // Heuristic: push the closer child last so it's processed first
-          float l_dx = sycl::fmax(p_min_x[l] - px, sycl::fmax(0.0f, px - p_max_x[l]));
-          float l_dy = sycl::fmax(p_min_y[l] - py, sycl::fmax(0.0f, py - p_max_y[l]));
-          float l_dz = sycl::fmax(p_min_z[l] - pz, sycl::fmax(0.0f, pz - p_max_z[l]));
-          float l_d2 = l_dx * l_dx + l_dy * l_dy + l_dz * l_dz;
+          coord_t l_dx = sycl::fmax(p_min_x[l] - px, sycl::fmax(0.0f, px - p_max_x[l]));
+          coord_t l_dy = sycl::fmax(p_min_y[l] - py, sycl::fmax(0.0f, py - p_max_y[l]));
+          coord_t l_dz = sycl::fmax(p_min_z[l] - pz, sycl::fmax(0.0f, pz - p_max_z[l]));
+          coord_t l_d2 = l_dx * l_dx + l_dy * l_dy + l_dz * l_dz;
 
-          float r_dx = sycl::fmax(p_min_x[r] - px, sycl::fmax(0.0f, px - p_max_x[r]));
-          float r_dy = sycl::fmax(p_min_y[r] - py, sycl::fmax(0.0f, py - p_max_y[r]));
-          float r_dz = sycl::fmax(p_min_z[r] - pz, sycl::fmax(0.0f, pz - p_max_z[r]));
-          float r_d2 = r_dx * r_dx + r_dy * r_dy + r_dz * r_dz;
+          coord_t r_dx = sycl::fmax(p_min_x[r] - px, sycl::fmax(0.0f, px - p_max_x[r]));
+          coord_t r_dy = sycl::fmax(p_min_y[r] - py, sycl::fmax(0.0f, py - p_max_y[r]));
+          coord_t r_dz = sycl::fmax(p_min_z[r] - pz, sycl::fmax(0.0f, pz - p_max_z[r]));
+          coord_t r_d2 = r_dx * r_dx + r_dy * r_dy + r_dz * r_dz;
 
           if (l_d2 < r_d2) {
             stack[stack_ptr++] = r;
@@ -386,22 +468,22 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const float *qx, cons
 
 #define MAX_STACK_DEPTH 64
 
-inline void range_query(sycl::queue &q, const TreeSoA &tree, const float *qx, const float *qy, const float *qz, const float *r_min,
-                        const float *r_max, int num_queries, int *results, int *result_counts, int max_results_per_query) {
+inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, const coord_t *qy, const coord_t *qz, const coord_t *r_min,
+                        const coord_t *r_max, int num_queries, int *results, int *result_counts, int max_results_per_query) {
   size_t n = tree.num_leaves;
   if (n == 0) return;
 
-  float *p_min_x = tree.min_x, *p_max_x = tree.max_x;
-  float *p_min_y = tree.min_y, *p_max_y = tree.max_y;
-  float *p_min_z = tree.min_z, *p_max_z = tree.max_z;
+  coord_t *p_min_x = tree.min_x, *p_max_x = tree.max_x;
+  coord_t *p_min_y = tree.min_y, *p_max_y = tree.max_y;
+  coord_t *p_min_z = tree.min_z, *p_max_z = tree.max_z;
   int *p_left_child = tree.left_child, *p_right_child = tree.right_child;
 
   q.parallel_for(sycl::range<1>(num_queries), [=](sycl::id<1> idx) {
     int qi = idx[0];
-    float px = qx[qi], py = qy[qi], pz = qz[qi];
-    float rm = r_min[qi], RM = r_max[qi];
-    float RM2 = RM * RM;
-    float rm2 = rm * rm;
+    coord_t px = qx[qi], py = qy[qi], pz = qz[qi];
+    coord_t rm = r_min[qi], RM = r_max[qi];
+    coord_t RM2 = RM * RM;
+    coord_t rm2 = rm * rm;
 
     int stack[MAX_STACK_DEPTH];
     int stack_ptr = 0;
@@ -416,14 +498,14 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const float *qx, co
     while (stack_ptr > 0) {
       int node_idx = stack[--stack_ptr];
 
-      float bmin_x = p_min_x[node_idx], bmax_x = p_max_x[node_idx];
-      float bmin_y = p_min_y[node_idx], bmax_y = p_max_y[node_idx];
-      float bmin_z = p_min_z[node_idx], bmax_z = p_max_z[node_idx];
+      coord_t bmin_x = p_min_x[node_idx], bmax_x = p_max_x[node_idx];
+      coord_t bmin_y = p_min_y[node_idx], bmax_y = p_max_y[node_idx];
+      coord_t bmin_z = p_min_z[node_idx], bmax_z = p_max_z[node_idx];
 
-      float dx = sycl::fmax(bmin_x - px, sycl::fmax(0.0f, px - bmax_x));
-      float dy = sycl::fmax(bmin_y - py, sycl::fmax(0.0f, py - bmax_y));
-      float dz = sycl::fmax(bmin_z - pz, sycl::fmax(0.0f, pz - bmax_z));
-      float d2 = dx * dx + dy * dy + dz * dz;
+      coord_t dx = sycl::fmax(bmin_x - px, sycl::fmax(0.0f, px - bmax_x));
+      coord_t dy = sycl::fmax(bmin_y - py, sycl::fmax(0.0f, py - bmax_y));
+      coord_t dz = sycl::fmax(bmin_z - pz, sycl::fmax(0.0f, pz - bmax_z));
+      coord_t d2 = dx * dx + dy * dy + dz * dz;
 
       if (d2 <= RM2) {
         if (node_idx >= (int)n - 1 && n > 1) {  // Leaf node
@@ -451,72 +533,8 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const float *qx, co
   });
 }
 
-inline void morton_encode(sycl::queue &q, const particles<float> &particles, std::uint64_t *keys, const BoundingBox &bbox) {
-  size_t num_particles = particles.pos_x.size();
-  const float *pos_x = particles.pos_x.data();
-  const float *pos_y = particles.pos_y.data();
-  const float *pos_z = particles.pos_z.data();
-
-  float dx = bbox.max_x - bbox.min_x;
-  float dy = bbox.max_y - bbox.min_y;
-  float dz = bbox.max_z - bbox.min_z;
-  float inv_dx = (dx == 0) ? 0.0f : (1.0f / dx);
-  float inv_dy = (dy == 0) ? 0.0f : (1.0f / dy);
-  float inv_dz = (dz == 0) ? 0.0f : (1.0f / dz);
-
-  q.parallel_for(sycl::range<1>(num_particles), [=](sycl::id<1> idx) {
-    size_t i = idx[0];
-
-    // Clamp the multiplier to 0.999999f to prevent 2.0f wraparound
-    float nx = std::min((pos_x[i] - bbox.min_x) * inv_dx, 0.999999f);
-    float ny = std::min((pos_y[i] - bbox.min_y) * inv_dy, 0.999999f);
-    float nz = std::min((pos_z[i] - bbox.min_z) * inv_dz, 0.999999f);
-
-    std::uint64_t ix = float_to_int(1.0f + nx);
-    std::uint64_t iy = float_to_int(1.0f + ny);
-    std::uint64_t iz = float_to_int(1.0f + nz);
-
-    keys[i] = spread3_u64(ix) | (spread3_u64(iy) << 1) | (spread3_u64(iz) << 2);
-  });
-}
-
-inline void morton_encode(sycl::queue &q, const particles<float> &particles, std::vector<std::uint64_t> &morton_keys, const BoundingBox &bbox) {
-  morton_encode(q, particles, morton_keys.data(), bbox);
-}
-
-inline void morton_decode(sycl::queue &q, const std::vector<std::uint64_t> &morton_keys, const BoundingBox &bbox, particles<float> &particles) {
-  size_t num_particles = morton_keys.size();
-  // Make sure the output particle arrays are resized to hold the decoded positions
-  particles.pos_x.resize(num_particles);
-  particles.pos_y.resize(num_particles);
-  particles.pos_z.resize(num_particles);
-
-  const std::uint64_t *keys = morton_keys.data();
-  float *pos_x = particles.pos_x.data();
-  float *pos_y = particles.pos_y.data();
-  float *pos_z = particles.pos_z.data();
-
-  float dx = bbox.max_x - bbox.min_x;
-  float dy = bbox.max_y - bbox.min_y;
-  float dz = bbox.max_z - bbox.min_z;
-  float scale = 1.0f / ((1ULL << BITS_PER_DIM) - 1);
-
-  q.parallel_for(sycl::range<1>(num_particles), [=](sycl::id<1> idx) {
-    size_t i = idx[0];
-    std::uint64_t morton_key = keys[i];
-
-    std::uint64_t ix = compact3_u64(morton_key);
-    std::uint64_t iy = compact3_u64(morton_key >> 1);
-    std::uint64_t iz = compact3_u64(morton_key >> 2);
-
-    pos_x[i] = bbox.min_x + static_cast<float>(ix) * scale * dx;
-    pos_y[i] = bbox.min_y + static_cast<float>(iy) * scale * dy;
-    pos_z[i] = bbox.min_z + static_cast<float>(iz) * scale * dz;
-  });
-}
-
 // High-level entry point to build the HLBVH
-inline void build_bvh(sycl::queue &q, const particles<float> &p, TreeSoA &tree) {
+inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, TreeSoA &tree) {
   size_t n = p.pos_x.size();
   if (n == 0) return;
 
@@ -532,11 +550,11 @@ inline void build_bvh(sycl::queue &q, const particles<float> &p, TreeSoA &tree) 
   }
 
   // 2. Allocate USM memory for keys and indices
-  uint64_t *d_smk = sycl::malloc_shared<uint64_t>(n, q);
+  sfc_key *d_smk = sycl::malloc_shared<sfc_key>(n, q);
   size_t *d_indices = sycl::malloc_shared<size_t>(n, q);
 
-  // 3. Morton Encoding and Index Initialization
-  morton_encode(q, p, d_smk, bbox);
+  // 3. SFC Encoding and Index Initialization
+  sfc_encode(q, p, d_smk, bbox);
   q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) { d_indices[idx] = idx[0]; });
   q.wait();
 
@@ -549,15 +567,15 @@ inline void build_bvh(sycl::queue &q, const particles<float> &p, TreeSoA &tree) 
   q.wait();
 
   // 5. Coordinate and Attribute Reordering on GPU
-  float *sx = sycl::malloc_shared<float>(n, q);
-  float *sy = sycl::malloc_shared<float>(n, q);
-  float *sz = sycl::malloc_shared<float>(n, q);
+  coord_t *sx = sycl::malloc_shared<coord_t>(n, q);
+  coord_t *sy = sycl::malloc_shared<coord_t>(n, q);
+  coord_t *sz = sycl::malloc_shared<coord_t>(n, q);
   uint32_t *sid = sycl::malloc_shared<uint32_t>(n, q);
   int8_t *sghost = sycl::malloc_shared<int8_t>(n, q);
 
-  const float *pos_x = p.pos_x.data();
-  const float *pos_y = p.pos_y.data();
-  const float *pos_z = p.pos_z.data();
+  const coord_t *pos_x = p.pos_x.data();
+  const coord_t *pos_y = p.pos_y.data();
+  const coord_t *pos_z = p.pos_z.data();
 
   const uint32_t *p_id = nullptr;
   std::vector<uint32_t> temp_id;
@@ -579,14 +597,14 @@ inline void build_bvh(sycl::queue &q, const particles<float> &p, TreeSoA &tree) 
   }
 
   q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
-    size_t i = idx[0];
-    size_t orig_idx = d_indices[i];
-    sx[i] = pos_x[orig_idx];
-    sy[i] = pos_y[orig_idx];
-    sz[i] = pos_z[orig_idx];
-    sid[i] = p_id[orig_idx];
-    sghost[i] = p_ghost[orig_idx];
-  }).wait();
+     size_t i = idx[0];
+     size_t orig_idx = d_indices[i];
+     sx[i] = pos_x[orig_idx];
+     sy[i] = pos_y[orig_idx];
+     sz[i] = pos_z[orig_idx];
+     sid[i] = p_id[orig_idx];
+     sghost[i] = p_ghost[orig_idx];
+   }).wait();
 
   // 6. Build Tree
   build_tree(q, tree, d_smk, sx, sy, sz, sid, sghost);
