@@ -44,36 +44,36 @@ inline sfc_key compact3_u64(sfc_key x) {
   return x;
 }
 
-template <typename FloatT>
-inline void sfc_decode(sycl::queue &q, const std::vector<sfc_key> &keys, const BoundingBox<FloatT> &bbox, particles<FloatT> &parts) {
-  size_t num_particles = keys.size();
-  parts.pos_x.resize(num_particles);
-  parts.pos_y.resize(num_particles);
-  parts.pos_z.resize(num_particles);
+// template <typename FloatT>
+// inline void sfc_decode(sycl::queue &q, const std::vector<sfc_key> &keys, const BoundingBox<FloatT> &bbox, particles<FloatT> &parts) {
+//   size_t num_particles = keys.size();
+//   parts.pos_x.resize(num_particles);
+//   parts.pos_y.resize(num_particles);
+//   parts.pos_z.resize(num_particles);
 
-  const sfc_key *d_keys = keys.data();
-  FloatT *pos_x = parts.pos_x.data();
-  FloatT *pos_y = parts.pos_y.data();
-  FloatT *pos_z = parts.pos_z.data();
+//   const sfc_key *d_keys = keys.data();
+//   FloatT *pos_x = parts.pos_x.data();
+//   FloatT *pos_y = parts.pos_y.data();
+//   FloatT *pos_z = parts.pos_z.data();
 
-  FloatT dx = bbox.max_x - bbox.min_x;
-  FloatT dy = bbox.max_y - bbox.min_y;
-  FloatT dz = bbox.max_z - bbox.min_z;
-  FloatT scale = static_cast<FloatT>(1.0) / ((1ULL << BITS_PER_DIMENSION) - 1);
+//   FloatT dx = bbox.max_x - bbox.min_x;
+//   FloatT dy = bbox.max_y - bbox.min_y;
+//   FloatT dz = bbox.max_z - bbox.min_z;
+//   FloatT scale = static_cast<FloatT>(1.0) / ((1ULL << BITS_PER_DIMENSION) - 1);
 
-  q.parallel_for(sycl::range<1>(num_particles), [=](sycl::id<1> idx) {
-    size_t i = idx[0];
-    sfc_key morton_key = d_keys[i];
+//   q.parallel_for(sycl::range<1>(num_particles), [=](sycl::id<1> idx) {
+//     size_t i = idx[0];
+//     sfc_key morton_key = d_keys[i];
 
-    std::uint64_t ix = compact3_u64(morton_key);
-    std::uint64_t iy = compact3_u64(morton_key >> 1);
-    std::uint64_t iz = compact3_u64(morton_key >> 2);
+//     std::uint64_t ix = compact3_u64(morton_key);
+//     std::uint64_t iy = compact3_u64(morton_key >> 1);
+//     std::uint64_t iz = compact3_u64(morton_key >> 2);
 
-    pos_x[i] = bbox.min_x + static_cast<FloatT>(ix) * scale * dx;
-    pos_y[i] = bbox.min_y + static_cast<FloatT>(iy) * scale * dy;
-    pos_z[i] = bbox.min_z + static_cast<FloatT>(iz) * scale * dz;
-  });
-}
+//     pos_x[i] = bbox.min_x + static_cast<FloatT>(ix) * scale * dx;
+//     pos_y[i] = bbox.min_y + static_cast<FloatT>(iy) * scale * dy;
+//     pos_z[i] = bbox.min_z + static_cast<FloatT>(iz) * scale * dz;
+//   });
+// }
 
 }  // namespace fasttree
 
