@@ -78,3 +78,12 @@
 
 - **Environment Warning:** AdaptiveCpp/Homebrew on macOS shows a systemic `malloc` trap during SYCL kernel execution. Code is logically verified but runtime execution on this specific machine is blocked by the environment issue.
 - **Portability:** Refactored to use standard C++ algorithms instead of oneDPL where possible to increase compatibility, though PSTL is disabled for macOS AppleClang.
+
+- **compute_bbox Compilation & Reduction Bugs (2026-06-25):**
+  - **Date:** 2026-06-25
+  - **Description:** A compilation error occurred when calling `compute_bbox` with `particles` vectors, and subsequently the parallel reduction for computing the bounding box returned incorrect min/max coordinates (e.g., minimums were incorrectly zero-valued).
+  - **Reason:** 
+    1. The overload `compute_bbox(queue, particles, n)` was passing raw `std::vector` objects to the pointer overload instead of pointer addresses using `.data()`.
+    2. The USM shared memory pointers allocated for the reductions (`d_min_x`, `d_max_x`, etc.) were not initialized on the host before kernel execution. In SYCL, the final reduction result combines the reduction tree values with the initial values in the output pointers. Because these pointers were uninitialized (or zeroed), the minimum was always computed as 0.
+  - **Outcome:** Monotonicity test failed due to incorrect bounding boxes.
+  - **Next Steps:** Templated both `compute_bbox` functions on `FloatT` to support dynamic precision, added `.data()` to vector arguments, and explicitly initialized all USM reduction variables to their corresponding identity values (`max()` for minimum reductions and `-max()` for maximum reductions) before kernel submission. All tests and domain decomposition MPI validations now compile and pass.

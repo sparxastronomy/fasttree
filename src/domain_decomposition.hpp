@@ -60,64 +60,18 @@ inline BoundingBox<FloatT> get_global_bounding_box(sycl::queue &q, const particl
 
     return BoundingBox<FloatT>{global_min_x, global_max_x, global_min_y, global_max_y, global_min_z, global_max_z};
   }
+  // 2. Compute local bounding box using SYCL
+  BoundingBox<FloatT> local_bbox = compute_bbox(q, p, n);
 
-  // 2. Allocate USM shared memory for reduction outputs on host/device
-  FloatT *d_min_x = sycl::malloc_shared<FloatT>(1, q);
-  FloatT *d_max_x = sycl::malloc_shared<FloatT>(1, q);
-  FloatT *d_min_y = sycl::malloc_shared<FloatT>(1, q);
-  FloatT *d_max_y = sycl::malloc_shared<FloatT>(1, q);
-  FloatT *d_min_z = sycl::malloc_shared<FloatT>(1, q);
-  FloatT *d_max_z = sycl::malloc_shared<FloatT>(1, q);
+  // 3. Retrieve local reduction results from shared memory
+  FloatT local_min_x = local_bbox.min_x;
+  FloatT local_max_x = local_bbox.max_x;
+  FloatT local_min_y = local_bbox.min_y;
+  FloatT local_max_y = local_bbox.max_y;
+  FloatT local_min_z = local_bbox.min_z;
+  FloatT local_max_z = local_bbox.max_z;
 
-  // 3. Initialize local min/max arrays to extreme values
-  d_min_x[0] = std::numeric_limits<FloatT>::max();
-  d_max_x[0] = -std::numeric_limits<FloatT>::max();
-  d_min_y[0] = std::numeric_limits<FloatT>::max();
-  d_max_y[0] = -std::numeric_limits<FloatT>::max();
-  d_min_z[0] = std::numeric_limits<FloatT>::max();
-  d_max_z[0] = -std::numeric_limits<FloatT>::max();
-
-  // 4. Retrieve raw data pointers from the particle lists
-  const FloatT *pos_x = p.pos_x.data();
-  const FloatT *pos_y = p.pos_y.data();
-  const FloatT *pos_z = p.pos_z.data();
-
-  // 5. Submit parallel reduction kernel using SYCL reduction objects
-  q.submit([&](sycl::handler &cgh) {
-     cgh.parallel_for(sycl::range<1>(n), sycl::reduction(d_min_x, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
-                      sycl::reduction(d_max_x, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
-                      sycl::reduction(d_min_y, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
-                      sycl::reduction(d_max_y, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
-                      sycl::reduction(d_min_z, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
-                      sycl::reduction(d_max_z, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
-                      [=](sycl::id<1> idx, auto &min_x, auto &max_x, auto &min_y, auto &max_y, auto &min_z, auto &max_z) {
-                        size_t i = idx[0];
-                        min_x.combine(pos_x[i]);
-                        max_x.combine(pos_x[i]);
-                        min_y.combine(pos_y[i]);
-                        max_y.combine(pos_y[i]);
-                        min_z.combine(pos_z[i]);
-                        max_z.combine(pos_z[i]);
-                      });
-   }).wait();
-
-  // 6. Retrieve local reduction results from shared memory
-  FloatT local_min_x = d_min_x[0];
-  FloatT local_max_x = d_max_x[0];
-  FloatT local_min_y = d_min_y[0];
-  FloatT local_max_y = d_max_y[0];
-  FloatT local_min_z = d_min_z[0];
-  FloatT local_max_z = d_max_z[0];
-
-  // 7. Free allocated shared memory
-  sycl::free(d_min_x, q);
-  sycl::free(d_max_x, q);
-  sycl::free(d_min_y, q);
-  sycl::free(d_max_y, q);
-  sycl::free(d_min_z, q);
-  sycl::free(d_max_z, q);
-
-  // 8. Perform global MPI reductions to synchronize bounding box across all ranks
+  // 4. Perform global MPI reductions to synchronize bounding box across all ranks
   FloatT global_min_x, global_max_x;
   FloatT global_min_y, global_max_y;
   FloatT global_min_z, global_max_z;

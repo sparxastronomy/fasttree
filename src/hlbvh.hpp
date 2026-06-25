@@ -6,9 +6,9 @@
 #include <oneapi/dpl/iterator>
 #include <sycl/sycl.hpp>
 #include <algorithm>
-#include <bit>
 #include <cmath>
 #include <execution>
+#include <limits>
 #include <numeric>
 #include <vector>
 
@@ -18,7 +18,7 @@ namespace fasttree {
 template <typename T>
 struct particles {
   std::vector<T> pos_x, pos_y, pos_z;  // Positions
-  std::vector<T> mass;                 // Masses
+  std::vector<T> mass;                 // Masses - Will be deprecated in future
   std::vector<uint32_t> id;            // IDs
   std::vector<int8_t> is_ghost;        // 0 = Local, 1 = Ghost
 };
@@ -166,6 +166,69 @@ inline void sfc_encode(sycl::queue &q, const particles<FloatT> &particles, sfc_k
     keys[i] = spread3_u64(ix) | (spread3_u64(iy) << 1) | (spread3_u64(iz) << 2);
 #endif
   });
+}
+
+/**
+ * Computes the bounding box of a set of particles in parallel using SYCL.
+ *
+ * @param q SYCL queue
+ * @param pos_x Pointer to the x-coordinates of the particles
+ * @param pos_y Pointer to the y-coordinates of the particles
+ * @param pos_z Pointer to the z-coordinates of the particles
+ * @param n Number of particles
+ * @return BoundingBox containing the min and max coordinates in each dimension
+ */
+template <typename FloatT>
+inline BoundingBox<FloatT> compute_bbox(sycl::queue &q, const FloatT *pos_x, const FloatT *pos_y, const FloatT *pos_z, size_t n) {
+  FloatT *d_min_x = sycl::malloc_shared<FloatT>(1, q);
+  FloatT *d_max_x = sycl::malloc_shared<FloatT>(1, q);
+  FloatT *d_min_y = sycl::malloc_shared<FloatT>(1, q);
+  FloatT *d_max_y = sycl::malloc_shared<FloatT>(1, q);
+  FloatT *d_min_z = sycl::malloc_shared<FloatT>(1, q);
+  FloatT *d_max_z = sycl::malloc_shared<FloatT>(1, q);
+
+  // Initialize shared memory on host with identity values for reductions
+  d_min_x[0] = std::numeric_limits<FloatT>::max();
+  d_max_x[0] = -std::numeric_limits<FloatT>::max();
+  d_min_y[0] = std::numeric_limits<FloatT>::max();
+  d_max_y[0] = -std::numeric_limits<FloatT>::max();
+  d_min_z[0] = std::numeric_limits<FloatT>::max();
+  d_max_z[0] = -std::numeric_limits<FloatT>::max();
+
+  q.submit([&](sycl::handler &h) {
+     h.parallel_for(sycl::range<1>(n), sycl::reduction(d_min_x, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
+                    sycl::reduction(d_max_x, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
+                    sycl::reduction(d_min_y, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
+                    sycl::reduction(d_max_y, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
+                    sycl::reduction(d_min_z, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
+                    sycl::reduction(d_max_z, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
+                    [=](sycl::id<1> idx, auto &r_min_x, auto &r_max_x, auto &r_min_y, auto &r_max_y, auto &r_min_z, auto &r_max_z) {
+                      size_t i = idx[0];
+                      r_min_x.combine(pos_x[i]);
+                      r_max_x.combine(pos_x[i]);
+                      r_min_y.combine(pos_y[i]);
+                      r_max_y.combine(pos_y[i]);
+                      r_min_z.combine(pos_z[i]);
+                      r_max_z.combine(pos_z[i]);
+                    });
+   }).wait();
+
+  BoundingBox<FloatT> bbox = {d_min_x[0], d_max_x[0], d_min_y[0], d_max_y[0], d_min_z[0], d_max_z[0]};
+
+  sycl::free(d_min_x, q);
+  sycl::free(d_max_x, q);
+  sycl::free(d_min_y, q);
+  sycl::free(d_max_y, q);
+  sycl::free(d_min_z, q);
+  sycl::free(d_max_z, q);
+
+  return bbox;
+}
+
+// Overload for Particles struct
+template <typename FloatT>
+inline BoundingBox<FloatT> compute_bbox(sycl::queue &q, const particles<FloatT> &p, size_t n) {
+  return compute_bbox(q, p.pos_x.data(), p.pos_y.data(), p.pos_z.data(), n);
 }
 
 // Tree structure in SoA format
@@ -540,7 +603,7 @@ inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, TreeSoA &tree
 
   // 1. Compute Bounding Box
   BoundingBox bbox = {p.pos_x[0], p.pos_x[0], p.pos_y[0], p.pos_y[0], p.pos_z[0], p.pos_z[0]};
-  for (size_t i = 1; i < n; ++i) {
+  for (size_t i = 1; i < n; ++i) {  // TODO: update with parallel_for reduction
     bbox.min_x = std::min(bbox.min_x, p.pos_x[i]);
     bbox.max_x = std::max(bbox.max_x, p.pos_x[i]);
     bbox.min_y = std::min(bbox.min_y, p.pos_y[i]);

@@ -26,15 +26,8 @@ int main() {
   }
 
   // 1. Calculate Bounding Box
-  BoundingBox<coord_t> bbox = {p.pos_x[0], p.pos_x[0], p.pos_y[0], p.pos_y[0], p.pos_z[0], p.pos_z[0]};
-  for (size_t i = 1; i < n; ++i) {
-    bbox.min_x = std::min(bbox.min_x, p.pos_x[i]);
-    bbox.max_x = std::max(bbox.max_x, p.pos_x[i]);
-    bbox.min_y = std::min(bbox.min_y, p.pos_y[i]);
-    bbox.max_y = std::max(bbox.max_y, p.pos_y[i]);
-    bbox.min_z = std::min(bbox.min_z, p.pos_z[i]);
-    bbox.max_z = std::max(bbox.max_z, p.pos_z[i]);
-  }
+  BoundingBox<coord_t> bbox = compute_bbox(q, p, n);
+  printf("Bounding Box: [%.3f, %.3f] x [%.3f, %.3f] x [%.3f, %.3f]\n", bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y, bbox.min_z, bbox.max_z);
 
   // 2. HLBVH Construction (Coarse + Intra-Voxel)
   std::cout << "Building Tree..." << std::endl;
