@@ -420,16 +420,33 @@ inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT
     const uint32_t *p_id = p.id.data();
     const int8_t *p_ghost = p.is_ghost.data();
 
+    bool x_alloc = false, y_alloc = false, z_alloc = false;
+    bool mass_alloc = false, id_alloc = false, ghost_alloc = false;
+
+    const FloatT *dev_pos_x = ensure_device_readable(q, pos_x, n, x_alloc);
+    const FloatT *dev_pos_y = ensure_device_readable(q, pos_y, n, y_alloc);
+    const FloatT *dev_pos_z = ensure_device_readable(q, pos_z, n, z_alloc);
+    const FloatT *dev_mass = ensure_device_readable(q, p_mass, n, mass_alloc);
+    const uint32_t *dev_id = ensure_device_readable(q, p_id, n, id_alloc);
+    const int8_t *dev_ghost = ensure_device_readable(q, p_ghost, n, ghost_alloc);
+
     q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
        size_t i = idx[0];
        size_t orig_idx = d_indices[i];
-       send_pos_x[i] = pos_x[orig_idx];
-       send_pos_y[i] = pos_y[orig_idx];
-       send_pos_z[i] = pos_z[orig_idx];
-       send_mass[i] = p_mass[orig_idx];
-       send_id[i] = p_id[orig_idx];
-       send_ghost[i] = p_ghost[orig_idx];
+       send_pos_x[i] = dev_pos_x[orig_idx];
+       send_pos_y[i] = dev_pos_y[orig_idx];
+       send_pos_z[i] = dev_pos_z[orig_idx];
+       send_mass[i] = dev_mass[orig_idx];
+       send_id[i] = dev_id[orig_idx];
+       send_ghost[i] = dev_ghost[orig_idx];
      }).wait();
+
+    free_device_readable(q, dev_pos_x, x_alloc);
+    free_device_readable(q, dev_pos_y, y_alloc);
+    free_device_readable(q, dev_pos_z, z_alloc);
+    free_device_readable(q, dev_mass, mass_alloc);
+    free_device_readable(q, dev_id, id_alloc);
+    free_device_readable(q, dev_ghost, ghost_alloc);
   }
 
   // 10. Exchange send counts via MPI_Alltoall to determine receive counts from other ranks
@@ -572,18 +589,25 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
     }
   }
 
-  // 5. Allocate USM shared array to record indices of matching particles
-  size_t max_sends = n * neighbor_ranks.size() + 1;
-  size_t *d_matched_indices = sycl::malloc_shared<size_t>(max_sends, q);
+  // 5. Declare matched indices and tracking structures
+  size_t *d_matched_indices = nullptr;
   std::vector<int> send_counts(P, 0);
   int total_sends = 0;
 
-  // 6. Find local boundary particles overlapping with neighbor domains and write compact indices
+  // 6. Find local boundary particles overlapping with neighbor domains using a memory-efficient two-pass approach
   if (n > 0 && !neighbor_ranks.empty()) {
     const FloatT *pos_x = p.pos_x.data();
     const FloatT *pos_y = p.pos_y.data();
     const FloatT *pos_z = p.pos_z.data();
 
+    bool x_alloc = false, y_alloc = false, z_alloc = false;
+    const FloatT *dev_pos_x = ensure_device_readable(q, pos_x, n, x_alloc);
+    const FloatT *dev_pos_y = ensure_device_readable(q, pos_y, n, y_alloc);
+    const FloatT *dev_pos_z = ensure_device_readable(q, pos_z, n, z_alloc);
+
+    std::vector<int> neighbor_sends(neighbor_ranks.size(), 0);
+
+    // Pass 1: Count overlapping particles for each neighbor rank
     for (size_t k = 0; k < neighbor_ranks.size(); ++k) {
       int r = neighbor_ranks[k];
       BoundingBox<FloatT> neighbor_box = all_bboxes[r];
@@ -596,11 +620,52 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
 
       int *d_count = sycl::malloc_shared<int>(1, q);
       d_count[0] = 0;
-      size_t *matched_out = d_matched_indices + total_sends;
 
       q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
          size_t i = idx[0];
-         if (pos_x[i] >= min_x && pos_x[i] <= max_x && pos_y[i] >= min_y && pos_y[i] <= max_y && pos_z[i] >= min_z && pos_z[i] <= max_z) {
+         if (dev_pos_x[i] >= min_x && dev_pos_x[i] <= max_x &&
+             dev_pos_y[i] >= min_y && dev_pos_y[i] <= max_y &&
+             dev_pos_z[i] >= min_z && dev_pos_z[i] <= max_z) {
+           auto atomic_ref =
+               sycl::atomic_ref<int, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space>(d_count[0]);
+           atomic_ref.fetch_add(1);
+         }
+       }).wait();
+
+      int count = d_count[0];
+      neighbor_sends[k] = count;
+      send_counts[r] = count;
+      total_sends += count;
+      sycl::free(d_count, q);
+    }
+
+    // Allocate matched indices array with EXACT size
+    d_matched_indices = sycl::malloc_shared<size_t>(total_sends > 0 ? total_sends : 1, q);
+
+    // Pass 2: Write matched indices into the allocated array
+    int current_offset = 0;
+    for (size_t k = 0; k < neighbor_ranks.size(); ++k) {
+      int r = neighbor_ranks[k];
+      int count = neighbor_sends[k];
+      if (count == 0) continue;
+
+      BoundingBox<FloatT> neighbor_box = all_bboxes[r];
+      FloatT min_x = neighbor_box.min_x - h_max;
+      FloatT max_x = neighbor_box.max_x + h_max;
+      FloatT min_y = neighbor_box.min_y - h_max;
+      FloatT max_y = neighbor_box.max_y + h_max;
+      FloatT min_z = neighbor_box.min_z - h_max;
+      FloatT max_z = neighbor_box.max_z + h_max;
+
+      int *d_count = sycl::malloc_shared<int>(1, q);
+      d_count[0] = 0;
+      size_t *matched_out = d_matched_indices + current_offset;
+
+      q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
+         size_t i = idx[0];
+         if (dev_pos_x[i] >= min_x && dev_pos_x[i] <= max_x &&
+             dev_pos_y[i] >= min_y && dev_pos_y[i] <= max_y &&
+             dev_pos_z[i] >= min_z && dev_pos_z[i] <= max_z) {
            auto atomic_ref =
                sycl::atomic_ref<int, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space>(d_count[0]);
            int pos = atomic_ref.fetch_add(1);
@@ -608,11 +673,13 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
          }
        }).wait();
 
-      int count = d_count[0];
-      send_counts[r] = count;
-      total_sends += count;
       sycl::free(d_count, q);
+      current_offset += count;
     }
+
+    free_device_readable(q, dev_pos_x, x_alloc);
+    free_device_readable(q, dev_pos_y, y_alloc);
+    free_device_readable(q, dev_pos_z, z_alloc);
   }
 
   // 7. Allocate send buffers for ghost particle attributes on GPU
@@ -631,16 +698,30 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
     const FloatT *p_mass = p.mass.data();
     const uint32_t *p_id = p.id.data();
 
+    bool x_alloc = false, y_alloc = false, z_alloc = false;
+    bool mass_alloc = false, id_alloc = false;
+    const FloatT *dev_pos_x = ensure_device_readable(q, pos_x, n, x_alloc);
+    const FloatT *dev_pos_y = ensure_device_readable(q, pos_y, n, y_alloc);
+    const FloatT *dev_pos_z = ensure_device_readable(q, pos_z, n, z_alloc);
+    const FloatT *dev_mass = ensure_device_readable(q, p_mass, n, mass_alloc);
+    const uint32_t *dev_id = ensure_device_readable(q, p_id, n, id_alloc);
+
     q.parallel_for(sycl::range<1>(total_sends), [=](sycl::id<1> idx) {
        size_t i = idx[0];
        size_t orig_idx = d_matched_indices[i];
-       send_pos_x[i] = pos_x[orig_idx];
-       send_pos_y[i] = pos_y[orig_idx];
-       send_pos_z[i] = pos_z[orig_idx];
-       send_mass[i] = p_mass[orig_idx];
-       send_id[i] = p_id[orig_idx];
+       send_pos_x[i] = dev_pos_x[orig_idx];
+       send_pos_y[i] = dev_pos_y[orig_idx];
+       send_pos_z[i] = dev_pos_z[orig_idx];
+       send_mass[i] = dev_mass[orig_idx];
+       send_id[i] = dev_id[orig_idx];
        send_ghost[i] = 1;  // Receive on other side as ghost particle
      }).wait();
+
+    free_device_readable(q, dev_pos_x, x_alloc);
+    free_device_readable(q, dev_pos_y, y_alloc);
+    free_device_readable(q, dev_pos_z, z_alloc);
+    free_device_readable(q, dev_mass, mass_alloc);
+    free_device_readable(q, dev_id, id_alloc);
   }
 
   // 9. Exchange send counts via MPI_Alltoall to determine receive counts from other ranks
