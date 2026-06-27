@@ -168,34 +168,70 @@ int main(int argc, char **argv) {
     std::string label, file_path;
     ss >> label >> file_path;
 
-    // Discover all split files if present
-    std::string base_path = file_path;
-    if (base_path.size() >= 5 && base_path.substr(base_path.size() - 5) == ".hdf5") { base_path = base_path.substr(0, base_path.size() - 5); }
-
     std::vector<std::string> file_paths;
-    int file_idx = 0;
-    while (true) {
-      char suffix[64];
-      sprintf(suffix, ".%04d.hdf5", file_idx);
-      std::string test_path = base_path + suffix;
-      if (access(test_path.c_str(), F_OK) == 0) {
-        file_paths.push_back(test_path);
-        file_idx++;
-      } else {
-        break;
+    if (rank == 0) {
+      // Discover all split files if present
+      std::string base_path = file_path;
+      if (base_path.size() >= 5 && base_path.substr(base_path.size() - 5) == ".hdf5") {
+        base_path = base_path.substr(0, base_path.size() - 5);
+      }
+
+      int file_idx = 0;
+      while (true) {
+        char suffix[64];
+        sprintf(suffix, ".%04d.hdf5", file_idx);
+        std::string test_path = base_path + suffix;
+        if (access(test_path.c_str(), F_OK) == 0) {
+          file_paths.push_back(test_path);
+          file_idx++;
+        } else {
+          break;
+        }
+      }
+
+      // If no split files are found, use the single file path
+      if (file_paths.empty()) {
+        file_paths.push_back(file_path);
       }
     }
 
-    // If no split files are found, use the single file path
-    if (file_paths.empty()) { file_paths.push_back(file_path); }
+    // Broadcast file paths from Rank 0 to all ranks
+    size_t num_files = 0;
+    if (rank == 0) {
+      num_files = file_paths.size();
+    }
+    MPI_Bcast(&num_files, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
 
-    // Get file sizes and total particle count
-    size_t num_files = file_paths.size();
+    if (rank != 0) {
+      file_paths.resize(num_files);
+    }
+
+    for (size_t i = 0; i < num_files; ++i) {
+      int len = 0;
+      if (rank == 0) {
+        len = file_paths[i].size();
+      }
+      MPI_Bcast(&len, 1, MPI_INT, 0, MPI_COMM_WORLD);
+      if (rank != 0) {
+        file_paths[i].resize(len);
+      }
+      MPI_Bcast(file_paths[i].data(), len, MPI_CHAR, 0, MPI_COMM_WORLD);
+    }
+
+    // Get file sizes and total particle count on Rank 0 and broadcast
     std::vector<size_t> file_sizes(num_files, 0);
     size_t total_n = 0;
-    for (size_t i = 0; i < num_files; ++i) {
-      file_sizes[i] = get_hdf5_dataset_size(file_paths[i]);
-      total_n += file_sizes[i];
+    if (rank == 0) {
+      for (size_t i = 0; i < num_files; ++i) {
+        file_sizes[i] = get_hdf5_dataset_size(file_paths[i]);
+        total_n += file_sizes[i];
+      }
+    }
+
+    MPI_Bcast(&total_n, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+    if (num_files > 0) {
+      file_sizes.resize(num_files);
+      MPI_Bcast(file_sizes.data(), num_files, MPI_UINT64_T, 0, MPI_COMM_WORLD);
     }
 
     if (total_n == 0) continue;

@@ -35,7 +35,7 @@ include_directories(${HDF5_INCLUDE_DIRS})
 include_directories(${MPI_CXX_INCLUDE_DIRS})
 
 set(BENCHMARK_APPS
-    morton_scaling
+    sfc_encoding_scaling
     gpu_sort_scaling
     tree_build_scaling
     rebuild_scaling
