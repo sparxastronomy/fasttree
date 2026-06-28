@@ -23,7 +23,7 @@ FetchContent_MakeAvailable(benchmark)
 # ------------------------------------
 
 find_package(IntelSYCL QUIET)
-if(NOT IntelSYCL_FOUND)
+if(NOT COMMAND add_sycl_to_target)
     macro(add_sycl_to_target)
     endmacro()
 endif()
