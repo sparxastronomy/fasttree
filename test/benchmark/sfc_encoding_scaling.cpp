@@ -14,34 +14,42 @@ static void BM_MortonEncode_Lazy(benchmark::State &state, std::string path) {
   ParticleData data;
   if (!load_hdf5_data(path, data)) return;
 
-  particles<coord_t> p;
-  p.pos_x.assign(data.pos_x.begin(), data.pos_x.end());
-  p.pos_y.assign(data.pos_y.begin(), data.pos_y.end());
-  p.pos_z.assign(data.pos_z.begin(), data.pos_z.end());
-  size_t n = p.pos_x.size();
-  std::vector<uint64_t> morton_keys(n);
+  size_t n = data.pos_x.size();
+  coord_t *d_x = sycl::malloc_shared<coord_t>(n, q);
+  coord_t *d_y = sycl::malloc_shared<coord_t>(n, q);
+  coord_t *d_z = sycl::malloc_shared<coord_t>(n, q);
+  sfc_key *d_keys = sycl::malloc_shared<sfc_key>(n, q);
 
-  BoundingBox<coord_t> bbox = {p.pos_x[0], p.pos_x[0], p.pos_y[0], p.pos_y[0], p.pos_z[0], p.pos_z[0]};
+  std::copy(data.pos_x.begin(), data.pos_x.end(), d_x);
+  std::copy(data.pos_y.begin(), data.pos_y.end(), d_y);
+  std::copy(data.pos_z.begin(), data.pos_z.end(), d_z);
+
+  BoundingBox<coord_t> bbox = {d_x[0], d_x[0], d_y[0], d_y[0], d_z[0], d_z[0]};
   for (size_t i = 1; i < n; ++i) {
-    bbox.min_x = std::min(bbox.min_x, p.pos_x[i]);
-    bbox.max_x = std::max(bbox.max_x, p.pos_x[i]);
-    bbox.min_y = std::min(bbox.min_y, p.pos_y[i]);
-    bbox.max_y = std::max(bbox.max_y, p.pos_y[i]);
-    bbox.min_z = std::min(bbox.min_z, p.pos_z[i]);
-    bbox.max_z = std::max(bbox.max_z, p.pos_z[i]);
+    bbox.min_x = std::min(bbox.min_x, d_x[i]);
+    bbox.max_x = std::max(bbox.max_x, d_x[i]);
+    bbox.min_y = std::min(bbox.min_y, d_y[i]);
+    bbox.max_y = std::max(bbox.max_y, d_y[i]);
+    bbox.min_z = std::min(bbox.min_z, d_z[i]);
+    bbox.max_z = std::max(bbox.max_z, d_z[i]);
   }
 
   // Warm up JIT
-  sfc_encode(q, p, morton_keys.data(), bbox);
+  sfc_encode(q, d_x, d_y, d_z, n, d_keys, bbox);
   q.wait();
 
   for (auto _ : state) {
-    sfc_encode(q, p, morton_keys.data(), bbox);
+    sfc_encode(q, d_x, d_y, d_z, n, d_keys, bbox);
     q.wait();
   }
 
   state.SetItemsProcessed(state.iterations() * n);
   state.counters["PeakRSS_MB"] = (double)get_peak_rss() / 1024.0;
+
+  sycl::free(d_x, q);
+  sycl::free(d_y, q);
+  sycl::free(d_z, q);
+  sycl::free(d_keys, q);
 }
 
 int main(int argc, char **argv) {
@@ -55,7 +63,7 @@ int main(int argc, char **argv) {
     std::string count_str, file_path;
     ss >> count_str >> file_path;
 
-    benchmark::RegisterBenchmark(("MortonEncode/" + count_str).c_str(), [file_path](benchmark::State &st) {
+    benchmark::RegisterBenchmark(("SFC-Encode/" + count_str).c_str(), [file_path](benchmark::State &st) {
       BM_MortonEncode_Lazy(st, file_path);
     })->Unit(benchmark::kMillisecond);
   }

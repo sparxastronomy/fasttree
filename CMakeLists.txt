@@ -82,12 +82,12 @@ include_directories(/u/bipra/ptmp/library/oneDPL/include)
 # include_directories(${HDF5_C_INCLUDE_DIRS})
 
 #
-# Find SYCL libraries (AdaptiveCpp)
+# Find SYCL libraries (AdaptiveCpp / DPC++)
 #
 find_package(IntelSYCL QUIET)
-if(NOT IntelSYCL_FOUND)
+if(NOT COMMAND add_sycl_to_target)
     macro(add_sycl_to_target)
-        # We manually add -fsycl flags below, so this can be a no-op if IntelSYCL isn't found
+        # We manually add -fsycl flags below, so this can be a no-op if the legacy macro is absent
     endmacro()
 endif()
 
@@ -111,7 +111,13 @@ if(TARGET_GPU STREQUAL "nvidia")
 elseif(TARGET_GPU STREQUAL "amd")
     set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=amdgcn-amd-amdhsa")
 else()
-    set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=native_cpu")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
+        # Official Intel oneAPI Compiler (icpx) uses production-grade CPU runtime (OpenCL + TBB) via default -fsycl
+        set(GPU_SYCL_FLAGS "-fsycl")
+    else()
+        # Custom LLVM compiler uses native_cpu for CPU runs
+        set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=native_cpu")
+    endif()
 endif()
 
 # We apply these flags to our targets manually to prevent breaking third-party dependencies like benchmark

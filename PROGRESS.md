@@ -35,12 +35,13 @@
 - [x] Add compile-time flag option `DCOMPOSITION_TYPE` (HISTOGRAM / SAMPLING) to `CMakeLists.txt` (2026-06-24)
 - [x] Implement deterministic stride-sampling based domain decomposition (`get_deterministic_splitters` and key-based partitioning) (2026-06-24)
 - [x] Conform and adapt all test cases and test programs to dynamic precision and SFC / partition configurations (2026-06-24)
+- [x] Add comprehensive VTune, Intel APS, and NVIDIA Nsight profiling scripts, documentation, and performance report (2026-06-28)
 
 ## Planned Tasks
 - [x] Performance benchmarking on NVIDIA GPUs (2026-05-15) - CMake configured, custom compiler tested, tests pass on NVIDIA A100.
 - [x] MPI serialization tests (2026-05-07)
 - [x] Re-enable oneDPL and PSTL for high-performance builds on supported environments (2026-05-12)
-- [x] Integrate and verify domain decomposition using mpirun (2026-06-20)
+- [x] Integrate and verify domain decomposition using mpirun (2026-06-27)
 
 ## Notes
 - Morton encoding uses 21 bits per dimension (63 bits total).
@@ -78,3 +79,53 @@
 
 - **Environment Warning:** AdaptiveCpp/Homebrew on macOS shows a systemic `malloc` trap during SYCL kernel execution. Code is logically verified but runtime execution on this specific machine is blocked by the environment issue.
 - **Portability:** Refactored to use standard C++ algorithms instead of oneDPL where possible to increase compatibility, though PSTL is disabled for macOS AppleClang.
+
+- **compute_bbox Compilation & Reduction Bugs (2026-06-25):**
+  - **Date:** 2026-06-25
+  - **Description:** A compilation error occurred when calling `compute_bbox` with `particles` vectors, and subsequently the parallel reduction for computing the bounding box returned incorrect min/max coordinates (e.g., minimums were incorrectly zero-valued).
+  - **Reason:** 
+    1. The overload `compute_bbox(queue, particles, n)` was passing raw `std::vector` objects to the pointer overload instead of pointer addresses using `.data()`.
+    2. The USM shared memory pointers allocated for the reductions (`d_min_x`, `d_max_x`, etc.) were not initialized on the host before kernel execution. In SYCL, the final reduction result combines the reduction tree values with the initial values in the output pointers. Because these pointers were uninitialized (or zeroed), the minimum was always computed as 0.
+  - **Outcome:** Monotonicity test failed due to incorrect bounding boxes.
+  - **Next Steps:** Templated both `compute_bbox` functions on `FloatT` to support dynamic precision, added `.data()` to vector arguments, and explicitly initialized all USM reduction variables to their corresponding identity values (`max()` for minimum reductions and `-max()` for maximum reductions) before kernel submission. All tests and domain decomposition MPI validations now compile and pass.
+
+- **GPU Node Hangs due to Host Pointer Access in Kernels (2026-06-26):**
+  - **Date:** 2026-06-26
+  - **Description:** Executing GPU scaling benchmarks (such as `./sfc_encoding_scaling.exe` and `./gpu_sort_scaling.exe`) under Google Benchmark's repeated iterations hung the GPU node with 100% GPU utilization and minimal memory footprint.
+  - **Reason:** Pointers retrieved from host-allocated vectors (`std::vector::data()`) were passed directly into SYCL device kernels (e.g., `sfc_encode`, `build_bvh` reordering, `exchange_halos` packing, etc.). On GPU platforms without stable Heterogeneous Memory Management (HMM), dereferencing host pointers on the GPU causes unhandled page faults or page-table thrashing, locking the GPU driver.
+  - **Outcome:** Unstable GPU execution and context lockup under tight timing loops.
+  - **Next Steps:** 
+    1. Implemented USM validation helper templates (`ensure_device_readable`, `ensure_device_writable`, etc.) in [hlbvh.hpp](file:///u/bipra/analysis/dev/fasttree/src/hlbvh.hpp) using `sycl::get_pointer_type`. If a pointer type is `sycl::usm::alloc::unknown`, the helper automatically allocates temporary USM device memory, copies data, executes the kernel, and synchronizes back.
+    2. Wrapped all kernel entry points in `hlbvh.hpp` and `domain_decomposition.hpp` with these USM redirection helpers.
+    3. Refactored the `sfc_encoding_scaling` benchmark to pre-allocate USM memory, avoiding allocation and PCIe copy overhead inside the timed loop.
+    4. Confirmed compilation passes successfully on the GPU target.
+
+- **Option to Run MPI Benchmarks Separately (2026-06-26):**
+  - **Date:** 2026-06-26
+  - **Description:** Added a second parameter `mpi` (true/false) to `test/benchmark/run_all_variations.sh` to optionally run MPI benchmarks and save results separately.
+  - **Outcome:** The automation script now accepts `<cpu|gpu>` followed by `<true|false>` to toggle running MPI benchmarks. When `mpi=true`, it saves execution metrics to `mpi_benchmark_results_*_all_variations.md`. When `mpi=false`, it runs only single-node benchmarks and saves to `benchmark_results_*_all_variations.md`.
+
+- **Collective Desynchronization during File Discovery (2026-06-27):**
+  - **Date:** 2026-06-27
+  - **Description:** MPI ranks were independently executing `access()` checks and `get_hdf5_dataset_size()` queries on the parallel filesystem to discover files and calculate particle bounds.
+  - **Reason:** It was assumed that concurrent read-only filesystem calls from all nodes would succeed without issues.
+  - **Outcome:** Filesystem metadata latencies caused random ranks to fail to open files, returning `total_n = 0` and skipping the benchmark line. The remaining ranks proceeded to call MPI collectives, causing a mismatch and throwing `MPI_Alltoall: Message truncated` or hanging.
+  - **Next Steps:** Refactored `domain_decomposition_scaling.cpp` so that Rank 0 alone queries the filesystem, and then broadcasts (`MPI_Bcast`) the file paths, sizes, and total count to all other ranks to keep them in sync.
+
+- **OOM USM Allocation Failure and Silent Device Queue Hangs (2026-06-27):**
+  - **Date:** 2026-06-27
+  - **Description:** In `exchange_halos`, the matched indices USM buffer size `max_sends` was allocated as the pessimistic worst case: `n * neighbor_ranks.size() + 1`.
+  - **Reason:** Morton curves have large discontinuities, causing bounding boxes to span the entire domain. Hence, `neighbor_ranks.size()` equals `P - 1` (7 neighbors for 8 ranks). For large datasets in double-precision, this $7 \times n$ allocation exceeded limits.
+  - **Outcome:** `sycl::malloc_shared` returned `nullptr`, and dereferencing it inside the device kernels caused a silent page fault/illegal access, permanently locking the queue at `ranks = 8` and causing a deadlock.
+  - **Next Steps:** Implemented a two-pass "count-then-allocate" filtering algorithm. Pass 1 counts the exact matches for each neighbor, then allocates `d_matched_indices` with the exact size, and Pass 2 writes the indices. This reduced memory usage of the matched index buffer by over 90%.
+
+- **Segmentation Fault & MPI Collective Hangs for 0-Particle Ranks in Standalone MPI Validation (2026-06-27):**
+  - **Date:** 2026-06-27
+  - **Description:** Standalone MPI test executable (`test_domain_decomposition.exe`) crashed with Signal 11 (Segfault) when run on 12 ranks, and subsequently hung before executing Phase 6 range queries.
+  - **Reason:** 
+    1. Splitter generation under non-power-of-two ranks can assign empty ranges (e.g. `[0, 0)`) to some ranks, resulting in `0` particles being assigned to them. The test code assumed every rank got at least one particle and accessed `redistributed_p.pos_x[0]`.
+    2. The validation for Phase 6 was wrapped inside an `if (n_total > 0)` block. When empty ranks skipped this block, they bypassed the collective `MPI_Allreduce(&local_saw_ghost, ...)` call, causing the non-empty ranks to hang indefinitely waiting for them.
+  - **Outcome:** Accessing index `0` of empty vectors threw a Segfault (Signal 11) on Ranks 0, 2, 5, 8. After fixing the crash, the ranks hung at Phase 5 / Phase 6 transition.
+  - **Next Steps:** Guarded the local bounding box calculations and debug printing with `if (redistributed_p.pos_x.size() > 0)` and moved the collective `MPI_Allreduce` in Phase 6 outside of the conditional `if (n_total > 0)` block. All ranks now complete the test run in perfect synchronization.
+
+
