@@ -14,21 +14,49 @@
 
 namespace fasttree {
 
-// Particle structure
+/**
+ * @brief Structure of Arrays (SoA) container for particle properties.
+ *
+ * This struct represents a set of particles in SoA format to optimize memory
+ * coalescing and cache utilization during GPU execution.
+ *
+ * @tparam T Floating-point precision (float or double) for spatial coordinates.
+ */
 template <typename T>
 struct particles {
-  std::vector<T> pos_x, pos_y, pos_z;  // Positions
-  std::vector<T> mass;                 // Masses - Will be deprecated in future
-  std::vector<uint32_t> id;            // IDs
-  std::vector<int8_t> is_ghost;        // 0 = Local, 1 = Ghost
+  /// Local/ghost particle positions in x, y, and z dimensions.
+  std::vector<T> pos_x, pos_y, pos_z;
+  /// Mass values for each particle (retained for cosmological physics, to be deprecated in future).
+  std::vector<T> mass;
+  /// Unique 32-bit identifier for tracking particles during spatial sorting and domain decomposition.
+  std::vector<uint32_t> id;
+  /// Ghost particle flag: 0 for locally owned particles, 1 for boundary ghost particles.
+  std::vector<int8_t> is_ghost;
 };
 
+/**
+ * @brief Represents a 3D axis-aligned bounding box.
+ *
+ * Geometrically bounds a collection of particles or nodes in three dimensions.
+ *
+ * @tparam FloatT Floating-point precision (float or double).
+ */
 template <typename FloatT>
 struct BoundingBox {
-  FloatT min_x, max_x;
-  FloatT min_y, max_y;
-  FloatT min_z, max_z;
-  // Constructor for static assert float T to eiter float or double
+  FloatT min_x, max_x;  ///< Bounds in x-dimension
+  FloatT min_y, max_y;  ///< Bounds in y-dimension
+  FloatT min_z, max_z;  ///< Bounds in z-dimension
+
+  /**
+   * @brief Construct a new Bounding Box.
+   *
+   * @param min_x_ Minimum value in x.
+   * @param max_x_ Maximum value in x.
+   * @param min_y_ Minimum value in y.
+   * @param max_y_ Maximum value in y.
+   * @param min_z_ Minimum value in z.
+   * @param max_z_ Maximum value in z.
+   */
   BoundingBox(FloatT min_x_, FloatT max_x_, FloatT min_y_, FloatT max_y_, FloatT min_z_, FloatT max_z_)
       : min_x(min_x_), max_x(max_x_), min_y(min_y_), max_y(max_y_), min_z(min_z_), max_z(max_z_) {
     static_assert(std::is_same_v<FloatT, float> || std::is_same_v<FloatT, double>, "BoundingBox only supports float or double");
@@ -60,20 +88,20 @@ namespace fasttree {
  * @return Device-accessible pointer.
  */
 template <typename T>
-inline T* ensure_device_readable(sycl::queue &q, const T* ptr, size_t count, bool &allocated) {
+inline T *ensure_device_readable(sycl::queue &q, const T *ptr, size_t count, bool &allocated) {
   if (!ptr || count == 0) {
     allocated = false;
     return nullptr;
   }
   auto type = sycl::get_pointer_type(ptr, q.get_context());
   if (type == sycl::usm::alloc::unknown) {
-    T* dev_ptr = sycl::malloc_device<T>(count, q);
+    T *dev_ptr = sycl::malloc_device<T>(count, q);
     q.copy(ptr, dev_ptr, count).wait();
     allocated = true;
     return dev_ptr;
   }
   allocated = false;
-  return const_cast<T*>(ptr);
+  return const_cast<T *>(ptr);
 }
 
 /**
@@ -90,14 +118,14 @@ inline T* ensure_device_readable(sycl::queue &q, const T* ptr, size_t count, boo
  * @return Device-accessible pointer.
  */
 template <typename T>
-inline T* ensure_device_writable(sycl::queue &q, T* ptr, size_t count, bool &allocated) {
+inline T *ensure_device_writable(sycl::queue &q, T *ptr, size_t count, bool &allocated) {
   if (!ptr || count == 0) {
     allocated = false;
     return nullptr;
   }
   auto type = sycl::get_pointer_type(ptr, q.get_context());
   if (type == sycl::usm::alloc::unknown) {
-    T* dev_ptr = sycl::malloc_device<T>(count, q);
+    T *dev_ptr = sycl::malloc_device<T>(count, q);
     allocated = true;
     return dev_ptr;
   }
@@ -115,10 +143,10 @@ inline T* ensure_device_writable(sycl::queue &q, T* ptr, size_t count, bool &all
  * @param[in] allocated Boolean flag indicating if memory was allocated.
  */
 template <typename T>
-inline void copy_back_and_free(sycl::queue &q, T* dev_ptr, T* host_ptr, size_t count, bool allocated) {
+inline void copy_back_and_free(sycl::queue &q, T *dev_ptr, T *host_ptr, size_t count, bool allocated) {
   if (allocated && dev_ptr && host_ptr && count > 0) {
     q.copy(dev_ptr, host_ptr, count).wait();
-    sycl::free(const_cast<void*>(static_cast<const void*>(dev_ptr)), q);
+    sycl::free(const_cast<void *>(static_cast<const void *>(dev_ptr)), q);
   }
 }
 
@@ -130,10 +158,8 @@ inline void copy_back_and_free(sycl::queue &q, T* dev_ptr, T* host_ptr, size_t c
  * @param[in] allocated Boolean flag indicating if memory was allocated.
  */
 template <typename T>
-inline void free_device_readable(sycl::queue &q, T* dev_ptr, bool allocated) {
-  if (allocated && dev_ptr) {
-    sycl::free(const_cast<void*>(static_cast<const void*>(dev_ptr)), q);
-  }
+inline void free_device_readable(sycl::queue &q, T *dev_ptr, bool allocated) {
+  if (allocated && dev_ptr) { sycl::free(const_cast<void *>(static_cast<const void *>(dev_ptr)), q); }
 }
 
 // Define the coordinate type
@@ -170,19 +196,18 @@ struct ieee754_traits<double> {
 };
 
 /**
- *  Generic verstion of domain_double_to_int from Arepo/Gadget
+ * @brief Generic version of domain_double_to_int from Arepo/Gadget.
  *
- *  @param val  Any floating point input
- *  @return integer representation of the input value
+ * Encodes a normalized floating-point coordinate val (expected to be in [1.0, 2.0))
+ * into an integer representation by extracting its top mantissa bits.
  *
- *  @note
- *    sycl::bit_cast is valid on device for both float→uint32_t
- *    and double→uint64_t. No union punning needed.
+ * @tparam FloatT Floating-point precision (float or double).
+ * @param[in] val Normalized coordinate value in [1.0, 2.0).
+ * @return sfc1D Integer representation of the coordinates.
  *
- *  @note
- *    float  has 23 mantissa bits → max useful BITS_PER_DIMENSION = 23
- *    double has 52 mantissa bits → max useful BITS_PER_DIMENSION = 21 (our limit)
- *    For BITS_PER_DIMENSION <= 21 both types have sufficient precision.
+ * @note sycl::bit_cast is valid on device for float -> uint32_t and double -> uint64_t.
+ * @note Single-precision float has 23 mantissa bits; double has 52 mantissa bits.
+ *       For BITS_PER_DIMENSION <= 21, both types provide sufficient precision.
  */
 template <typename FloatT>
 inline sfc1D encode_to_sfc1d(FloatT val) noexcept {
@@ -207,6 +232,16 @@ inline sfc1D encode_to_sfc1d(FloatT val) noexcept {
   return static_cast<sfc1D>((bits & traits::mantissa_mask) >> shift);
 }
 
+/**
+ * @brief Computes the number of leading common bits between two 64-bit keys.
+ *
+ * Used during Karras tree construction to find common prefix lengths delta(i, j)
+ * which dictate tree hierarchy/split points.
+ *
+ * @param[in] c1 First 64-bit space-filling curve key.
+ * @param[in] c2 Second 64-bit space-filling curve key.
+ * @return int Number of leading common bits (0 to 64).
+ */
 inline int get_common_prefix_length(std::uint64_t c1, std::uint64_t c2) {
   if (c1 == c2) return 64;
 #if defined(__GNUC__) || defined(__clang__)
@@ -224,8 +259,24 @@ inline int get_common_prefix_length(std::uint64_t c1, std::uint64_t c2) {
 #endif
 }
 
+/**
+ * @brief Encodes particle coordinates into 3D Space-Filling Curve (SFC) keys.
+ *
+ * Quantizes positions relative to a bounding box and encodes them into either
+ * 3D Morton keys or 3D Peano-Hilbert keys depending on the SFC_TYPE compilation flag.
+ *
+ * @tparam FloatT Floating-point precision (float or double).
+ * @param[in] q SYCL queue to submit the parallel encoding kernel.
+ * @param[in] pos_x Pointer to local particle x-coordinates.
+ * @param[in] pos_y Pointer to local particle y-coordinates.
+ * @param[in] pos_z Pointer to local particle z-coordinates.
+ * @param[in] num_particles Number of particles to encode.
+ * @param[out] keys Pointer to the output sfc_key array.
+ * @param[in] bbox Coordinate bounding box for normalization.
+ */
 template <typename FloatT>
-inline void sfc_encode(sycl::queue &q, const FloatT *pos_x, const FloatT *pos_y, const FloatT *pos_z, size_t num_particles, sfc_key *keys, const BoundingBox<FloatT> &bbox) {
+inline void sfc_encode(sycl::queue &q, const FloatT *pos_x, const FloatT *pos_y, const FloatT *pos_z, size_t num_particles, sfc_key *keys,
+                       const BoundingBox<FloatT> &bbox) {
   if (num_particles == 0) return;
 
   bool x_alloc = false, y_alloc = false, z_alloc = false, keys_alloc = false;
@@ -242,22 +293,22 @@ inline void sfc_encode(sycl::queue &q, const FloatT *pos_x, const FloatT *pos_y,
   FloatT inv_dz = (dz == 0) ? static_cast<FloatT>(0.0) : (static_cast<FloatT>(1.0) / dz);
 
   q.parallel_for(sycl::range<1>(num_particles), [=](sycl::id<1> idx) {
-    size_t i = idx[0];
+     size_t i = idx[0];
 
-    FloatT nx = std::min((dev_pos_x[i] - bbox.min_x) * inv_dx, static_cast<FloatT>(0.999999));
-    FloatT ny = std::min((dev_pos_y[i] - bbox.min_y) * inv_dy, static_cast<FloatT>(0.999999));
-    FloatT nz = std::min((dev_pos_z[i] - bbox.min_z) * inv_dz, static_cast<FloatT>(0.999999));
+     FloatT nx = std::min((dev_pos_x[i] - bbox.min_x) * inv_dx, static_cast<FloatT>(0.999999));
+     FloatT ny = std::min((dev_pos_y[i] - bbox.min_y) * inv_dy, static_cast<FloatT>(0.999999));
+     FloatT nz = std::min((dev_pos_z[i] - bbox.min_z) * inv_dz, static_cast<FloatT>(0.999999));
 
-    sfc1D ix = encode_to_sfc1d(static_cast<FloatT>(1.0) + nx);
-    sfc1D iy = encode_to_sfc1d(static_cast<FloatT>(1.0) + ny);
-    sfc1D iz = encode_to_sfc1d(static_cast<FloatT>(1.0) + nz);
+     sfc1D ix = encode_to_sfc1d(static_cast<FloatT>(1.0) + nx);
+     sfc1D iy = encode_to_sfc1d(static_cast<FloatT>(1.0) + ny);
+     sfc1D iz = encode_to_sfc1d(static_cast<FloatT>(1.0) + nz);
 
 #if defined(SFC_TYPE_PEANO_HILBERT)
-    dev_keys[i] = sfc_encode3D(ix, iy, iz);
+     dev_keys[i] = sfc_encode3D(ix, iy, iz);
 #elif defined(SFC_TYPE_MORTON)
     dev_keys[i] = spread3_u64(ix) | (spread3_u64(iy) << 1) | (spread3_u64(iz) << 2);
 #endif
-  }).wait();
+   }).wait();
 
   free_device_readable(q, dev_pos_x, x_alloc);
   free_device_readable(q, dev_pos_y, y_alloc);
@@ -265,6 +316,15 @@ inline void sfc_encode(sycl::queue &q, const FloatT *pos_x, const FloatT *pos_y,
   copy_back_and_free(q, dev_keys, keys, num_particles, keys_alloc);
 }
 
+/**
+ * @brief Overload of sfc_encode accepting a particles SoA struct.
+ *
+ * @tparam FloatT Floating-point precision (float or double).
+ * @param[in] q SYCL queue.
+ * @param[in] particles The input particle dataset in SoA format.
+ * @param[out] keys Pointer to the output sfc_key array.
+ * @param[in] bbox Coordinate bounding box for normalization.
+ */
 template <typename FloatT>
 inline void sfc_encode(sycl::queue &q, const particles<FloatT> &particles, sfc_key *keys, const BoundingBox<FloatT> &bbox) {
   sfc_encode(q, particles.pos_x.data(), particles.pos_y.data(), particles.pos_z.data(), particles.pos_x.size(), keys, bbox);
@@ -283,9 +343,8 @@ inline void sfc_encode(sycl::queue &q, const particles<FloatT> &particles, sfc_k
 template <typename FloatT>
 inline BoundingBox<FloatT> compute_bbox(sycl::queue &q, const FloatT *pos_x, const FloatT *pos_y, const FloatT *pos_z, size_t n) {
   if (n == 0) {
-    return BoundingBox<FloatT>(std::numeric_limits<FloatT>::max(), -std::numeric_limits<FloatT>::max(),
-                               std::numeric_limits<FloatT>::max(), -std::numeric_limits<FloatT>::max(),
-                               std::numeric_limits<FloatT>::max(), -std::numeric_limits<FloatT>::max());
+    return BoundingBox<FloatT>(std::numeric_limits<FloatT>::max(), -std::numeric_limits<FloatT>::max(), std::numeric_limits<FloatT>::max(),
+                               -std::numeric_limits<FloatT>::max(), std::numeric_limits<FloatT>::max(), -std::numeric_limits<FloatT>::max());
   }
 
   bool x_alloc = false, y_alloc = false, z_alloc = false;
@@ -348,21 +407,37 @@ inline BoundingBox<FloatT> compute_bbox(sycl::queue &q, const particles<FloatT> 
   return compute_bbox(q, p.pos_x.data(), p.pos_y.data(), p.pos_z.data(), n);
 }
 
-// Tree structure in SoA format
+/**
+ * @brief Flattened, pointer-free bounding volume hierarchy in SoA format.
+ *
+ * Adheres to a Structure of Arrays (SoA) layout to allow memory-coalesced accesses.
+ * Since parent/child links are integer indices, the tree contains no raw pointers
+ * and can be trivially copied and sent across the network via MPI.
+ *
+ * Flat Array Indexing Layout:
+ * - The root node is stored at index 0.
+ * - Internal nodes are stored at indices [0, num_internal - 1].
+ * - Leaves (actual particles) are stored at indices [num_internal, num_leaves + num_internal - 1]
+ *   which is equivalent to [n - 1, 2n - 2].
+ */
 struct TreeSoA {
-  // TODO: Reorder in decreasing order of size for better memory coalescing
-  coord_t *min_x, *max_x;
-  coord_t *min_y, *max_y;
-  coord_t *min_z, *max_z;
-  int *left_child;
-  int *right_child;
-  int *parent;
-  uint32_t *id;
-  int8_t *is_ghost;
-  size_t num_leaves;
-  size_t num_internal;
+  coord_t *min_x, *max_x;  ///< Node minimum and maximum x-coordinates. Size: num_leaves + num_internal.
+  coord_t *min_y, *max_y;  ///< Node minimum and maximum y-coordinates. Size: num_leaves + num_internal.
+  coord_t *min_z, *max_z;  ///< Node minimum and maximum z-coordinates. Size: num_leaves + num_internal.
+  int *left_child;         ///< Left child index. Size: num_internal.
+  int *right_child;        ///< Right child index. Size: num_internal.
+  int *parent;             ///< Parent node index. Size: num_leaves + num_internal.
+  uint32_t *id;            ///< Sorted particle IDs. Size: num_leaves + num_internal.
+  int8_t *is_ghost;        ///< Flags for local vs ghost particles. Size: num_leaves + num_internal.
+  size_t num_leaves;       ///< Total leaf nodes (equivalent to particle count).
+  size_t num_internal;     ///< Total internal nodes (equal to num_leaves - 1).
 
-  // Constructor allocates memory for the tree nodes
+  /**
+   * @brief Construct a TreeSoA, allocating USM shared memory.
+   *
+   * @param[in] q SYCL queue used for allocating USM memory.
+   * @param[in] n Number of leaf nodes (particles) in the tree.
+   */
   TreeSoA(sycl::queue &q, size_t n) : num_leaves(n), num_internal(n > 0 ? n - 1 : 0), id(nullptr), is_ghost(nullptr) {
     size_t total_nodes = num_leaves + num_internal;
     if (total_nodes == 0) return;
@@ -380,7 +455,11 @@ struct TreeSoA {
     is_ghost = sycl::malloc_shared<int8_t>(total_nodes, q);
   }
 
-  // Free memory for the tree nodes
+  /**
+   * @brief Releases all allocated USM memory for this tree.
+   *
+   * @param[in] q SYCL queue.
+   */
   void free(sycl::queue &q) {
     if (num_leaves + num_internal == 0) return;
     sycl::free(min_x, q);
@@ -397,8 +476,30 @@ struct TreeSoA {
   }
 };
 
+/**
+ * @brief Returns the sign of an integer.
+ *
+ * @param[in] x The integer value.
+ * @return int 1 if positive, -1 if negative, 0 if zero.
+ */
 inline int sgn(int x) { return (x > 0) - (x < 0); }
 
+/**
+ * @brief Generates the pointer-free binary tree topology and computes bounding boxes.
+ *
+ * Implements the Karras (2012) parallel radix tree builder to determine parent-child links.
+ * Then runs a bottom-up parallel reduction to compute bounding boxes for all internal nodes
+ * using seq_cst memory ordering for atomic-based parent traversal.
+ *
+ * @param[in] q SYCL queue for kernel execution.
+ * @param[in,out] tree The TreeSoA to populate.
+ * @param[in] sorted_keys Sorted Space-Filling Curve keys for the particles.
+ * @param[in] sorted_x Sorted x-coordinates.
+ * @param[in] sorted_y Sorted y-coordinates.
+ * @param[in] sorted_z Sorted z-coordinates.
+ * @param[in] sorted_id Sorted unique particle identifiers (optional).
+ * @param[in] sorted_is_ghost Sorted ghost particle flags (optional).
+ */
 inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys, const coord_t *sorted_x, const coord_t *sorted_y,
                        const coord_t *sorted_z, const uint32_t *sorted_id = nullptr, const int8_t *sorted_is_ghost = nullptr) {
   size_t n = tree.num_leaves;
@@ -422,14 +523,14 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
          tree.min_z[0] = tree.max_z[0] = dev_z[0];
        });
      }).wait();
-     
-     free_device_readable(q, dev_keys, keys_alloc);
-     free_device_readable(q, dev_x, x_alloc);
-     free_device_readable(q, dev_y, y_alloc);
-     free_device_readable(q, dev_z, z_alloc);
-     if (dev_id) free_device_readable(q, dev_id, id_alloc);
-     if (dev_ghost) free_device_readable(q, dev_ghost, ghost_alloc);
-     return;
+
+    free_device_readable(q, dev_keys, keys_alloc);
+    free_device_readable(q, dev_x, x_alloc);
+    free_device_readable(q, dev_y, y_alloc);
+    free_device_readable(q, dev_z, z_alloc);
+    if (dev_id) free_device_readable(q, dev_id, id_alloc);
+    if (dev_ghost) free_device_readable(q, dev_ghost, ghost_alloc);
+    return;
   }
 
   coord_t *p_min_x = tree.min_x, *p_max_x = tree.max_x;
@@ -438,13 +539,13 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
   int *p_left_child = tree.left_child, *p_right_child = tree.right_child, *p_parent = tree.parent;
 
   if (!p_min_x || !p_parent || !p_left_child) {
-     free_device_readable(q, dev_keys, keys_alloc);
-     free_device_readable(q, dev_x, x_alloc);
-     free_device_readable(q, dev_y, y_alloc);
-     free_device_readable(q, dev_z, z_alloc);
-     if (dev_id) free_device_readable(q, dev_id, id_alloc);
-     if (dev_ghost) free_device_readable(q, dev_ghost, ghost_alloc);
-     return;
+    free_device_readable(q, dev_keys, keys_alloc);
+    free_device_readable(q, dev_x, x_alloc);
+    free_device_readable(q, dev_y, y_alloc);
+    free_device_readable(q, dev_z, z_alloc);
+    if (dev_id) free_device_readable(q, dev_id, id_alloc);
+    if (dev_ghost) free_device_readable(q, dev_ghost, ghost_alloc);
+    return;
   }
 
   // Initialize parents to -1
@@ -519,13 +620,13 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
   // 3. Compute internal bounding boxes (bottom-up)
   int *counters = sycl::malloc_shared<int>(n - 1, q);
   if (!counters) {
-     free_device_readable(q, dev_keys, keys_alloc);
-     free_device_readable(q, dev_x, x_alloc);
-     free_device_readable(q, dev_y, y_alloc);
-     free_device_readable(q, dev_z, z_alloc);
-     if (dev_id) free_device_readable(q, dev_id, id_alloc);
-     if (dev_ghost) free_device_readable(q, dev_ghost, ghost_alloc);
-     return;
+    free_device_readable(q, dev_keys, keys_alloc);
+    free_device_readable(q, dev_x, x_alloc);
+    free_device_readable(q, dev_y, y_alloc);
+    free_device_readable(q, dev_z, z_alloc);
+    if (dev_id) free_device_readable(q, dev_id, id_alloc);
+    if (dev_ghost) free_device_readable(q, dev_ghost, ghost_alloc);
+    return;
   }
   q.fill(counters, 0, n - 1).wait();
 
@@ -536,9 +637,9 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
        if (p < 0 || p >= (int)n - 1) break;
 
        auto atomic_ref = sycl::atomic_ref<int,
-                                           sycl::memory_order::seq_cst,  // Strictly sequence memory operations
-                                           sycl::memory_scope::system,   // Force system-wide (cross-core) cache coherency
-                                           sycl::access::address_space::global_space>(counters[p]);
+                                          sycl::memory_order::seq_cst,  // Strictly sequence memory operations
+                                          sycl::memory_scope::system,   // Force system-wide (cross-core) cache coherency
+                                          sycl::access::address_space::global_space>(counters[p]);
 
        if (atomic_ref.fetch_add(1) == 0) return;  // First child to arrive
 
@@ -567,15 +668,34 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
 
 #define MAX_STACK_DEPTH 64
 
-// Simple priority queue for kNN on GPU
+/**
+ * @brief A fixed-capacity priority queue designed for GPU device kernels.
+ *
+ * Since dynamic allocations are prohibited inside SYCL GPU kernels, this queue
+ * maintains the k-nearest particles sorted by distance using a statically sized array.
+ * Uses insertion sort for fast execution with small K values, minimizing register usage.
+ *
+ * @tparam T Coordinate value precision (float or double).
+ * @tparam MAX_K Maximum capacity of the priority queue.
+ */
 template <typename T, int MAX_K>
 struct PriorityQueue {
-  T data[MAX_K];
-  int indices[MAX_K];
-  int count;
+  T data[MAX_K];       ///< Squared distance values.
+  int indices[MAX_K];  ///< Particle indices corresponding to distances.
+  int count;           ///< Number of valid items in the queue.
 
+  /**
+   * @brief Construct an empty PriorityQueue.
+   */
   PriorityQueue() : count(0) {}
 
+  /**
+   * @brief Inserts a new element if it is closer than the furthest known element.
+   *
+   * @param[in] val Squared distance value to insert.
+   * @param[in] idx Particle index.
+   * @param[in] k Active number of nearest neighbors requested (k <= MAX_K).
+   */
   void push(T val, int idx, int k) {
     if (count < k) {
       data[count] = val;
@@ -604,6 +724,23 @@ struct PriorityQueue {
   }
 };
 
+/**
+ * @brief Finds the k-nearest neighbor particles for multiple query points.
+ *
+ * Executes a parallel non-recursive stack-based tree traversal. To prune the search
+ * space, it visits the geometrically closer child node first and updates search bounds
+ * using a local PriorityQueue.
+ *
+ * @param[in] q SYCL queue to run the query kernel.
+ * @param[in] tree The built spatial tree.
+ * @param[in] qx Pointer to query point x-coordinates.
+ * @param[in] qy Pointer to query point y-coordinates.
+ * @param[in] qz Pointer to query point z-coordinates.
+ * @param[in] k Number of nearest neighbors to find.
+ * @param[in] num_queries Total number of query points.
+ * @param[out] results Output buffer for nearest neighbor indices. Size: num_queries * k.
+ * @param[out] result_dists Output buffer for neighbor Euclidean distances. Size: num_queries * k.
+ */
 inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, const coord_t *qy, const coord_t *qz, int k, int num_queries,
                       int *results, coord_t *result_dists) {
   size_t n = tree.num_leaves;
@@ -626,76 +763,76 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
   // Use a fixed K for the priority queue in the kernel
   // In a real implementation, K would be a template parameter or handled more dynamically
   q.parallel_for(sycl::range<1>(num_queries), [=](sycl::id<1> idx) {
-    int qi = idx[0];
-    coord_t px = dev_qx[qi], py = dev_qy[qi], pz = dev_qz[qi];
+     int qi = idx[0];
+     coord_t px = dev_qx[qi], py = dev_qy[qi], pz = dev_qz[qi];
 
-    int stack[MAX_STACK_DEPTH];
-    int stack_ptr = 0;
+     int stack[MAX_STACK_DEPTH];
+     int stack_ptr = 0;
 
-    if (n == 1) {
-      stack[stack_ptr++] = 0;
-    } else {
-      stack[stack_ptr++] = 0;
-    }
+     if (n == 1) {
+       stack[stack_ptr++] = 0;
+     } else {
+       stack[stack_ptr++] = 0;
+     }
 
-    // We'll use a local buffer for PQ. Since K is dynamic in the API but fixed in the struct,
-    // we handle it carefully. For this implementation, we assume K <= 128.
-    PriorityQueue<coord_t, 128> pq;
+     // We'll use a local buffer for PQ. Since K is dynamic in the API but fixed in the struct,
+     // we handle it carefully. For this implementation, we assume K <= 128.
+     PriorityQueue<coord_t, 128> pq;
 
-    while (stack_ptr > 0) {
-      int node_idx = stack[--stack_ptr];
+     while (stack_ptr > 0) {
+       int node_idx = stack[--stack_ptr];
 
-      coord_t bmin_x = p_min_x[node_idx], bmax_x = p_max_x[node_idx];
-      coord_t bmin_y = p_min_y[node_idx], bmax_y = p_max_y[node_idx];
-      coord_t bmin_z = p_min_z[node_idx], bmax_z = p_max_z[node_idx];
+       coord_t bmin_x = p_min_x[node_idx], bmax_x = p_max_x[node_idx];
+       coord_t bmin_y = p_min_y[node_idx], bmax_y = p_max_y[node_idx];
+       coord_t bmin_z = p_min_z[node_idx], bmax_z = p_max_z[node_idx];
 
-      coord_t dx = sycl::fmax(bmin_x - px, sycl::fmax(coord_t(0.0), px - bmax_x));
-      coord_t dy = sycl::fmax(bmin_y - py, sycl::fmax(coord_t(0.0), py - bmax_y));
-      coord_t dz = sycl::fmax(bmin_z - pz, sycl::fmax(coord_t(0.0), pz - bmax_z));
-      coord_t d2 = dx * dx + dy * dy + dz * dz;
+       coord_t dx = sycl::fmax(bmin_x - px, sycl::fmax(coord_t(0.0), px - bmax_x));
+       coord_t dy = sycl::fmax(bmin_y - py, sycl::fmax(coord_t(0.0), py - bmax_y));
+       coord_t dz = sycl::fmax(bmin_z - pz, sycl::fmax(coord_t(0.0), pz - bmax_z));
+       coord_t d2 = dx * dx + dy * dy + dz * dz;
 
-      if (pq.count < k || d2 < pq.data[0]) {
-        if (node_idx >= (int)n - 1 && n > 1) {  // Leaf
-          pq.push(d2, node_idx - (n - 1), k);
-        } else if (n == 1) {
-          pq.push(d2, 0, k);
-        } else {
-          // Internal node
-          int l = p_left_child[node_idx];
-          int r = p_right_child[node_idx];
+       if (pq.count < k || d2 < pq.data[0]) {
+         if (node_idx >= (int)n - 1 && n > 1) {  // Leaf
+           pq.push(d2, node_idx - (n - 1), k);
+         } else if (n == 1) {
+           pq.push(d2, 0, k);
+         } else {
+           // Internal node
+           int l = p_left_child[node_idx];
+           int r = p_right_child[node_idx];
 
-          // Heuristic: push the closer child last so it's processed first
-          coord_t l_dx = sycl::fmax(p_min_x[l] - px, sycl::fmax(coord_t(0.0), px - p_max_x[l]));
-          coord_t l_dy = sycl::fmax(p_min_y[l] - py, sycl::fmax(coord_t(0.0), py - p_max_y[l]));
-          coord_t l_dz = sycl::fmax(p_min_z[l] - pz, sycl::fmax(coord_t(0.0), pz - p_max_z[l]));
-          coord_t l_d2 = l_dx * l_dx + l_dy * l_dy + l_dz * l_dz;
+           // Heuristic: push the closer child last so it's processed first
+           coord_t l_dx = sycl::fmax(p_min_x[l] - px, sycl::fmax(coord_t(0.0), px - p_max_x[l]));
+           coord_t l_dy = sycl::fmax(p_min_y[l] - py, sycl::fmax(coord_t(0.0), py - p_max_y[l]));
+           coord_t l_dz = sycl::fmax(p_min_z[l] - pz, sycl::fmax(coord_t(0.0), pz - p_max_z[l]));
+           coord_t l_d2 = l_dx * l_dx + l_dy * l_dy + l_dz * l_dz;
 
-          coord_t r_dx = sycl::fmax(p_min_x[r] - px, sycl::fmax(coord_t(0.0), px - p_max_x[r]));
-          coord_t r_dy = sycl::fmax(p_min_y[r] - py, sycl::fmax(coord_t(0.0), py - p_max_y[r]));
-          coord_t r_dz = sycl::fmax(p_min_z[r] - pz, sycl::fmax(coord_t(0.0), pz - p_max_z[r]));
-          coord_t r_d2 = r_dx * r_dx + r_dy * r_dy + r_dz * r_dz;
+           coord_t r_dx = sycl::fmax(p_min_x[r] - px, sycl::fmax(coord_t(0.0), px - p_max_x[r]));
+           coord_t r_dy = sycl::fmax(p_min_y[r] - py, sycl::fmax(coord_t(0.0), py - p_max_y[r]));
+           coord_t r_dz = sycl::fmax(p_min_z[r] - pz, sycl::fmax(coord_t(0.0), pz - p_max_z[r]));
+           coord_t r_d2 = r_dx * r_dx + r_dy * r_dy + r_dz * r_dz;
 
-          if (l_d2 < r_d2) {
-            stack[stack_ptr++] = r;
-            stack[stack_ptr++] = l;
-          } else {
-            stack[stack_ptr++] = l;
-            stack[stack_ptr++] = r;
-          }
-        }
-      }
-    }
+           if (l_d2 < r_d2) {
+             stack[stack_ptr++] = r;
+             stack[stack_ptr++] = l;
+           } else {
+             stack[stack_ptr++] = l;
+             stack[stack_ptr++] = r;
+           }
+         }
+       }
+     }
 
-    for (int i = 0; i < k; ++i) {
-      if (i < pq.count) {
-        dev_results[qi * k + (k - 1 - i)] = pq.indices[i];
-        dev_result_dists[qi * k + (k - 1 - i)] = std::sqrt(pq.data[i]);
-      } else {
-        dev_results[qi * k + i] = -1;
-        dev_result_dists[qi * k + i] = INFINITY;
-      }
-    }
-  }).wait();
+     for (int i = 0; i < k; ++i) {
+       if (i < pq.count) {
+         dev_results[qi * k + (k - 1 - i)] = pq.indices[i];
+         dev_result_dists[qi * k + (k - 1 - i)] = std::sqrt(pq.data[i]);
+       } else {
+         dev_results[qi * k + i] = -1;
+         dev_result_dists[qi * k + i] = INFINITY;
+       }
+     }
+   }).wait();
 
   free_device_readable(q, dev_qx, qx_alloc);
   free_device_readable(q, dev_qy, qy_alloc);
@@ -706,6 +843,25 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
 
 #define MAX_STACK_DEPTH 64
 
+/**
+ * @brief Finds all particles within a specified distance range from multiple query points.
+ *
+ * Executes a parallel non-recursive stack-based tree traversal. If a node's bounding box
+ * overlaps the search range [r_min, r_max], traversal descends into it. Leaves within
+ * the range are appended to the results list.
+ *
+ * @param[in] q SYCL queue.
+ * @param[in] tree The built spatial tree.
+ * @param[in] qx Pointer to query point x-coordinates.
+ * @param[in] qy Pointer to query point y-coordinates.
+ * @param[in] qz Pointer to query point z-coordinates.
+ * @param[in] r_min Pointer to query minimum radius.
+ * @param[in] r_max Pointer to query maximum radius.
+ * @param[in] num_queries Number of query points.
+ * @param[out] results Flat array containing results. Size: num_queries * max_results_per_query.
+ * @param[out] result_counts Counts of matching particles found for each query. Size: num_queries.
+ * @param[in] max_results_per_query Maximum number of matches to store per query.
+ */
 inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, const coord_t *qy, const coord_t *qz, const coord_t *r_min,
                         const coord_t *r_max, int num_queries, int *results, int *result_counts, int max_results_per_query) {
   size_t n = tree.num_leaves;
@@ -729,58 +885,54 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
   int *p_left_child = tree.left_child, *p_right_child = tree.right_child;
 
   q.parallel_for(sycl::range<1>(num_queries), [=](sycl::id<1> idx) {
-    int qi = idx[0];
-    coord_t px = dev_qx[qi], py = dev_qy[qi], pz = dev_qz[qi];
-    coord_t rm = dev_r_min[qi], RM = dev_r_max[qi];
-    coord_t RM2 = RM * RM;
-    coord_t rm2 = rm * rm;
+     int qi = idx[0];
+     coord_t px = dev_qx[qi], py = dev_qy[qi], pz = dev_qz[qi];
+     coord_t rm = dev_r_min[qi], RM = dev_r_max[qi];
+     coord_t RM2 = RM * RM;
+     coord_t rm2 = rm * rm;
 
-    int stack[MAX_STACK_DEPTH];
-    int stack_ptr = 0;
+     int stack[MAX_STACK_DEPTH];
+     int stack_ptr = 0;
 
-    if (n == 1) {
-      stack[stack_ptr++] = 0;  // Only one leaf
-    } else {
-      stack[stack_ptr++] = 0;  // Root is internal node 0
-    }
+     if (n == 1) {
+       stack[stack_ptr++] = 0;  // Only one leaf
+     } else {
+       stack[stack_ptr++] = 0;  // Root is internal node 0
+     }
 
-    int count = 0;
-    while (stack_ptr > 0) {
-      int node_idx = stack[--stack_ptr];
+     int count = 0;
+     while (stack_ptr > 0) {
+       int node_idx = stack[--stack_ptr];
 
-      coord_t bmin_x = p_min_x[node_idx], bmax_x = p_max_x[node_idx];
-      coord_t bmin_y = p_min_y[node_idx], bmax_y = p_max_y[node_idx];
-      coord_t bmin_z = p_min_z[node_idx], bmax_z = p_max_z[node_idx];
+       coord_t bmin_x = p_min_x[node_idx], bmax_x = p_max_x[node_idx];
+       coord_t bmin_y = p_min_y[node_idx], bmax_y = p_max_y[node_idx];
+       coord_t bmin_z = p_min_z[node_idx], bmax_z = p_max_z[node_idx];
 
-      coord_t dx = sycl::fmax(bmin_x - px, sycl::fmax(coord_t(0.0), px - bmax_x));
-      coord_t dy = sycl::fmax(bmin_y - py, sycl::fmax(coord_t(0.0), py - bmax_y));
-      coord_t dz = sycl::fmax(bmin_z - pz, sycl::fmax(coord_t(0.0), pz - bmax_z));
-      coord_t d2 = dx * dx + dy * dy + dz * dz;
+       coord_t dx = sycl::fmax(bmin_x - px, sycl::fmax(coord_t(0.0), px - bmax_x));
+       coord_t dy = sycl::fmax(bmin_y - py, sycl::fmax(coord_t(0.0), py - bmax_y));
+       coord_t dz = sycl::fmax(bmin_z - pz, sycl::fmax(coord_t(0.0), pz - bmax_z));
+       coord_t d2 = dx * dx + dy * dy + dz * dz;
 
-      if (d2 <= RM2) {
-        if (node_idx >= (int)n - 1 && n > 1) {  // Leaf node
-          if (d2 >= rm2) {
-            if (count < max_results_per_query) {
-              dev_results[qi * max_results_per_query + count] = node_idx - (n - 1);
-            }
-            count++;
-          }
-        } else if (n == 1) {  // Single leaf case
-          if (d2 >= rm2) {
-            if (count < max_results_per_query) {
-              dev_results[qi * max_results_per_query + count] = 0;
-            }
-            count++;
-          }
-        } else {
-          // Internal node, push children
-          stack[stack_ptr++] = p_right_child[node_idx];
-          stack[stack_ptr++] = p_left_child[node_idx];
-        }
-      }
-    }
-    dev_result_counts[qi] = count;
-  }).wait();
+       if (d2 <= RM2) {
+         if (node_idx >= (int)n - 1 && n > 1) {  // Leaf node
+           if (d2 >= rm2) {
+             if (count < max_results_per_query) { dev_results[qi * max_results_per_query + count] = node_idx - (n - 1); }
+             count++;
+           }
+         } else if (n == 1) {  // Single leaf case
+           if (d2 >= rm2) {
+             if (count < max_results_per_query) { dev_results[qi * max_results_per_query + count] = 0; }
+             count++;
+           }
+         } else {
+           // Internal node, push children
+           stack[stack_ptr++] = p_right_child[node_idx];
+           stack[stack_ptr++] = p_left_child[node_idx];
+         }
+       }
+     }
+     dev_result_counts[qi] = count;
+   }).wait();
 
   free_device_readable(q, dev_qx, qx_alloc);
   free_device_readable(q, dev_qy, qy_alloc);
@@ -791,7 +943,20 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
   copy_back_and_free(q, dev_result_counts, result_counts, num_queries, counts_alloc);
 }
 
-// High-level entry point to build the HLBVH
+/**
+ * @brief High-level entry point to build the Hierarchical Linear Bounding Volume Hierarchy (HLBVH).
+ *
+ * Pipeline steps:
+ * 1. Computes the global bounding box of all particles using parallel reductions.
+ * 2. Encodes coordinates into space-filling curve keys (Morton/Peano-Hilbert).
+ * 3. Sorts particles by key on the GPU using oneapi::dpl::sort on zipped keys and indices.
+ * 4. Reorders particle properties according to the sorted index array on the GPU.
+ * 5. Constructs the binary radix tree layout and computes internal node bounding boxes.
+ *
+ * @param[in] q SYCL queue.
+ * @param[in] p SoA struct of input particles.
+ * @param[in,out] tree The output tree structure to build.
+ */
 inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, TreeSoA &tree) {
   size_t n = p.pos_x.size();
   if (n == 0) return;

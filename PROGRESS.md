@@ -36,6 +36,8 @@
 - [x] Implement deterministic stride-sampling based domain decomposition (`get_deterministic_splitters` and key-based partitioning) (2026-06-24)
 - [x] Conform and adapt all test cases and test programs to dynamic precision and SFC / partition configurations (2026-06-24)
 - [x] Add comprehensive VTune, Intel APS, and NVIDIA Nsight profiling scripts, documentation, and performance report (2026-06-28)
+- [x] Create comprehensive API documentation for `hlbvh.hpp` and `domain_decomposition.hpp` in `docs/API_REFERENCE.md` (2026-06-29)
+- [x] Add Doxygen-compatible docstrings to all functions and helper structures (2026-06-29)
 
 ## Planned Tasks
 - [x] Performance benchmarking on NVIDIA GPUs (2026-05-15) - CMake configured, custom compiler tested, tests pass on NVIDIA A100.

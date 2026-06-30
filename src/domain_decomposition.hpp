@@ -12,28 +12,40 @@
 namespace fasttree {
 
 /**
- * Traits helper to map C++ arithmetic types to their corresponding MPI datatype.
+ * @brief Traits helper to map C++ arithmetic types to their corresponding MPI datatype.
+ *
+ * Provides compile-time mapping from floating-point types to MPI_Datatype,
+ * facilitating precision-independent MPI collective operations.
+ *
+ * @tparam T Coordinate type (float or double).
  */
 template <typename T>
 struct mpi_type_traits;
 
 template <>
 struct mpi_type_traits<float> {
+  /// Returns MPI_FLOAT for float coordinates.
   static MPI_Datatype type() { return MPI_FLOAT; }
 };
 
 template <>
 struct mpi_type_traits<double> {
+  /// Returns MPI_DOUBLE for double coordinates.
   static MPI_Datatype type() { return MPI_DOUBLE; }
 };
 
 // Phase 1: Global Bounding Box Calculation
 /**
- * Calculates the global spatial bounding box spanning all particles across all MPI ranks.
+ * @brief Calculates the global spatial bounding box spanning all particles across all MPI ranks.
  *
- * @param q SYCL queue
- * @param p Local particle array on this rank
- * @return BoundingBox spanning the global coordinate space of all particles
+ * Each rank computes the bounding box of its local particles using a parallel reduction on the GPU.
+ * Ranks then exchange and combine boundaries using MPI_Allreduce to establish a consistent
+ * global bounding box, which is necessary for identical space-filling curve quantization.
+ *
+ * @tparam FloatT Floating-point coordinate type.
+ * @param[in] q SYCL queue.
+ * @param[in] p Local particles on this rank.
+ * @return BoundingBox<FloatT> The global coordinate boundaries.
  */
 template <typename FloatT>
 inline BoundingBox<FloatT> get_global_bounding_box(sycl::queue &q, const particles<FloatT> &p) {
@@ -88,14 +100,17 @@ inline BoundingBox<FloatT> get_global_bounding_box(sycl::queue &q, const particl
 
 // Phase 2: Coarse-Grid Histogram Calculation
 /**
- * Computes a global histogram of particle counts across a coarse grid defined by the global bounding box and Morton encoding,
- * returning the histogram as a vector of counts per bucket.
+ * @brief Computes a global histogram of particles on a coarse grid defined by Morton/SFC encoding.
  *
- * @param q SYCL queue
- * @param p Local particles for this rank
- * @param global_bbox Global bounding box used for Morton encoding
- * @param m Number of bits used for Morton encoding (default 20, giving 1 million buckets)
- * @return Global histogram vector where each entry corresponds to the total count of particles in that bucket across all MPI ranks
+ * Quantizes and encodes local particles, updates a local histogram array using GPU atomic additions,
+ * and executes an MPI_Allreduce with MPI_SUM to compute the global particle count distribution.
+ *
+ * @tparam FloatT Floating-point coordinate type.
+ * @param[in] q SYCL queue.
+ * @param[in] p Local particles on this rank.
+ * @param[in] global_bbox Global coordinate bounding box.
+ * @param[in] m Number of bits for the coarse grid buckets (default 20, yielding 1 million buckets).
+ * @return std::vector<int> Global histogram containing total particle counts per coarse grid bucket.
  */
 template <typename FloatT>
 inline std::vector<int> get_global_histogram(sycl::queue &q, const particles<FloatT> &p, const BoundingBox<FloatT> &global_bbox, int m = 20) {
@@ -138,12 +153,17 @@ inline std::vector<int> get_global_histogram(sycl::queue &q, const particles<Flo
 
 // Phase 3: Splitter Generation (Histogram-based)
 /**
- * Computes splitters partitioning the coarse grid buckets into equal-load segments.
+ * @brief Computes spatial domain splitters from the global coarse-grid histogram.
  *
- * @param global_hist Summed global histogram of particles across all ranks
- * @param P Number of MPI ranks
- * @param m Number of bits defining coarse grid size (default 20)
- * @return Splitters containing bucket bounds for each rank
+ * Partitions the coarse SFC buckets into P segments such that each rank is assigned
+ * a contiguous SFC segment containing roughly target_load = N_total / P particles.
+ * Since the global histogram is identical, every rank executes this computation redundantly
+ * to avoid communication overhead.
+ *
+ * @param[in] global_hist Global histogram containing total particle counts per bucket.
+ * @param[in] P Total number of MPI ranks.
+ * @param[in] m Number of coarse grid bits (default 20).
+ * @return std::vector<uint32_t> Splitter boundaries of size P + 1 (bucket IDs).
  */
 inline std::vector<uint32_t> generate_splitters(const std::vector<int> &global_hist, int P, int m = 20) {
   int num_buckets = 1 << m;
@@ -178,10 +198,14 @@ inline std::vector<uint32_t> generate_splitters(const std::vector<int> &global_h
 
 // Helper: Normalize/prepare particle attributes for reordering
 /**
- * Normalizes local particle vectors, ensuring sizes match and IDs/ghost values are correctly set up.
+ * @brief Normalizes local particle SoA vector sizes and initializes missing attributes.
  *
- * @param p Particle array to normalize
- * @param n Target length of the particle vectors
+ * Resizes vectors to match particle count n and populates default IDs (sequential indices) and
+ * default is_ghost flags (0 for local) if they are not already initialized.
+ *
+ * @tparam FloatT Floating-point coordinate type.
+ * @param[in,out] p Particle dataset to normalize.
+ * @param[in] n Total number of active particles.
  */
 template <typename FloatT>
 inline void normalize_particles(particles<FloatT> &p, size_t n) {
@@ -206,12 +230,17 @@ inline void normalize_particles(particles<FloatT> &p, size_t n) {
 
 // Phase 3 Alternative: Stride-Based Deterministic Sampling Splitters
 /**
- * Calculates splitters by gathering stride-based samples from locally-sorted keys across all ranks.
+ * @brief Computes domain splitters using deterministic stride-based sampling.
  *
- * @param q SYCL queue
- * @param p Particle array on this rank
- * @param global_bbox Global coordinate bounding box
- * @return Broadcasted splitters containing 64-bit key boundaries for each rank
+ * Each rank sorts its local SFC keys, extracts a stride-spaced sample set (128 samples per rank),
+ * and transmits them to Rank 0. Rank 0 aggregates and sorts these samples to determine boundaries for P
+ * equal-load segments. These 64-bit key boundaries are then broadcast to all ranks.
+ *
+ * @tparam FloatT Floating-point coordinate type.
+ * @param[in] q SYCL queue.
+ * @param[in] p Local particles on this rank.
+ * @param[in] global_bbox Global coordinate bounding box.
+ * @return std::vector<sfc_key> Broadcasted 64-bit splitter keys of size P + 1.
  */
 template <typename FloatT>
 inline std::vector<sfc_key> get_deterministic_splitters(sycl::queue &q, const particles<FloatT> &p, const BoundingBox<FloatT> &global_bbox) {
@@ -295,14 +324,20 @@ inline std::vector<sfc_key> get_deterministic_splitters(sycl::queue &q, const pa
 
 // Phase 4: Local Binning & Network Routing
 /**
- * Redistributes particles according to the rank splitters, returning the new local particle set for this rank after redistribution.
+ * @brief Shuffles and routes particles across the network according to the domain splitters.
  *
- * @param q SYCL queue
- * @param p Local particles before redistribution
- * @param rank_splitters Vector of bucket indices/keys that define the splitters for each rank
- * @param global_bbox Global bounding box used for Morton encoding
- * @param m Number of bits used for Morton encoding (default 20, giving 1 million buckets)
- * @return New local particles for this rank after redistribution
+ * Performs local binning: each particle runs a binary search on the splitters to determine its
+ * target rank. Attributes are packed into contiguous send buffers on the GPU, and data counts
+ * are shared via MPI_Alltoall. Finally, MPI_Alltoallv distributes particle data, leaving
+ * each rank with its local spatial domain segment.
+ *
+ * @tparam FloatT Floating-point coordinate type.
+ * @param[in] q SYCL queue.
+ * @param[in,out] p Input local particles.
+ * @param[in] rank_splitters Active domain splitters (bucket IDs or 64-bit keys).
+ * @param[in] global_bbox Global coordinate bounding box.
+ * @param[in] m Coarse grid bucket size (default 20, ignored in sampling mode).
+ * @return particles<FloatT> Received particles representing this rank's local segment.
  */
 template <typename FloatT>
 inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT> &p,
@@ -528,12 +563,18 @@ inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT
 
 // Phase 5: Explicit Halo Exchange (Static Ghosting)
 /**
- * Exchanges boundary particles (ghosts/halos) with overlapping neighbor ranks based on a search radius h_max.
+ * @brief Exchanges boundary particles with spatially overlapping neighbors.
  *
- * @param q SYCL queue
- * @param p Particle array on this rank (redistributed)
- * @param h_max Search/smoothing radius defining the halo width
- * @return Combined array of local particles followed by received ghost particles
+ * Broadcasts rank bounding boxes using MPI_Allgather, detects ranks overlapping this rank's bounds
+ * within search distance h_max, and runs a GPU filter to pack local boundary particles.
+ * Ranks exchange counts via MPI_Alltoall and route attributes via MPI_Alltoallv.
+ * Received boundary particles are tagged with is_ghost = 1 and appended to the local particle array.
+ *
+ * @tparam FloatT Floating-point coordinate type.
+ * @param[in] q SYCL queue.
+ * @param[in,out] p Redistributed local particles.
+ * @param[in] h_max Boundary search radius (smoothing length/ghost width).
+ * @return particles<FloatT> Combined SoA containing local particles followed by ghost particles.
  */
 template <typename FloatT>
 inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, FloatT h_max) {
@@ -623,9 +664,8 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
 
       q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
          size_t i = idx[0];
-         if (dev_pos_x[i] >= min_x && dev_pos_x[i] <= max_x &&
-             dev_pos_y[i] >= min_y && dev_pos_y[i] <= max_y &&
-             dev_pos_z[i] >= min_z && dev_pos_z[i] <= max_z) {
+         if (dev_pos_x[i] >= min_x && dev_pos_x[i] <= max_x && dev_pos_y[i] >= min_y && dev_pos_y[i] <= max_y && dev_pos_z[i] >= min_z &&
+             dev_pos_z[i] <= max_z) {
            auto atomic_ref =
                sycl::atomic_ref<int, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space>(d_count[0]);
            atomic_ref.fetch_add(1);
@@ -663,9 +703,8 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
 
       q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
          size_t i = idx[0];
-         if (dev_pos_x[i] >= min_x && dev_pos_x[i] <= max_x &&
-             dev_pos_y[i] >= min_y && dev_pos_y[i] <= max_y &&
-             dev_pos_z[i] >= min_z && dev_pos_z[i] <= max_z) {
+         if (dev_pos_x[i] >= min_x && dev_pos_x[i] <= max_x && dev_pos_y[i] >= min_y && dev_pos_y[i] <= max_y && dev_pos_z[i] >= min_z &&
+             dev_pos_z[i] <= max_z) {
            auto atomic_ref =
                sycl::atomic_ref<int, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space>(d_count[0]);
            int pos = atomic_ref.fetch_add(1);

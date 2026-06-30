@@ -366,4 +366,7 @@ To understand the performance implications of the distributed domain decompositi
 ## Phase 3: Profiling & Maintenance
 - The comprehensive profiling via Intel's Vtune to measure HPC metrics such as cache hit/miss rates, memory bandwidth utilization, GPU occupancy, and MPI communication times will be measured to understand the limits of the current imlementation and identify bottlenecks.
 - Redo the scaling benchmark on both CPUs and GPUs with both Morton and Peano-Hilbert curves, and with both histogram-based and sampling-based domain decomposition. This will give us a clear picture of the trade-offs between these methods in terms of load balancing, spatial locality, and overall performance.
+
+## Phase 4: Documentation & Code Quality
+- Update the `docs/` folder with detailed explanations of the new SFC options, domain decomposition methods.
 - Add docstring and comments to all the functions so that anyone who reads the code can understand the purpose and logic of each step.
