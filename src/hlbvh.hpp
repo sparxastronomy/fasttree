@@ -637,9 +637,9 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
        if (p < 0 || p >= (int)n - 1) break;
 
        auto atomic_ref = sycl::atomic_ref<int,
-                                          sycl::memory_order::seq_cst,  // Strictly sequence memory operations
-                                          sycl::memory_scope::system,   // Force system-wide (cross-core) cache coherency
-                                          sycl::access::address_space::global_space>(counters[p]);
+                                           sycl::memory_order::seq_cst,  // Strictly sequence memory operations
+                                           sycl::memory_scope::system,   // Force system-wide (cross-core) cache coherency
+                                           sycl::access::address_space::global_space>(counters[p]);
 
        if (atomic_ref.fetch_add(1) == 0) return;  // First child to arrive
 
