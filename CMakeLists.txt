@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 4.0)
 project(fasttree)
-enable_language(C)
 enable_language(CXX)
 
 #
@@ -9,6 +8,17 @@ enable_language(CXX)
 if(NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build (e.g. Debug, Release)" FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
+
+
+#
+# Detect the compiler
+# If CMAKE_<CXX/C>_COMPILER, MPI_<CXX/C>_COMPILER is set then use them
+# else try finding the compiler in the following order: icpx, acpp
+#
+if((NOT CMAKE_CXX_COMPILER) OR (NOT MPI_CXX_COMPILER))
+    find_program(CMAKE_CXX_COMPILER NAMES icpx acpp g++)
+    find_program(MPI_CXX_COMPILER NAMES mpicxx mpiicpc)
+endif()
 
 
 #
@@ -27,8 +37,21 @@ message(STATUS "C++ compiler version: ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "C++ compiler path: ${CMAKE_CXX_COMPILER}")
 message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
 
+#
 # Force clang to use the newer GCC 15 toolchain instead of the default system GCC 7
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=/mpcdf/soft/SLE_15/packages/x86_64/gcc/15.1.0")
+# Check which path is available on your system. For now this is set to the path either on Vera or my Mac
+#
+set(GCC_TOOLCHAIN_PATH "")
+if(EXISTS "/mpcdf/soft/SLE_15/packages/x86_64/gcc/15.1.0")
+    set(GCC_TOOLCHAIN_PATH "/mpcdf/soft/SLE_15/packages/x86_64/gcc/15.1.0")
+    message(STATUS "Found GCC 15 toolchain at ${GCC_TOOLCHAIN_PATH}")
+elseif(EXISTS "/Library/Developer/CommandLineTools/usr/bin")
+    set(GCC_TOOLCHAIN_PATH "/Library/Developer/CommandLineTools/usr/bin")
+    message(STATUS "Found Apple Clang toolchain at ${GCC_TOOLCHAIN_PATH}")
+else()
+    message(FATAL_ERROR "GCC 15 toolchain not found. Please install it or set the correct path.")
+endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=${GCC_TOOLCHAIN_PATH}")
 
 # set C++ standard to C++ 23, find SYCL, MPI
 set(CMAKE_CXX_STANDARD 23)
@@ -106,22 +129,59 @@ target_compile_options(fasttree.exe PRIVATE -O3)
 # Target GPU Option
 set(TARGET_GPU "" CACHE STRING "Target GPU architecture: nvidia, amd, or empty for CPU")
 set(GPU_SYCL_FLAGS "")
+set(USER_FLAG "" CACHE STRING "User-defined flags for the compiler")
 if(TARGET_GPU STREQUAL "nvidia")
     set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=nvptx64-nvidia-cuda,native_cpu;-Xsycl-target-backend=nvptx64-nvidia-cuda;--cuda-gpu-arch=sm_80")
 elseif(TARGET_GPU STREQUAL "amd")
     set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=amdgcn-amd-amdhsa")
 else()
+    # Official Intel oneAPI Compiler (icpx) uses production-grade CPU runtime (OpenCL + TBB) via default -fsycl
     if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
-        # Official Intel oneAPI Compiler (icpx) uses production-grade CPU runtime (OpenCL + TBB) via default -fsycl
         set(GPU_SYCL_FLAGS "-fsycl")
+
+    # AdaptiveCpp is SYCL-compatible by default; do not add -fsycl
+    # any extra flags must be passed by the user in USER_FLAG
+    elseif(CMAKE_CXX_COMPILER MATCHES "(^|.*/)?acpp$")
+        set(GPU_SYCL_FLAGS "")
+    
+    # Custom LLVM compiler uses native_cpu for CPU runs
     else()
-        # Custom LLVM compiler uses native_cpu for CPU runs
         set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=native_cpu")
     endif()
 endif()
 
-# We apply these flags to our targets manually to prevent breaking third-party dependencies like benchmark
+# add user-defined flags to GPU_SYCL_FLAGS
+if(USER_FLAG)
+    list(APPEND GPU_SYCL_FLAGS ${USER_FLAG})
+endif()
 
+# find oneDPL library path and add its directory to GPU_SYCL_FLAGS
+find_library(ONEDPL_LIB NAMES onedpl HINTS /u/bipra/ptmp/library/onedpl/lib NO_DEFAULT_PATH)
+if(NOT ONEDPL_LIB)
+    find_library(ONEDPL_LIB NAMES onedpl HINTS /opt/homebrew/Cellar/onedpl/2022.13.0/lib NO_DEFAULT_PATH)
+endif()
+
+if(ONEDPL_LIB)
+    get_filename_component(ONEDPL_LIB_DIR ${ONEDPL_LIB} DIRECTORY)
+    set(ONEDPL_INC_DIR ${ONEDPL_LIB_DIR}/../include)
+    message(STATUS "Found oneDPL library at ${ONEDPL_LIB}")
+    list(APPEND GPU_SYCL_FLAGS "-L${ONEDPL_LIB_DIR}")
+elseif(EXISTS "/u/bipra/ptmp/library/oneDPL/include")
+    set(ONEDPL_INC_DIR "/u/bipra/ptmp/library/oneDPL/include")
+    message(STATUS "Found oneDPL headers at ${ONEDPL_INC_DIR}")
+elseif(EXISTS "/opt/homebrew/include")
+    set(ONEDPL_INC_DIR "/opt/homebrew/include")
+    message(STATUS "Using oneDPL headers from ${ONEDPL_INC_DIR}")
+else()
+    message(WARNING "oneDPL library not found; continuing without explicit oneDPL link path")
+endif()
+
+if(ONEDPL_INC_DIR)
+    include_directories(${ONEDPL_INC_DIR})
+endif()
+
+
+# We apply these flags to our targets manually to prevent breaking third-party dependencies like benchmark
 add_sycl_to_target(TARGET fasttree.exe SOURCES ${FASTTREE_SRC})
 
 target_link_libraries(fasttree.exe PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})

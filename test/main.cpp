@@ -8,7 +8,8 @@
 using namespace fasttree;
 
 int main() {
-  sycl::queue q;
+  auto *q_ptr = new sycl::queue(sycl::default_selector_v);
+  sycl::queue &q = *q_ptr;
   std::cout << "Selected Device: " << q.get_device().get_info<sycl::info::device::name>() << std::endl;
   std::cout << "Validation Test: Comparing HLBVH Sort (Coarse+Intra) vs Full Sort & Query Correctness" << std::endl;
 
