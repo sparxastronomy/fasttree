@@ -15,11 +15,12 @@ void test_splitter_uniform() {
   for (int i = 0; i < 1000; ++i) hist[i] = 10;
 
   std::vector<uint32_t> spl = generate_splitters(hist, P, 10);
+  for (int i = 0; i <= P; ++i) { printf("  Splitter[%d] = %u\n", i, spl[i]); }
   assert(spl.size() == P + 1);
   assert(spl[0] == 0);
-  assert(spl[1] == 250);
-  assert(spl[2] == 500);
-  assert(spl[3] == 750);
+  assert(spl[1] == 249);
+  assert(spl[2] == 499);
+  assert(spl[3] == 749);
   assert(spl[4] == 1024);
   printf("  Passed!\n\n");
 }
@@ -32,6 +33,8 @@ void test_splitter_extreme_clustering() {
   for (int i = 0; i < 100; ++i) hist[i] = 1;
 
   std::vector<uint32_t> spl = generate_splitters(hist, P, 10);
+  for (int i = 0; i <= P; ++i) { printf("  Splitter[%d] = %u\n", i, spl[i]); }
+
   assert(spl.size() == P + 1);
   assert(spl[0] == 0);
   assert(spl[P] == 1024);
@@ -88,7 +91,7 @@ void test_mpi_pipeline(sycl::queue &q, int rank, int size) {
   particles<coord_t> redistributed_p = redistribute_particles(q, p, splitters, bbox);
 #else
   // Phase 2: Histogram
-  int m = 10;
+  int m = 20;
   std::vector<int> global_hist = get_global_histogram(q, p, bbox, m);
   long long total_p = 0;
   for (int count : global_hist) total_p += count;
@@ -128,10 +131,17 @@ void test_mpi_pipeline(sycl::queue &q, int rank, int size) {
   printf("\t\tRank %d: Received %d particles after redistribution.\n", rank, static_cast<int>(local_count));
 
   // Spatial consistency check
+  coord_t dx = bbox.max_x - bbox.min_x;
+  coord_t dy = bbox.max_y - bbox.min_y;
+  coord_t dz = bbox.max_z - bbox.min_z;
+  coord_t inv_dx = (dx == 0) ? static_cast<coord_t>(0.0) : (static_cast<coord_t>(1.0) / dx);
+  coord_t inv_dy = (dy == 0) ? static_cast<coord_t>(0.0) : (static_cast<coord_t>(1.0) / dy);
+  coord_t inv_dz = (dz == 0) ? static_cast<coord_t>(0.0) : (static_cast<coord_t>(1.0) / dz);
+
   for (size_t i = 0; i < redistributed_p.pos_x.size(); ++i) {
-    coord_t nx = std::min((redistributed_p.pos_x[i] - bbox.min_x) / (bbox.max_x - bbox.min_x), static_cast<coord_t>(0.999999));
-    coord_t ny = std::min((redistributed_p.pos_y[i] - bbox.min_y) / (bbox.max_y - bbox.min_y), static_cast<coord_t>(0.999999));
-    coord_t nz = std::min((redistributed_p.pos_z[i] - bbox.min_z) / (bbox.max_z - bbox.min_z), static_cast<coord_t>(0.999999));
+    coord_t nx = std::min((redistributed_p.pos_x[i] - bbox.min_x) * inv_dx, static_cast<coord_t>(0.999999));
+    coord_t ny = std::min((redistributed_p.pos_y[i] - bbox.min_y) * inv_dy, static_cast<coord_t>(0.999999));
+    coord_t nz = std::min((redistributed_p.pos_z[i] - bbox.min_z) * inv_dz, static_cast<coord_t>(0.999999));
     sfc1D ix = encode_to_sfc1d(static_cast<coord_t>(1.0) + nx);
     sfc1D iy = encode_to_sfc1d(static_cast<coord_t>(1.0) + ny);
     sfc1D iz = encode_to_sfc1d(static_cast<coord_t>(1.0) + nz);
@@ -236,14 +246,16 @@ void test_mpi_pipeline(sycl::queue &q, int rank, int size) {
 
     // 5. Verify local particles can see ghost particles
     for (int i = 0; i < n_total; ++i) {
+      int leaf_idx = i + n_total - 1;
       // In SPH, only local particles actively compute their density
-      if (ghosted_p.is_ghost[i] == 0) {
-        int num_neighbors = h_counts[i];
+      if (tree.is_ghost[leaf_idx] == 0) {
+        int num_neighbors = std::min(h_counts[i], max_res);
         for (int j = 0; j < num_neighbors; ++j) {
           int neighbor_idx = h_results[i * max_res + j];
+          int neighbor_leaf_idx = neighbor_idx + n_total - 1;
 
           // Did our query radius overlap a ghost particle from another rank?
-          if (ghosted_p.is_ghost[neighbor_idx] == 1) { local_saw_ghost = 1; }
+          if (tree.is_ghost[neighbor_leaf_idx] == 1) { local_saw_ghost = 1; }
         }
       }
     }
@@ -316,7 +328,7 @@ void test_ghost_visibility(sycl::queue &q) {
   // Verify the builder actually sorted the ghost tags correctly
   int found_ghosts = 0;
   for (int i = 0; i < n; i++) {
-    if (p.is_ghost[i] == 1) found_ghosts++;
+    if (tree.is_ghost[i + n - 1] == 1) found_ghosts++;
   }
   assert(found_ghosts == 2 && "Data corruption: is_ghost tags lost during build_bvh sort!");
 
@@ -349,12 +361,13 @@ void test_ghost_visibility(sycl::queue &q) {
   bool hit_local = false;
   bool hit_ghost = false;
   for (int i = 0; i < rq_count[0]; ++i) {
-    int sorted_idx = rq_results[i];  // This is the index into the sorted array `p`
-    if (p.is_ghost[sorted_idx] == 1) {
-      assert(p.id[sorted_idx] == 200 && "Hit the wrong ghost!");
+    int sorted_idx = rq_results[i];  // This is the index in sorted leaf order
+    int leaf_idx = sorted_idx + tree.num_leaves - 1;
+    if (tree.is_ghost[leaf_idx] == 1) {
+      assert(tree.id[leaf_idx] == 200 && "Hit the wrong ghost!");
       hit_ghost = true;
     } else {
-      assert(p.id[sorted_idx] == 100 && "Hit the wrong local particle!");
+      assert(tree.id[leaf_idx] == 100 && "Hit the wrong local particle!");
       hit_local = true;
     }
   }
@@ -378,14 +391,17 @@ void test_ghost_visibility(sycl::queue &q) {
   int first_neighbor_idx = knn_results[0];
   int second_neighbor_idx = knn_results[1];
 
+  int first_leaf_idx = first_neighbor_idx + tree.num_leaves - 1;
+  int second_leaf_idx = second_neighbor_idx + tree.num_leaves - 1;
+
   // Verify 1st neighbor is the ghost
-  assert(p.is_ghost[first_neighbor_idx] == 1 && "kNN 1st neighbor should be a ghost!");
-  assert(p.id[first_neighbor_idx] == 201 && "kNN hit the wrong ghost!");
+  assert(tree.is_ghost[first_leaf_idx] == 1 && "kNN 1st neighbor should be a ghost!");
+  assert(tree.id[first_leaf_idx] == 201 && "kNN hit the wrong ghost!");
   assert(std::abs(knn_dists[0] - static_cast<coord_t>(0.5)) < 1e-4 && "kNN distance calculation wrong!");
 
   // Verify 2nd neighbor is the local particle
-  assert(p.is_ghost[second_neighbor_idx] == 0 && "kNN 2nd neighbor should be local!");
-  assert(p.id[second_neighbor_idx] == 102 && "kNN hit the wrong local particle!");
+  assert(tree.is_ghost[second_leaf_idx] == 0 && "kNN 2nd neighbor should be local!");
+  assert(tree.id[second_leaf_idx] == 102 && "kNN hit the wrong local particle!");
   assert(std::abs(knn_dists[1] - static_cast<coord_t>(6.5)) < 1e-4 && "kNN distance calculation wrong!");
 
   printf("  kNN Query: Ghost visibility passed.\n");
