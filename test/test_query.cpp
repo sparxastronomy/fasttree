@@ -35,33 +35,33 @@ int main() {
 
   q.submit([&](sycl::handler &h) {
      h.single_task([=]() {
-        int stack[64];
-        int stack_ptr = 0;
-        stack[stack_ptr++] = 0;
-        int count = 0;
+       int stack[64];
+       int stack_ptr = 0;
+       stack[stack_ptr++] = 0;
+       int count = 0;
 
-        while (stack_ptr > 0) {
-          int node_idx = stack[--stack_ptr];
+       while (stack_ptr > 0) {
+         int node_idx = stack[--stack_ptr];
 
-          coord_t bmin_x = tree.min_x[node_idx], bmax_x = tree.max_x[node_idx];
-          coord_t bmin_y = tree.min_y[node_idx], bmax_y = tree.max_y[node_idx];
-          coord_t bmin_z = tree.min_z[node_idx], bmax_z = tree.max_z[node_idx];
+         coord_t bmin_x = tree.min_x[node_idx], bmax_x = tree.max_x[node_idx];
+         coord_t bmin_y = tree.min_y[node_idx], bmax_y = tree.max_y[node_idx];
+         coord_t bmin_z = tree.min_z[node_idx], bmax_z = tree.max_z[node_idx];
 
-          coord_t dx = sycl::fmax(bmin_x - qx, sycl::fmax(static_cast<coord_t>(0.0), qx - bmax_x));
-          coord_t dy = sycl::fmax(bmin_y - qy, sycl::fmax(static_cast<coord_t>(0.0), qy - bmax_y));
-          coord_t dz = sycl::fmax(bmin_z - qz, sycl::fmax(static_cast<coord_t>(0.0), qz - bmax_z));
-          coord_t d2 = dx * dx + dy * dy + dz * dz;
+         coord_t dx = sycl::fmax(bmin_x - qx, sycl::fmax(static_cast<coord_t>(0.0), qx - bmax_x));
+         coord_t dy = sycl::fmax(bmin_y - qy, sycl::fmax(static_cast<coord_t>(0.0), qy - bmax_y));
+         coord_t dz = sycl::fmax(bmin_z - qz, sycl::fmax(static_cast<coord_t>(0.0), qz - bmax_z));
+         coord_t d2 = dx * dx + dy * dy + dz * dz;
 
-          if (d2 <= RM * RM) {
-            if (node_idx >= n - 1) {
-              if (d2 >= rm * rm && count < max_res) { res[count++] = node_idx - (n - 1); }
-            } else {
-              stack[stack_ptr++] = tree.right_child[node_idx];
-              stack[stack_ptr++] = tree.left_child[node_idx];
-            }
-          }
-        }
-        res_cnt[0] = count;
+         if (d2 <= RM * RM) {
+           if (node_idx >= n - 1) {
+             if (d2 >= rm * rm && count < max_res) { res[count++] = node_idx - (n - 1); }
+           } else {
+             stack[stack_ptr++] = tree.right_child[node_idx];
+             stack[stack_ptr++] = tree.left_child[node_idx];
+           }
+         }
+       }
+       res_cnt[0] = count;
      });
    }).wait();
 
