@@ -62,7 +62,6 @@ bool load_hdf5_data_slice(const std::string &filename, size_t offset, size_t cou
   data.vel_x.resize(count, 0.0f);
   data.vel_y.resize(count, 0.0f);
   data.vel_z.resize(count, 0.0f);
-  data.masses.resize(count, 1.0f);
 
   if (count == 0) {
     H5Gclose(group_id);
@@ -114,21 +113,6 @@ bool load_hdf5_data_slice(const std::string &filename, size_t offset, size_t cou
     H5Dclose(dset_vels);
   }
 
-  // Read slice of Masses (count)
-  hid_t dset_mass = H5Dopen(group_id, "Masses", H5P_DEFAULT);
-  if (dset_mass >= 0) {
-    hid_t filespace = H5Dget_space(dset_mass);
-    hsize_t offset_1d[1] = {offset};
-    hsize_t count_1d[1] = {count};
-    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset_1d, NULL, count_1d, NULL);
-
-    hid_t memspace = H5Screate_simple(1, count_1d, NULL);
-    H5Dread(dset_mass, H5T_NATIVE_FLOAT, memspace, filespace, H5P_DEFAULT, data.masses.data());
-    H5Sclose(memspace);
-    H5Sclose(filespace);
-    H5Dclose(dset_mass);
-  }
-
   H5Gclose(group_id);
   H5Fclose(file_id);
   return true;
@@ -172,9 +156,7 @@ int main(int argc, char **argv) {
     if (rank == 0) {
       // Discover all split files if present
       std::string base_path = file_path;
-      if (base_path.size() >= 5 && base_path.substr(base_path.size() - 5) == ".hdf5") {
-        base_path = base_path.substr(0, base_path.size() - 5);
-      }
+      if (base_path.size() >= 5 && base_path.substr(base_path.size() - 5) == ".hdf5") { base_path = base_path.substr(0, base_path.size() - 5); }
 
       int file_idx = 0;
       while (true) {
@@ -190,31 +172,21 @@ int main(int argc, char **argv) {
       }
 
       // If no split files are found, use the single file path
-      if (file_paths.empty()) {
-        file_paths.push_back(file_path);
-      }
+      if (file_paths.empty()) { file_paths.push_back(file_path); }
     }
 
     // Broadcast file paths from Rank 0 to all ranks
     size_t num_files = 0;
-    if (rank == 0) {
-      num_files = file_paths.size();
-    }
+    if (rank == 0) { num_files = file_paths.size(); }
     MPI_Bcast(&num_files, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
 
-    if (rank != 0) {
-      file_paths.resize(num_files);
-    }
+    if (rank != 0) { file_paths.resize(num_files); }
 
     for (size_t i = 0; i < num_files; ++i) {
       int len = 0;
-      if (rank == 0) {
-        len = file_paths[i].size();
-      }
+      if (rank == 0) { len = file_paths[i].size(); }
       MPI_Bcast(&len, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      if (rank != 0) {
-        file_paths[i].resize(len);
-      }
+      if (rank != 0) { file_paths[i].resize(len); }
       MPI_Bcast(file_paths[i].data(), len, MPI_CHAR, 0, MPI_COMM_WORLD);
     }
 
@@ -263,7 +235,6 @@ int main(int argc, char **argv) {
           hdf5_data.vel_x.insert(hdf5_data.vel_x.end(), temp_data.vel_x.begin(), temp_data.vel_x.end());
           hdf5_data.vel_y.insert(hdf5_data.vel_y.end(), temp_data.vel_y.begin(), temp_data.vel_y.end());
           hdf5_data.vel_z.insert(hdf5_data.vel_z.end(), temp_data.vel_z.begin(), temp_data.vel_z.end());
-          hdf5_data.masses.insert(hdf5_data.masses.end(), temp_data.masses.begin(), temp_data.masses.end());
           hdf5_data.count += read_count;
         }
       }
@@ -274,7 +245,6 @@ int main(int argc, char **argv) {
     p_orig.pos_x.assign(hdf5_data.pos_x.begin(), hdf5_data.pos_x.end());
     p_orig.pos_y.assign(hdf5_data.pos_y.begin(), hdf5_data.pos_y.end());
     p_orig.pos_z.assign(hdf5_data.pos_z.begin(), hdf5_data.pos_z.end());
-    p_orig.mass.assign(hdf5_data.masses.begin(), hdf5_data.masses.end());
     p_orig.id.resize(my_count);
     p_orig.is_ghost.resize(my_count, 0);
     for (size_t i = 0; i < my_count; ++i) { p_orig.id[i] = static_cast<uint32_t>(my_start + i); }
@@ -324,7 +294,7 @@ int main(int argc, char **argv) {
       double t2 = MPI_Wtime();
       std::vector<uint64_t> splitters = get_deterministic_splitters(q, p, bbox);
       times_splitters[iter] = MPI_Wtime() - t2;
-      times_hist[iter] = 0.0; // Bypassed
+      times_hist[iter] = 0.0;  // Bypassed
 #else
       // Phase 2: Histogram
       double t1 = MPI_Wtime();

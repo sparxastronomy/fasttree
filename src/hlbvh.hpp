@@ -1,10 +1,10 @@
 #ifndef SYCL_FASTTREE_HLBVH_HPP
 #define SYCL_FASTTREE_HLBVH_HPP
 
-#include <sycl/sycl.hpp>
 #include <oneapi/dpl/algorithm>
 #include <oneapi/dpl/execution>
 #include <oneapi/dpl/iterator>
+#include <sycl/sycl.hpp>
 #include <algorithm>
 #include <cmath>
 #include <execution>
@@ -26,8 +26,6 @@ template <typename T>
 struct particles {
   /// Local/ghost particle positions in x, y, and z dimensions.
   std::vector<T> pos_x, pos_y, pos_z;
-  /// Mass values for each particle (retained for cosmological physics, to be deprecated in future).
-  std::vector<T> mass;
   /// Unique 32-bit identifier for tracking particles during spatial sorting and domain decomposition.
   std::vector<uint32_t> id;
   /// Ghost particle flag: 0 for locally owned particles, 1 for boundary ghost particles.

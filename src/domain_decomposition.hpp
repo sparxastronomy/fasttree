@@ -214,9 +214,6 @@ inline void normalize_particles(particles<FloatT> &p, size_t n) {
   if (p.pos_y.size() < n) p.pos_y.resize(n, static_cast<FloatT>(0.0));
   if (p.pos_z.size() < n) p.pos_z.resize(n, static_cast<FloatT>(0.0));
 
-  // 2. Populate mass array with default value if uninitialized
-  if (p.mass.size() < n) p.mass.resize(n, static_cast<FloatT>(1.0));
-
   // 3. Initialize sequence of particle IDs if uninitialized
   if (p.id.size() < n) {
     size_t prev_size = p.id.size();
@@ -442,7 +439,6 @@ inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT
   FloatT *send_pos_x = sycl::malloc_shared<FloatT>(n > 0 ? n : 1, q);
   FloatT *send_pos_y = sycl::malloc_shared<FloatT>(n > 0 ? n : 1, q);
   FloatT *send_pos_z = sycl::malloc_shared<FloatT>(n > 0 ? n : 1, q);
-  FloatT *send_mass = sycl::malloc_shared<FloatT>(n > 0 ? n : 1, q);
   uint32_t *send_id = sycl::malloc_shared<uint32_t>(n > 0 ? n : 1, q);
   int8_t *send_ghost = sycl::malloc_shared<int8_t>(n > 0 ? n : 1, q);
 
@@ -451,17 +447,15 @@ inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT
     const FloatT *pos_x = p.pos_x.data();
     const FloatT *pos_y = p.pos_y.data();
     const FloatT *pos_z = p.pos_z.data();
-    const FloatT *p_mass = p.mass.data();
     const uint32_t *p_id = p.id.data();
     const int8_t *p_ghost = p.is_ghost.data();
 
     bool x_alloc = false, y_alloc = false, z_alloc = false;
-    bool mass_alloc = false, id_alloc = false, ghost_alloc = false;
+    bool id_alloc = false, ghost_alloc = false;
 
     const FloatT *dev_pos_x = ensure_device_readable(q, pos_x, n, x_alloc);
     const FloatT *dev_pos_y = ensure_device_readable(q, pos_y, n, y_alloc);
     const FloatT *dev_pos_z = ensure_device_readable(q, pos_z, n, z_alloc);
-    const FloatT *dev_mass = ensure_device_readable(q, p_mass, n, mass_alloc);
     const uint32_t *dev_id = ensure_device_readable(q, p_id, n, id_alloc);
     const int8_t *dev_ghost = ensure_device_readable(q, p_ghost, n, ghost_alloc);
 
@@ -471,7 +465,6 @@ inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT
        send_pos_x[i] = dev_pos_x[orig_idx];
        send_pos_y[i] = dev_pos_y[orig_idx];
        send_pos_z[i] = dev_pos_z[orig_idx];
-       send_mass[i] = dev_mass[orig_idx];
        send_id[i] = dev_id[orig_idx];
        send_ghost[i] = dev_ghost[orig_idx];
      }).wait();
@@ -479,7 +472,6 @@ inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT
     free_device_readable(q, dev_pos_x, x_alloc);
     free_device_readable(q, dev_pos_y, y_alloc);
     free_device_readable(q, dev_pos_z, z_alloc);
-    free_device_readable(q, dev_mass, mass_alloc);
     free_device_readable(q, dev_id, id_alloc);
     free_device_readable(q, dev_ghost, ghost_alloc);
   }
@@ -503,14 +495,12 @@ inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT
   recv_p.pos_x.resize(total_recv);
   recv_p.pos_y.resize(total_recv);
   recv_p.pos_z.resize(total_recv);
-  recv_p.mass.resize(total_recv);
   recv_p.id.resize(total_recv);
   recv_p.is_ghost.resize(total_recv);
 
   FloatT *recv_pos_x = sycl::malloc_shared<FloatT>(total_recv > 0 ? total_recv : 1, q);
   FloatT *recv_pos_y = sycl::malloc_shared<FloatT>(total_recv > 0 ? total_recv : 1, q);
   FloatT *recv_pos_z = sycl::malloc_shared<FloatT>(total_recv > 0 ? total_recv : 1, q);
-  FloatT *recv_mass = sycl::malloc_shared<FloatT>(total_recv > 0 ? total_recv : 1, q);
   uint32_t *recv_id = sycl::malloc_shared<uint32_t>(total_recv > 0 ? total_recv : 1, q);
   int8_t *recv_ghost = sycl::malloc_shared<int8_t>(total_recv > 0 ? total_recv : 1, q);
 
@@ -521,8 +511,6 @@ inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT
                 recv_displs.data(), mpi_type_traits<FloatT>::type(), MPI_COMM_WORLD);
   MPI_Alltoallv(send_pos_z, send_counts.data(), send_displs.data(), mpi_type_traits<FloatT>::type(), recv_pos_z, recv_counts.data(),
                 recv_displs.data(), mpi_type_traits<FloatT>::type(), MPI_COMM_WORLD);
-  MPI_Alltoallv(send_mass, send_counts.data(), send_displs.data(), mpi_type_traits<FloatT>::type(), recv_mass, recv_counts.data(), recv_displs.data(),
-                mpi_type_traits<FloatT>::type(), MPI_COMM_WORLD);
   MPI_Alltoallv(send_id, send_counts.data(), send_displs.data(), MPI_UINT32_T, recv_id, recv_counts.data(), recv_displs.data(), MPI_UINT32_T,
                 MPI_COMM_WORLD);
   MPI_Alltoallv(send_ghost, send_counts.data(), send_displs.data(), MPI_INT8_T, recv_ghost, recv_counts.data(), recv_displs.data(), MPI_INT8_T,
@@ -535,7 +523,6 @@ inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT
     q.copy(recv_pos_x, recv_p.pos_x.data(), total_recv);
     q.copy(recv_pos_y, recv_p.pos_y.data(), total_recv);
     q.copy(recv_pos_z, recv_p.pos_z.data(), total_recv);
-    q.copy(recv_mass, recv_p.mass.data(), total_recv);
     q.copy(recv_id, recv_p.id.data(), total_recv);
     q.copy(recv_ghost, recv_p.is_ghost.data(), total_recv);
     q.wait();
@@ -548,13 +535,11 @@ inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT
   sycl::free(send_pos_x, q);
   sycl::free(send_pos_y, q);
   sycl::free(send_pos_z, q);
-  sycl::free(send_mass, q);
   sycl::free(send_id, q);
   sycl::free(send_ghost, q);
   sycl::free(recv_pos_x, q);
   sycl::free(recv_pos_y, q);
   sycl::free(recv_pos_z, q);
-  sycl::free(recv_mass, q);
   sycl::free(recv_id, q);
   sycl::free(recv_ghost, q);
 
@@ -725,7 +710,6 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
   FloatT *send_pos_x = sycl::malloc_shared<FloatT>(total_sends > 0 ? total_sends : 1, q);
   FloatT *send_pos_y = sycl::malloc_shared<FloatT>(total_sends > 0 ? total_sends : 1, q);
   FloatT *send_pos_z = sycl::malloc_shared<FloatT>(total_sends > 0 ? total_sends : 1, q);
-  FloatT *send_mass = sycl::malloc_shared<FloatT>(total_sends > 0 ? total_sends : 1, q);
   uint32_t *send_id = sycl::malloc_shared<uint32_t>(total_sends > 0 ? total_sends : 1, q);
   int8_t *send_ghost = sycl::malloc_shared<int8_t>(total_sends > 0 ? total_sends : 1, q);
 
@@ -734,15 +718,13 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
     const FloatT *pos_x = p.pos_x.data();
     const FloatT *pos_y = p.pos_y.data();
     const FloatT *pos_z = p.pos_z.data();
-    const FloatT *p_mass = p.mass.data();
     const uint32_t *p_id = p.id.data();
 
     bool x_alloc = false, y_alloc = false, z_alloc = false;
-    bool mass_alloc = false, id_alloc = false;
+    bool id_alloc = false;
     const FloatT *dev_pos_x = ensure_device_readable(q, pos_x, n, x_alloc);
     const FloatT *dev_pos_y = ensure_device_readable(q, pos_y, n, y_alloc);
     const FloatT *dev_pos_z = ensure_device_readable(q, pos_z, n, z_alloc);
-    const FloatT *dev_mass = ensure_device_readable(q, p_mass, n, mass_alloc);
     const uint32_t *dev_id = ensure_device_readable(q, p_id, n, id_alloc);
 
     q.parallel_for(sycl::range<1>(total_sends), [=](sycl::id<1> idx) {
@@ -751,7 +733,6 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
        send_pos_x[i] = dev_pos_x[orig_idx];
        send_pos_y[i] = dev_pos_y[orig_idx];
        send_pos_z[i] = dev_pos_z[orig_idx];
-       send_mass[i] = dev_mass[orig_idx];
        send_id[i] = dev_id[orig_idx];
        send_ghost[i] = 1;  // Receive on other side as ghost particle
      }).wait();
@@ -759,7 +740,6 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
     free_device_readable(q, dev_pos_x, x_alloc);
     free_device_readable(q, dev_pos_y, y_alloc);
     free_device_readable(q, dev_pos_z, z_alloc);
-    free_device_readable(q, dev_mass, mass_alloc);
     free_device_readable(q, dev_id, id_alloc);
   }
 
@@ -781,7 +761,6 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
   FloatT *recv_pos_x = sycl::malloc_shared<FloatT>(total_recv > 0 ? total_recv : 1, q);
   FloatT *recv_pos_y = sycl::malloc_shared<FloatT>(total_recv > 0 ? total_recv : 1, q);
   FloatT *recv_pos_z = sycl::malloc_shared<FloatT>(total_recv > 0 ? total_recv : 1, q);
-  FloatT *recv_mass = sycl::malloc_shared<FloatT>(total_recv > 0 ? total_recv : 1, q);
   uint32_t *recv_id = sycl::malloc_shared<uint32_t>(total_recv > 0 ? total_recv : 1, q);
   int8_t *recv_ghost = sycl::malloc_shared<int8_t>(total_recv > 0 ? total_recv : 1, q);
 
@@ -792,8 +771,6 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
                 recv_displs.data(), mpi_type_traits<FloatT>::type(), MPI_COMM_WORLD);
   MPI_Alltoallv(send_pos_z, send_counts.data(), send_displs.data(), mpi_type_traits<FloatT>::type(), recv_pos_z, recv_counts.data(),
                 recv_displs.data(), mpi_type_traits<FloatT>::type(), MPI_COMM_WORLD);
-  MPI_Alltoallv(send_mass, send_counts.data(), send_displs.data(), mpi_type_traits<FloatT>::type(), recv_mass, recv_counts.data(), recv_displs.data(),
-                mpi_type_traits<FloatT>::type(), MPI_COMM_WORLD);
   MPI_Alltoallv(send_id, send_counts.data(), send_displs.data(), MPI_UINT32_T, recv_id, recv_counts.data(), recv_displs.data(), MPI_UINT32_T,
                 MPI_COMM_WORLD);
   MPI_Alltoallv(send_ghost, send_counts.data(), send_displs.data(), MPI_INT8_T, recv_ghost, recv_counts.data(), recv_displs.data(), MPI_INT8_T,
@@ -807,7 +784,6 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
   combined_p.pos_x.resize(total_combined);
   combined_p.pos_y.resize(total_combined);
   combined_p.pos_z.resize(total_combined);
-  combined_p.mass.resize(total_combined);
   combined_p.id.resize(total_combined);
   combined_p.is_ghost.resize(total_combined);
 
@@ -815,7 +791,6 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
   std::copy(p.pos_x.begin(), p.pos_x.end(), combined_p.pos_x.begin());
   std::copy(p.pos_y.begin(), p.pos_y.end(), combined_p.pos_y.begin());
   std::copy(p.pos_z.begin(), p.pos_z.end(), combined_p.pos_z.begin());
-  std::copy(p.mass.begin(), p.mass.end(), combined_p.mass.begin());
   std::copy(p.id.begin(), p.id.end(), combined_p.id.begin());
   std::copy(p.is_ghost.begin(), p.is_ghost.end(), combined_p.is_ghost.begin());
 
@@ -824,7 +799,6 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
     q.copy(recv_pos_x, combined_p.pos_x.data() + n, total_recv);
     q.copy(recv_pos_y, combined_p.pos_y.data() + n, total_recv);
     q.copy(recv_pos_z, combined_p.pos_z.data() + n, total_recv);
-    q.copy(recv_mass, combined_p.mass.data() + n, total_recv);
     q.copy(recv_id, combined_p.id.data() + n, total_recv);
     q.copy(recv_ghost, combined_p.is_ghost.data() + n, total_recv);
     q.wait();
@@ -835,13 +809,11 @@ inline particles<FloatT> exchange_halos(sycl::queue &q, particles<FloatT> &p, Fl
   sycl::free(send_pos_x, q);
   sycl::free(send_pos_y, q);
   sycl::free(send_pos_z, q);
-  sycl::free(send_mass, q);
   sycl::free(send_id, q);
   sycl::free(send_ghost, q);
   sycl::free(recv_pos_x, q);
   sycl::free(recv_pos_y, q);
   sycl::free(recv_pos_z, q);
-  sycl::free(recv_mass, q);
   sycl::free(recv_id, q);
   sycl::free(recv_ghost, q);
 

@@ -1,8 +1,8 @@
 # Use the Google style in this project.
 # derived from: https://github.com/googleapis/google-cloud-cpp
 BasedOnStyle: Google
-AlignTrailingComments: true 
-AllowShortLinesOnASingleLine: true 
+AlignTrailingComments: true
+AllowShortIfStatementsOnASingleLine: true
 BreakBeforeBraces: Attach
 ColumnLimit: 150
 AllowShortBlocksOnASingleLine: true
@@ -19,45 +19,44 @@ QualifierAlignment: Left
 
 IncludeBlocks: Merge
 IncludeCategories:
-- Regex: '^\"google/cloud/internal/disable_deprecation_warnings.inc\"$'
-  Priority: -1
-# System and C-language headers should go last. These expressions may miss a few
-# cases, we can always add more.  Or we can conservative
-- Regex: '^<[A-Za-z0-9_]*\.h>$'
-  Priority: 10000
-- Regex: '^<sys/[A-Za-z0-9_]*\.h>$'
-  Priority: 10000
-# Matches common headers first, but sorts them after project includes
-- Regex: '^\"google/cloud/(internal/|grpc_utils/|testing_util/|[^/]+\.h)'
-  Priority: 1000
-- Regex: '^\"google/cloud/'  # project includes should sort first
-  Priority: 500
-- Regex: '^\"generator/'     # project includes should sort first
-  Priority: 500
-- Regex: '^\"generator/internal/' # project internals second
-  Priority: 1000
-- Regex: '^\"generator/testing/'  # testing helpers third
-  Priority: 1100
-- Regex: '^\"'         # And then includes from other projects or the system
-  Priority: 1500
-- Regex: '^<grpc/'
-  Priority: 2000
-- Regex: '^<google/*'
-  Priority: 3000
-- Regex: '^<.*/.*'
-  Priority: 4000
-- Regex: '^<.*.hpp>'
-  Priority: 4000
-- Regex: '^<[^/]*>'
-  Priority: 5000
+  - Regex: '^\"google/cloud/internal/disable_deprecation_warnings.inc\"$'
+    Priority: -1
+  # System and C-language headers should go last. These expressions may miss a few
+  # cases, we can always add more.  Or we can conservative
+  - Regex: '^<[A-Za-z0-9_]*\.h>$'
+    Priority: 10000
+  - Regex: '^<sys/[A-Za-z0-9_]*\.h>$'
+    Priority: 10000
+  # Matches common headers first, but sorts them after project includes
+  - Regex: '^\"google/cloud/(internal/|grpc_utils/|testing_util/|[^/]+\.h)'
+    Priority: 1000
+  - Regex: '^\"google/cloud/' # project includes should sort first
+    Priority: 500
+  - Regex: '^\"generator/' # project includes should sort first
+    Priority: 500
+  - Regex: '^\"generator/internal/' # project internals second
+    Priority: 1000
+  - Regex: '^\"generator/testing/' # testing helpers third
+    Priority: 1100
+  - Regex: '^\"' # And then includes from other projects or the system
+    Priority: 1500
+  - Regex: "^<grpc/"
+    Priority: 2000
+  - Regex: "^<google/*"
+    Priority: 3000
+  - Regex: "^<.*/.*"
+    Priority: 4000
+  - Regex: "^<.*.hpp>"
+    Priority: 4000
+  - Regex: "^<[^/]*>"
+    Priority: 5000
 
 # Format raw string literals with a `pb` or `proto` tag as proto.
 RawStringFormats:
-- Language: TextProto
-  Delimiters:
-  - 'pb'
-  - 'proto'
-  BasedOnStyle: Google
+  - Language: TextProto
+    Delimiters:
+      - "pb"
+      - "proto"
+    BasedOnStyle: Google
 
-CommentPragmas: '(@copydoc|@copybrief|@see|@overload|@snippet)'
-
+CommentPragmas: "(@copydoc|@copybrief|@see|@overload|@snippet)"
