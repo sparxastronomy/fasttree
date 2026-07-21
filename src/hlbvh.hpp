@@ -953,14 +953,19 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
  *
  * @param[in] q SYCL queue.
  * @param[in] p SoA struct of input particles.
+ * @param[in] bbox Optional precomputed bounding box. If nullptr, it will be computed.
  * @param[in,out] tree The output tree structure to build.
  */
-inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, TreeSoA &tree) {
+inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, BoundingBox *bbox = nullptr, TreeSoA &tree) {
   size_t n = p.pos_x.size();
   if (n == 0) return;
 
   // 1. Compute Bounding Box using parallel GPU reduction
-  BoundingBox bbox = compute_bbox(q, p, n);
+  BoundingBox local_bbox;
+  if (bbox == nullptr) {
+    local_bbox = compute_bbox(q, p, n);
+    bbox = &local_bbox;
+  }
 
   // 2. Allocate USM memory for keys and indices
   sfc_key *d_smk = sycl::malloc_shared<sfc_key>(n, q);
