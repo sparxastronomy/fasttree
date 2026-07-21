@@ -62,6 +62,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #
 set(SFC_TYPE "MORTON" CACHE STRING "SFC type: MORTON or PEANO_HILBERT")
 set(COORDS_TYPE "FLOAT" CACHE STRING "Coordinate type: FLOAT or DOUBLE")
+set(RETURN_ORIG_INDICES  False CACHE BOOL "Return original indices instead of sorted indices while querying the tree")
 
 if(SFC_TYPE STREQUAL "PEANO_HILBERT")
     add_compile_definitions(SFC_TYPE_PEANO_HILBERT)
@@ -87,6 +88,14 @@ if(DCOMPOSITION_TYPE STREQUAL "SAMPLING")
 else()
     add_compile_definitions(DCOMPOSITION_TYPE_HISTOGRAM)
     message(STATUS "Using histogram-based domain decomposition")
+endif()
+
+
+if (RETURN_ORIG_INDICES)
+    add_compile_definitions(RETURN_ORIG_INDICES)
+    message(STATUS "Returning original indices while querying the tree")
+else()
+    message(STATUS "Returning sorted indices while querying the tree")
 endif()
 
 #

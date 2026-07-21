@@ -425,8 +425,9 @@ struct TreeSoA {
   int *left_child;         ///< Left child index. Size: num_internal.
   int *right_child;        ///< Right child index. Size: num_internal.
   int *parent;             ///< Parent node index. Size: num_leaves + num_internal.
-  uint32_t *id;            ///< Sorted particle IDs. Size: num_leaves + num_internal.
+  uint32_t *id;            ///< Particle IDs (e.g. AREPO unique IDs). Size: num_leaves + num_internal.
   int8_t *is_ghost;        ///< Flags for local vs ghost particles. Size: num_leaves + num_internal.
+  int *orig_idx;           ///< Original input array index of sorted particles. Size: num_leaves + num_internal.
   size_t num_leaves;       ///< Total leaf nodes (equivalent to particle count).
   size_t num_internal;     ///< Total internal nodes (equal to num_leaves - 1).
 
@@ -436,7 +437,7 @@ struct TreeSoA {
    * @param[in] q SYCL queue used for allocating USM memory.
    * @param[in] n Number of leaf nodes (particles) in the tree.
    */
-  TreeSoA(sycl::queue &q, size_t n) : num_leaves(n), num_internal(n > 0 ? n - 1 : 0), id(nullptr), is_ghost(nullptr) {
+  TreeSoA(sycl::queue &q, size_t n) : num_leaves(n), num_internal(n > 0 ? n - 1 : 0), id(nullptr), is_ghost(nullptr), orig_idx(nullptr) {
     size_t total_nodes = num_leaves + num_internal;
     if (total_nodes == 0) return;
 
@@ -451,6 +452,7 @@ struct TreeSoA {
     parent = sycl::malloc_shared<int>(total_nodes, q);
     id = sycl::malloc_shared<uint32_t>(total_nodes, q);
     is_ghost = sycl::malloc_shared<int8_t>(total_nodes, q);
+    orig_idx = sycl::malloc_shared<int>(total_nodes, q);
   }
 
   /**
@@ -471,6 +473,7 @@ struct TreeSoA {
     sycl::free(parent, q);
     if (id) sycl::free(id, q);
     if (is_ghost) sycl::free(is_ghost, q);
+    if (orig_idx) sycl::free(orig_idx, q);
   }
 };
 
@@ -499,12 +502,13 @@ inline int sgn(int x) { return (x > 0) - (x < 0); }
  * @param[in] sorted_is_ghost Sorted ghost particle flags (optional).
  */
 inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys, const coord_t *sorted_x, const coord_t *sorted_y,
-                       const coord_t *sorted_z, const uint32_t *sorted_id = nullptr, const int8_t *sorted_is_ghost = nullptr) {
+                       const coord_t *sorted_z, const uint32_t *sorted_id = nullptr, const int8_t *sorted_is_ghost = nullptr,
+                       const int *sorted_orig_idx = nullptr) {
   size_t n = tree.num_leaves;
   if (n == 0) return;
 
   bool keys_alloc = false, x_alloc = false, y_alloc = false, z_alloc = false;
-  bool id_alloc = false, ghost_alloc = false;
+  bool id_alloc = false, ghost_alloc = false, orig_alloc = false;
 
   const sfc_key *dev_keys = ensure_device_readable(q, sorted_keys, n, keys_alloc);
   const coord_t *dev_x = ensure_device_readable(q, sorted_x, n, x_alloc);
@@ -512,13 +516,20 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
   const coord_t *dev_z = ensure_device_readable(q, sorted_z, n, z_alloc);
   const uint32_t *dev_id = sorted_id ? ensure_device_readable(q, sorted_id, n, id_alloc) : nullptr;
   const int8_t *dev_ghost = sorted_is_ghost ? ensure_device_readable(q, sorted_is_ghost, n, ghost_alloc) : nullptr;
+  const int *dev_orig_idx = sorted_orig_idx ? ensure_device_readable(q, sorted_orig_idx, n, orig_alloc) : nullptr;
 
   if (n == 1) {
+    uint32_t *p_id = tree.id;
+    int8_t *p_ghost = tree.is_ghost;
+    int *p_orig_idx = tree.orig_idx;
     q.submit([&](sycl::handler &cgh) {
        cgh.single_task([=]() {
          tree.min_x[0] = tree.max_x[0] = dev_x[0];
          tree.min_y[0] = tree.max_y[0] = dev_y[0];
          tree.min_z[0] = tree.max_z[0] = dev_z[0];
+         if (p_id && dev_id) { p_id[0] = dev_id[0]; }
+         if (p_ghost && dev_ghost) { p_ghost[0] = dev_ghost[0]; }
+         if (p_orig_idx && dev_orig_idx) { p_orig_idx[0] = dev_orig_idx[0]; }
        });
      }).wait();
 
@@ -528,6 +539,7 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
     free_device_readable(q, dev_z, z_alloc);
     if (dev_id) free_device_readable(q, dev_id, id_alloc);
     if (dev_ghost) free_device_readable(q, dev_ghost, ghost_alloc);
+    if (dev_orig_idx) free_device_readable(q, dev_orig_idx, orig_alloc);
     return;
   }
 
@@ -602,6 +614,7 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
   // 2. Initialize leaf bounding boxes
   uint32_t *p_id = tree.id;
   int8_t *p_ghost = tree.is_ghost;
+  int *p_orig_idx = tree.orig_idx;
   q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
      int i = idx[0];
      int leaf_idx = i + n - 1;
@@ -613,6 +626,7 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
      p_max_z[leaf_idx] = dev_z[i];
      if (p_id && dev_id) { p_id[leaf_idx] = dev_id[i]; }
      if (p_ghost && dev_ghost) { p_ghost[leaf_idx] = dev_ghost[i]; }
+     if (p_orig_idx && dev_orig_idx) { p_orig_idx[leaf_idx] = dev_orig_idx[i]; }
    }).wait();
 
   // 3. Compute internal bounding boxes (bottom-up)
@@ -624,6 +638,7 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
     free_device_readable(q, dev_z, z_alloc);
     if (dev_id) free_device_readable(q, dev_id, id_alloc);
     if (dev_ghost) free_device_readable(q, dev_ghost, ghost_alloc);
+    if (dev_orig_idx) free_device_readable(q, dev_orig_idx, orig_alloc);
     return;
   }
   q.fill(counters, 0, n - 1).wait();
@@ -662,6 +677,7 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
   free_device_readable(q, dev_z, z_alloc);
   if (dev_id) free_device_readable(q, dev_id, id_alloc);
   if (dev_ghost) free_device_readable(q, dev_ghost, ghost_alloc);
+  if (dev_orig_idx) free_device_readable(q, dev_orig_idx, orig_alloc);
 }
 
 #define MAX_STACK_DEPTH 64
@@ -739,6 +755,7 @@ struct PriorityQueue {
  * @param[out] results Output buffer for nearest neighbor indices. Size: num_queries * k.
  * @param[out] result_dists Output buffer for neighbor Euclidean distances. Size: num_queries * k.
  */
+template <int _MAX_K_ = 128>
 inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, const coord_t *qy, const coord_t *qz, int k, int num_queries,
                       int *results, coord_t *result_dists) {
   size_t n = tree.num_leaves;
@@ -757,6 +774,7 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
   coord_t *p_min_y = tree.min_y, *p_max_y = tree.max_y;
   coord_t *p_min_z = tree.min_z, *p_max_z = tree.max_z;
   int *p_left_child = tree.left_child, *p_right_child = tree.right_child;
+  int *p_orig_idx = tree.orig_idx;
 
   // Use a fixed K for the priority queue in the kernel
   // In a real implementation, K would be a template parameter or handled more dynamically
@@ -774,8 +792,8 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
      }
 
      // We'll use a local buffer for PQ. Since K is dynamic in the API but fixed in the struct,
-     // we handle it carefully. For this implementation, we assume K <= 128.
-     PriorityQueue<coord_t, 128> pq;
+     // we handle with a compile-time constant _MAX_K_ for the priority queue.
+     PriorityQueue<coord_t, _MAX_K_> pq;
 
      while (stack_ptr > 0) {
        int node_idx = stack[--stack_ptr];
@@ -791,9 +809,17 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
 
        if (pq.count < k || d2 < pq.data[0]) {
          if (node_idx >= (int)n - 1 && n > 1) {  // Leaf
+#ifdef RETURN_ORIG_INDICES
+           pq.push(d2, p_orig_idx[node_idx], k);
+#else
            pq.push(d2, node_idx - (n - 1), k);
+#endif
          } else if (n == 1) {
+#ifdef RETURN_ORIG_INDICES
+           pq.push(d2, p_orig_idx[0], k);
+#else
            pq.push(d2, 0, k);
+#endif
          } else {
            // Internal node
            int l = p_left_child[node_idx];
@@ -881,6 +907,7 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
   coord_t *p_min_y = tree.min_y, *p_max_y = tree.max_y;
   coord_t *p_min_z = tree.min_z, *p_max_z = tree.max_z;
   int *p_left_child = tree.left_child, *p_right_child = tree.right_child;
+  int *p_orig_idx = tree.orig_idx;
 
   q.parallel_for(sycl::range<1>(num_queries), [=](sycl::id<1> idx) {
      int qi = idx[0];
@@ -914,12 +941,24 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
        if (d2 <= RM2) {
          if (node_idx >= (int)n - 1 && n > 1) {  // Leaf node
            if (d2 >= rm2) {
-             if (count < max_results_per_query) { dev_results[qi * max_results_per_query + count] = node_idx - (n - 1); }
+             if (count < max_results_per_query) {
+#if defined(RETURN_ORIG_INDICES)
+               dev_results[qi * max_results_per_query + count] = p_orig_idx[node_idx];
+#else
+               dev_results[qi * max_results_per_query + count] = node_idx - (n - 1);
+#endif
+             }
              count++;
            }
          } else if (n == 1) {  // Single leaf case
            if (d2 >= rm2) {
-             if (count < max_results_per_query) { dev_results[qi * max_results_per_query + count] = 0; }
+             if (count < max_results_per_query) {
+#if defined(RETURN_ORIG_INDICES)
+               dev_results[qi * max_results_per_query + count] = p_orig_idx[0];
+#else
+               dev_results[qi * max_results_per_query + count] = 0;
+#endif
+             }
              count++;
            }
          } else {
@@ -981,7 +1020,7 @@ inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, BoundingBox *
   auto zip_begin = oneapi::dpl::make_zip_iterator(d_smk, d_indices);
   auto zip_end = zip_begin + n;
 
-  oneapi::dpl::sort(policy, zip_begin, zip_end, [](auto a, auto b) { return std::get<0>(a) < std::get<0>(b); });
+  oneapi::dpl::sort(policy, zip_begin, zip_end, [](auto a, auto b) { return oneapi::dpl::get<0>(a) < oneapi::dpl::get<0>(b); });
   q.wait();
 
   // 5. Coordinate and Attribute Reordering on GPU
@@ -990,6 +1029,7 @@ inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, BoundingBox *
   coord_t *sz = sycl::malloc_shared<coord_t>(n, q);
   uint32_t *sid = sycl::malloc_shared<uint32_t>(n, q);
   int8_t *sghost = sycl::malloc_shared<int8_t>(n, q);
+  int *sorig_idx = sycl::malloc_shared<int>(n, q);
 
   const coord_t *pos_x = p.pos_x.data();
   const coord_t *pos_y = p.pos_y.data();
@@ -1030,10 +1070,11 @@ inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, BoundingBox *
      sz[i] = dev_pos_z[orig_idx];
      sid[i] = dev_p_id[orig_idx];
      sghost[i] = dev_p_ghost[orig_idx];
+     sorig_idx[i] = static_cast<int>(orig_idx);
    }).wait();
 
   // 6. Build Tree
-  build_tree(q, tree, d_smk, sx, sy, sz, sid, sghost);
+  build_tree(q, tree, d_smk, sx, sy, sz, sid, sghost, sorig_idx);
 
   // Cleanup
   free_device_readable(q, dev_pos_x, x_alloc);
@@ -1049,6 +1090,7 @@ inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, BoundingBox *
   sycl::free(sz, q);
   sycl::free(sid, q);
   sycl::free(sghost, q);
+  sycl::free(sorig_idx, q);
 }
 
 }  // namespace fasttree

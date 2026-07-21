@@ -38,6 +38,7 @@
 - [x] Add comprehensive VTune, Intel APS, and NVIDIA Nsight profiling scripts, documentation, and performance report (2026-06-28)
 - [x] Create comprehensive API documentation for `hlbvh.hpp` and `domain_decomposition.hpp` in `docs/API_REFERENCE.md` (2026-06-29)
 - [x] Add Doxygen-compatible docstrings to all functions and helper structures (2026-06-29)
+- [x] Add compile-time macro `RETURN_ORIG_INDICES` to control original vs. sorted index returning in `knn_query` and `range_query` (2026-07-21)
 
 ## Planned Tasks
 - [x] Performance benchmarking on NVIDIA GPUs (2026-05-15) - CMake configured, custom compiler tested, tests pass on NVIDIA A100.
@@ -121,13 +122,9 @@
   - **Outcome:** `sycl::malloc_shared` returned `nullptr`, and dereferencing it inside the device kernels caused a silent page fault/illegal access, permanently locking the queue at `ranks = 8` and causing a deadlock.
   - **Next Steps:** Implemented a two-pass "count-then-allocate" filtering algorithm. Pass 1 counts the exact matches for each neighbor, then allocates `d_matched_indices` with the exact size, and Pass 2 writes the indices. This reduced memory usage of the matched index buffer by over 90%.
 
-- **Segmentation Fault & MPI Collective Hangs for 0-Particle Ranks in Standalone MPI Validation (2026-06-27):**
-  - **Date:** 2026-06-27
-  - **Description:** Standalone MPI test executable (`test_domain_decomposition.exe`) crashed with Signal 11 (Segfault) when run on 12 ranks, and subsequently hung before executing Phase 6 range queries.
-  - **Reason:** 
-    1. Splitter generation under non-power-of-two ranks can assign empty ranges (e.g. `[0, 0)`) to some ranks, resulting in `0` particles being assigned to them. The test code assumed every rank got at least one particle and accessed `redistributed_p.pos_x[0]`.
-    2. The validation for Phase 6 was wrapped inside an `if (n_total > 0)` block. When empty ranks skipped this block, they bypassed the collective `MPI_Allreduce(&local_saw_ghost, ...)` call, causing the non-empty ranks to hang indefinitely waiting for them.
-  - **Outcome:** Accessing index `0` of empty vectors threw a Segfault (Signal 11) on Ranks 0, 2, 5, 8. After fixing the crash, the ranks hung at Phase 5 / Phase 6 transition.
-  - **Next Steps:** Guarded the local bounding box calculations and debug printing with `if (redistributed_p.pos_x.size() > 0)` and moved the collective `MPI_Allreduce` in Phase 6 outside of the conditional `if (n_total > 0)` block. All ranks now complete the test run in perfect synchronization.
+- [x] **Compile-time `RETURN_ORIG_INDICES` Macro (2026-07-21):**
+  - Added dedicated `int *orig_idx` mapping array to [`TreeSoA`](file:///Users/bisaha/Codes/donotbackup/fasttree/src/hlbvh.hpp#L421) so that `tree.id` remains exclusively dedicated to unique particle IDs (e.g. AREPO IDs).
+  - Added `#if defined(RETURN_ORIG_INDICES)` blocks in [`knn_query()`](file:///Users/bisaha/Codes/donotbackup/fasttree/src/hlbvh.hpp#L742) and [`range_query()`](file:///Users/bisaha/Codes/donotbackup/fasttree/src/hlbvh.hpp#L863) within [src/hlbvh.hpp](file:///Users/bisaha/Codes/donotbackup/fasttree/src/hlbvh.hpp).
+  - When `RETURN_ORIG_INDICES` is defined, queries return the original input array index (`tree.orig_idx[node_idx]`). Otherwise, queries return the sorted particle indices (`node_idx - (n - 1)`).
 
 
