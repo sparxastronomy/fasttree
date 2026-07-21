@@ -350,28 +350,23 @@ inline BoundingBox<FloatT> compute_bbox(sycl::queue &q, const FloatT *pos_x, con
   const FloatT *dev_pos_y = ensure_device_readable(q, pos_y, n, y_alloc);
   const FloatT *dev_pos_z = ensure_device_readable(q, pos_z, n, z_alloc);
 
-  FloatT *d_min_x = sycl::malloc_shared<FloatT>(1, q);
-  FloatT *d_max_x = sycl::malloc_shared<FloatT>(1, q);
-  FloatT *d_min_y = sycl::malloc_shared<FloatT>(1, q);
-  FloatT *d_max_y = sycl::malloc_shared<FloatT>(1, q);
-  FloatT *d_min_z = sycl::malloc_shared<FloatT>(1, q);
-  FloatT *d_max_z = sycl::malloc_shared<FloatT>(1, q);
+  FloatT *d_bbox_reduction = sycl::malloc_shared<FloatT>(6, q);
 
   // Initialize shared memory on host with identity values for reductions
-  d_min_x[0] = std::numeric_limits<FloatT>::max();
-  d_max_x[0] = -std::numeric_limits<FloatT>::max();
-  d_min_y[0] = std::numeric_limits<FloatT>::max();
-  d_max_y[0] = -std::numeric_limits<FloatT>::max();
-  d_min_z[0] = std::numeric_limits<FloatT>::max();
-  d_max_z[0] = -std::numeric_limits<FloatT>::max();
+  d_bbox_reduction[0] = std::numeric_limits<FloatT>::max();
+  d_bbox_reduction[1] = -std::numeric_limits<FloatT>::max();
+  d_bbox_reduction[2] = std::numeric_limits<FloatT>::max();
+  d_bbox_reduction[3] = -std::numeric_limits<FloatT>::max();
+  d_bbox_reduction[4] = std::numeric_limits<FloatT>::max();
+  d_bbox_reduction[5] = -std::numeric_limits<FloatT>::max();
 
   q.submit([&](sycl::handler &h) {
-     h.parallel_for(sycl::range<1>(n), sycl::reduction(d_min_x, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
-                    sycl::reduction(d_max_x, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
-                    sycl::reduction(d_min_y, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
-                    sycl::reduction(d_max_y, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
-                    sycl::reduction(d_min_z, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
-                    sycl::reduction(d_max_z, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
+     h.parallel_for(sycl::range<1>(n), sycl::reduction(d_bbox_reduction + 0, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
+                    sycl::reduction(d_bbox_reduction + 1, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
+                    sycl::reduction(d_bbox_reduction + 2, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
+                    sycl::reduction(d_bbox_reduction + 3, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
+                    sycl::reduction(d_bbox_reduction + 4, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
+                    sycl::reduction(d_bbox_reduction + 5, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
                     [=](sycl::id<1> idx, auto &r_min_x, auto &r_max_x, auto &r_min_y, auto &r_max_y, auto &r_min_z, auto &r_max_z) {
                       size_t i = idx[0];
                       r_min_x.combine(dev_pos_x[i]);
@@ -383,14 +378,10 @@ inline BoundingBox<FloatT> compute_bbox(sycl::queue &q, const FloatT *pos_x, con
                     });
    }).wait();
 
-  BoundingBox<FloatT> bbox = {d_min_x[0], d_max_x[0], d_min_y[0], d_max_y[0], d_min_z[0], d_max_z[0]};
+  BoundingBox<FloatT> bbox = {d_bbox_reduction[0], d_bbox_reduction[1], d_bbox_reduction[2],
+                              d_bbox_reduction[3], d_bbox_reduction[4], d_bbox_reduction[5]};
 
-  sycl::free(d_min_x, q);
-  sycl::free(d_max_x, q);
-  sycl::free(d_min_y, q);
-  sycl::free(d_max_y, q);
-  sycl::free(d_min_z, q);
-  sycl::free(d_max_z, q);
+  sycl::free(d_bbox_reduction, q);
 
   free_device_readable(q, dev_pos_x, x_alloc);
   free_device_readable(q, dev_pos_y, y_alloc);
@@ -501,8 +492,9 @@ inline int sgn(int x) { return (x > 0) - (x < 0); }
  * @param[in] sorted_id Sorted unique particle identifiers (optional).
  * @param[in] sorted_is_ghost Sorted ghost particle flags (optional).
  */
-inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys, const coord_t *sorted_x, const coord_t *sorted_y,
-                       const coord_t *sorted_z, const uint32_t *sorted_id = nullptr, const int8_t *sorted_is_ghost = nullptr,
+inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys,
+                       const coord_t *sorted_x = nullptr, const coord_t *sorted_y = nullptr, const coord_t *sorted_z = nullptr,
+                       const uint32_t *sorted_id = nullptr, const int8_t *sorted_is_ghost = nullptr,
                        const int *sorted_orig_idx = nullptr) {
   size_t n = tree.num_leaves;
   if (n == 0) return;
@@ -511,9 +503,9 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
   bool id_alloc = false, ghost_alloc = false, orig_alloc = false;
 
   const sfc_key *dev_keys = ensure_device_readable(q, sorted_keys, n, keys_alloc);
-  const coord_t *dev_x = ensure_device_readable(q, sorted_x, n, x_alloc);
-  const coord_t *dev_y = ensure_device_readable(q, sorted_y, n, y_alloc);
-  const coord_t *dev_z = ensure_device_readable(q, sorted_z, n, z_alloc);
+  const coord_t *dev_x = sorted_x ? ensure_device_readable(q, sorted_x, n, x_alloc) : nullptr;
+  const coord_t *dev_y = sorted_y ? ensure_device_readable(q, sorted_y, n, y_alloc) : nullptr;
+  const coord_t *dev_z = sorted_z ? ensure_device_readable(q, sorted_z, n, z_alloc) : nullptr;
   const uint32_t *dev_id = sorted_id ? ensure_device_readable(q, sorted_id, n, id_alloc) : nullptr;
   const int8_t *dev_ghost = sorted_is_ghost ? ensure_device_readable(q, sorted_is_ghost, n, ghost_alloc) : nullptr;
   const int *dev_orig_idx = sorted_orig_idx ? ensure_device_readable(q, sorted_orig_idx, n, orig_alloc) : nullptr;
@@ -524,9 +516,11 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
     int *p_orig_idx = tree.orig_idx;
     q.submit([&](sycl::handler &cgh) {
        cgh.single_task([=]() {
-         tree.min_x[0] = tree.max_x[0] = dev_x[0];
-         tree.min_y[0] = tree.max_y[0] = dev_y[0];
-         tree.min_z[0] = tree.max_z[0] = dev_z[0];
+         if (dev_x) {
+           tree.min_x[0] = tree.max_x[0] = dev_x[0];
+           tree.min_y[0] = tree.max_y[0] = dev_y[0];
+           tree.min_z[0] = tree.max_z[0] = dev_z[0];
+         }
          if (p_id && dev_id) { p_id[0] = dev_id[0]; }
          if (p_ghost && dev_ghost) { p_ghost[0] = dev_ghost[0]; }
          if (p_orig_idx && dev_orig_idx) { p_orig_idx[0] = dev_orig_idx[0]; }
@@ -534,9 +528,11 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
      }).wait();
 
     free_device_readable(q, dev_keys, keys_alloc);
-    free_device_readable(q, dev_x, x_alloc);
-    free_device_readable(q, dev_y, y_alloc);
-    free_device_readable(q, dev_z, z_alloc);
+    if (dev_x) {
+      free_device_readable(q, dev_x, x_alloc);
+      free_device_readable(q, dev_y, y_alloc);
+      free_device_readable(q, dev_z, z_alloc);
+    }
     if (dev_id) free_device_readable(q, dev_id, id_alloc);
     if (dev_ghost) free_device_readable(q, dev_ghost, ghost_alloc);
     if (dev_orig_idx) free_device_readable(q, dev_orig_idx, orig_alloc);
@@ -550,11 +546,14 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
 
   if (!p_min_x || !p_parent || !p_left_child) {
     free_device_readable(q, dev_keys, keys_alloc);
-    free_device_readable(q, dev_x, x_alloc);
-    free_device_readable(q, dev_y, y_alloc);
-    free_device_readable(q, dev_z, z_alloc);
+    if (dev_x && dev_y && dev_z) {
+      free_device_readable(q, dev_x, x_alloc);
+      free_device_readable(q, dev_y, y_alloc);
+      free_device_readable(q, dev_z, z_alloc);
+    }
     if (dev_id) free_device_readable(q, dev_id, id_alloc);
     if (dev_ghost) free_device_readable(q, dev_ghost, ghost_alloc);
+    if (dev_orig_idx) free_device_readable(q, dev_orig_idx, orig_alloc);
     return;
   }
 
@@ -612,30 +611,34 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
    }).wait();
 
   // 2. Initialize leaf bounding boxes
-  uint32_t *p_id = tree.id;
-  int8_t *p_ghost = tree.is_ghost;
-  int *p_orig_idx = tree.orig_idx;
-  q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
-     int i = idx[0];
-     int leaf_idx = i + n - 1;
-     p_min_x[leaf_idx] = dev_x[i];
-     p_max_x[leaf_idx] = dev_x[i];
-     p_min_y[leaf_idx] = dev_y[i];
-     p_max_y[leaf_idx] = dev_y[i];
-     p_min_z[leaf_idx] = dev_z[i];
-     p_max_z[leaf_idx] = dev_z[i];
-     if (p_id && dev_id) { p_id[leaf_idx] = dev_id[i]; }
-     if (p_ghost && dev_ghost) { p_ghost[leaf_idx] = dev_ghost[i]; }
-     if (p_orig_idx && dev_orig_idx) { p_orig_idx[leaf_idx] = dev_orig_idx[i]; }
-   }).wait();
+  if (dev_x && dev_y && dev_z) {
+    uint32_t *p_id = tree.id;
+    int8_t *p_ghost = tree.is_ghost;
+    int *p_orig_idx = tree.orig_idx;
+    q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
+       int i = idx[0];
+       int leaf_idx = i + n - 1;
+       p_min_x[leaf_idx] = dev_x[i];
+       p_max_x[leaf_idx] = dev_x[i];
+       p_min_y[leaf_idx] = dev_y[i];
+       p_max_y[leaf_idx] = dev_y[i];
+       p_min_z[leaf_idx] = dev_z[i];
+       p_max_z[leaf_idx] = dev_z[i];
+       if (p_id && dev_id) { p_id[leaf_idx] = dev_id[i]; }
+       if (p_ghost && dev_ghost) { p_ghost[leaf_idx] = dev_ghost[i]; }
+       if (p_orig_idx && dev_orig_idx) { p_orig_idx[leaf_idx] = dev_orig_idx[i]; }
+     }).wait();
+  }
 
   // 3. Compute internal bounding boxes (bottom-up)
   int *counters = sycl::malloc_shared<int>(n - 1, q);
   if (!counters) {
     free_device_readable(q, dev_keys, keys_alloc);
-    free_device_readable(q, dev_x, x_alloc);
-    free_device_readable(q, dev_y, y_alloc);
-    free_device_readable(q, dev_z, z_alloc);
+    if (dev_x && dev_y && dev_z) {
+      free_device_readable(q, dev_x, x_alloc);
+      free_device_readable(q, dev_y, y_alloc);
+      free_device_readable(q, dev_z, z_alloc);
+    }
     if (dev_id) free_device_readable(q, dev_id, id_alloc);
     if (dev_ghost) free_device_readable(q, dev_ghost, ghost_alloc);
     if (dev_orig_idx) free_device_readable(q, dev_orig_idx, orig_alloc);
@@ -672,9 +675,11 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
   sycl::free(counters, q);
 
   free_device_readable(q, dev_keys, keys_alloc);
-  free_device_readable(q, dev_x, x_alloc);
-  free_device_readable(q, dev_y, y_alloc);
-  free_device_readable(q, dev_z, z_alloc);
+  if (dev_x && dev_y && dev_z) {
+    free_device_readable(q, dev_x, x_alloc);
+    free_device_readable(q, dev_y, y_alloc);
+    free_device_readable(q, dev_z, z_alloc);
+  }
   if (dev_id) free_device_readable(q, dev_id, id_alloc);
   if (dev_ghost) free_device_readable(q, dev_ghost, ghost_alloc);
   if (dev_orig_idx) free_device_readable(q, dev_orig_idx, orig_alloc);
@@ -995,14 +1000,20 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
  * @param[in] bbox Optional precomputed bounding box. If nullptr, it will be computed.
  * @param[in,out] tree The output tree structure to build.
  */
-inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, BoundingBox *bbox = nullptr, TreeSoA &tree) {
+inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, TreeSoA &tree, BoundingBox<coord_t> *bbox = nullptr) {
   size_t n = p.pos_x.size();
   if (n == 0) return;
 
-  // 1. Compute Bounding Box using parallel GPU reduction
-  BoundingBox local_bbox;
+  // 1. Single-Pass Host-to-Device Staging Buffer
+  bool x_alloc = false, y_alloc = false, z_alloc = false;
+  const coord_t *dev_pos_x = ensure_device_readable(q, p.pos_x.data(), n, x_alloc);
+  const coord_t *dev_pos_y = ensure_device_readable(q, p.pos_y.data(), n, y_alloc);
+  const coord_t *dev_pos_z = ensure_device_readable(q, p.pos_z.data(), n, z_alloc);
+
+  // Compute Bounding Box using parallel GPU reduction if not provided
+  BoundingBox<coord_t> local_bbox(0, 0, 0, 0, 0, 0);
   if (bbox == nullptr) {
-    local_bbox = compute_bbox(q, p, n);
+    local_bbox = compute_bbox(q, dev_pos_x, dev_pos_y, dev_pos_z, n);
     bbox = &local_bbox;
   }
 
@@ -1011,7 +1022,7 @@ inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, BoundingBox *
   size_t *d_indices = sycl::malloc_shared<size_t>(n, q);
 
   // 3. SFC Encoding and Index Initialization
-  sfc_encode(q, p, d_smk, bbox);
+  sfc_encode(q, dev_pos_x, dev_pos_y, dev_pos_z, n, d_smk, *bbox);
   q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) { d_indices[idx] = idx[0]; });
   q.wait();
 
@@ -1023,20 +1034,10 @@ inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, BoundingBox *
   oneapi::dpl::sort(policy, zip_begin, zip_end, [](auto a, auto b) { return oneapi::dpl::get<0>(a) < oneapi::dpl::get<0>(b); });
   q.wait();
 
-  // 5. Coordinate and Attribute Reordering on GPU
-  coord_t *sx = sycl::malloc_shared<coord_t>(n, q);
-  coord_t *sy = sycl::malloc_shared<coord_t>(n, q);
-  coord_t *sz = sycl::malloc_shared<coord_t>(n, q);
-  uint32_t *sid = sycl::malloc_shared<uint32_t>(n, q);
-  int8_t *sghost = sycl::malloc_shared<int8_t>(n, q);
-  int *sorig_idx = sycl::malloc_shared<int>(n, q);
-
-  const coord_t *pos_x = p.pos_x.data();
-  const coord_t *pos_y = p.pos_y.data();
-  const coord_t *pos_z = p.pos_z.data();
-
+  // Prepare ID and Ghost arrays
   const uint32_t *p_id = nullptr;
   std::vector<uint32_t> temp_id;
+  bool id_alloc = false;
   if (p.id.empty()) {
     temp_id.resize(n);
     std::iota(temp_id.begin(), temp_id.end(), 0u);
@@ -1044,37 +1045,44 @@ inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, BoundingBox *
   } else {
     p_id = p.id.data();
   }
+  const uint32_t *dev_p_id = ensure_device_readable(q, p_id, n, id_alloc);
 
   const int8_t *p_ghost = nullptr;
   std::vector<int8_t> temp_ghost;
+  bool ghost_alloc = false;
   if (p.is_ghost.empty()) {
     temp_ghost.resize(n, 0);
     p_ghost = temp_ghost.data();
   } else {
     p_ghost = p.is_ghost.data();
   }
-
-  bool x_alloc = false, y_alloc = false, z_alloc = false;
-  bool id_alloc = false, ghost_alloc = false;
-  const coord_t *dev_pos_x = ensure_device_readable(q, pos_x, n, x_alloc);
-  const coord_t *dev_pos_y = ensure_device_readable(q, pos_y, n, y_alloc);
-  const coord_t *dev_pos_z = ensure_device_readable(q, pos_z, n, z_alloc);
-  const uint32_t *dev_p_id = ensure_device_readable(q, p_id, n, id_alloc);
   const int8_t *dev_p_ghost = ensure_device_readable(q, p_ghost, n, ghost_alloc);
+
+  // 5. Direct Coordinate and Attribute Reordering into Tree Leaves on GPU
+  coord_t *tree_min_x = tree.min_x, *tree_max_x = tree.max_x;
+  coord_t *tree_min_y = tree.min_y, *tree_max_y = tree.max_y;
+  coord_t *tree_min_z = tree.min_z, *tree_max_z = tree.max_z;
+  uint32_t *tree_id = tree.id;
+  int8_t *tree_ghost = tree.is_ghost;
+  int *tree_orig_idx = tree.orig_idx;
 
   q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
      size_t i = idx[0];
      size_t orig_idx = d_indices[i];
-     sx[i] = dev_pos_x[orig_idx];
-     sy[i] = dev_pos_y[orig_idx];
-     sz[i] = dev_pos_z[orig_idx];
-     sid[i] = dev_p_id[orig_idx];
-     sghost[i] = dev_p_ghost[orig_idx];
-     sorig_idx[i] = static_cast<int>(orig_idx);
+     int leaf_idx = i + n - 1;
+     tree_min_x[leaf_idx] = dev_pos_x[orig_idx];
+     tree_max_x[leaf_idx] = dev_pos_x[orig_idx];
+     tree_min_y[leaf_idx] = dev_pos_y[orig_idx];
+     tree_max_y[leaf_idx] = dev_pos_y[orig_idx];
+     tree_min_z[leaf_idx] = dev_pos_z[orig_idx];
+     tree_max_z[leaf_idx] = dev_pos_z[orig_idx];
+     if (tree_id) { tree_id[leaf_idx] = dev_p_id[orig_idx]; }
+     if (tree_ghost) { tree_ghost[leaf_idx] = dev_p_ghost[orig_idx]; }
+     if (tree_orig_idx) { tree_orig_idx[leaf_idx] = static_cast<int>(orig_idx); }
    }).wait();
 
-  // 6. Build Tree
-  build_tree(q, tree, d_smk, sx, sy, sz, sid, sghost, sorig_idx);
+  // 6. Build Tree Topology & Compute Internal Node BBoxes (leaving leaf arrays already set)
+  build_tree(q, tree, d_smk);
 
   // Cleanup
   free_device_readable(q, dev_pos_x, x_alloc);
@@ -1085,12 +1093,6 @@ inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, BoundingBox *
 
   sycl::free(d_smk, q);
   sycl::free(d_indices, q);
-  sycl::free(sx, q);
-  sycl::free(sy, q);
-  sycl::free(sz, q);
-  sycl::free(sid, q);
-  sycl::free(sghost, q);
-  sycl::free(sorig_idx, q);
 }
 
 }  // namespace fasttree

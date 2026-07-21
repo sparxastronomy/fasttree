@@ -39,6 +39,11 @@
 - [x] Create comprehensive API documentation for `hlbvh.hpp` and `domain_decomposition.hpp` in `docs/API_REFERENCE.md` (2026-06-29)
 - [x] Add Doxygen-compatible docstrings to all functions and helper structures (2026-06-29)
 - [x] Add compile-time macro `RETURN_ORIG_INDICES` to control original vs. sorted index returning in `knn_query` and `range_query` (2026-07-21)
+- [x] Optimize memory allocations and data copying in `hlbvh.hpp` (2026-07-21)
+  - Consolidated 6 bounding box reduction buffers into a single 6-element allocation.
+  - Eliminated all intermediate sorted shared memory buffers (`sx`, `sy`, `sz`, etc.) by directly writing sorted data to TreeSoA leaves.
+  - Replaced duplicate host-to-device transfers with a single-pass staging buffer.
+  - Fixed signature parameter order of `build_bvh` to resolve standard C++ compilation error.
 
 ## Planned Tasks
 - [x] Performance benchmarking on NVIDIA GPUs (2026-05-15) - CMake configured, custom compiler tested, tests pass on NVIDIA A100.
