@@ -118,7 +118,16 @@ int main() {
   q.wait();
 
   std::cout << "Testing kNN query for k=" << k << " around (" << qx << ", " << qy << ", " << qz << "):" << std::endl;
-  for (int i = 0; i < k; ++i) { std::cout << "  Neighbor " << i << ": index " << knn_res[i] << ", dist " << knn_dists[i] << std::endl; }
+  for (int i = 0; i < k; ++i) {
+#ifndef RETURN_ORIG_INDICES
+    // std::cout << "  Neighbor " << i << ": index " << knn_res[i] << ", dist " << knn_dists[i] << std::endl;
+    printf("  Neighbor %d: index(in tree) %4d, dist %8.4f pos (%5.3f, %5.3f, %5.3f)\n", i, knn_res[i], knn_dists[i], tree_parts.pos_x[knn_res[i]],
+           tree_parts.pos_y[knn_res[i]], tree_parts.pos_z[knn_res[i]]);
+#else
+    printf("  Neighbor %d: index(orig) %4d, dist %8.4f pos (%5.3f, %5.3f, %5.3f)\n", i, knn_res[i], knn_dists[i], p.pos_x[knn_res[i]],
+           p.pos_y[knn_res[i]], p.pos_z[knn_res[i]]);
+#endif
+  }
 
   // Cleanup
   tree.free(q);
