@@ -59,6 +59,15 @@ struct BoundingBox {
       : min_x(min_x_), max_x(max_x_), min_y(min_y_), max_y(max_y_), min_z(min_z_), max_z(max_z_) {
     static_assert(std::is_same_v<FloatT, float> || std::is_same_v<FloatT, double>, "BoundingBox only supports float or double");
   }
+
+  // Overload, initialize with std::numeric_limits for empty bounding box
+  BoundingBox()
+      : min_x(std::numeric_limits<FloatT>::max()),
+        max_x(-std::numeric_limits<FloatT>::max()),
+        min_y(std::numeric_limits<FloatT>::max()),
+        max_y(-std::numeric_limits<FloatT>::max()),
+        min_z(std::numeric_limits<FloatT>::max()),
+        max_z(-std::numeric_limits<FloatT>::max()) {}
 };
 }  // namespace fasttree
 
@@ -492,10 +501,9 @@ inline int sgn(int x) { return (x > 0) - (x < 0); }
  * @param[in] sorted_id Sorted unique particle identifiers (optional).
  * @param[in] sorted_is_ghost Sorted ghost particle flags (optional).
  */
-inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys,
-                       const coord_t *sorted_x = nullptr, const coord_t *sorted_y = nullptr, const coord_t *sorted_z = nullptr,
-                       const uint32_t *sorted_id = nullptr, const int8_t *sorted_is_ghost = nullptr,
-                       const int *sorted_orig_idx = nullptr) {
+inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys, const coord_t *sorted_x = nullptr,
+                       const coord_t *sorted_y = nullptr, const coord_t *sorted_z = nullptr, const uint32_t *sorted_id = nullptr,
+                       const int8_t *sorted_is_ghost = nullptr, const int *sorted_orig_idx = nullptr) {
   size_t n = tree.num_leaves;
   if (n == 0) return;
 
