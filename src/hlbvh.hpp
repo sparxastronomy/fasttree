@@ -770,7 +770,7 @@ struct PriorityQueue {
  */
 template <int _MAX_K_ = 128>
 inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, const coord_t *qy, const coord_t *qz, int k, int num_queries,
-                      int *results, coord_t *result_dists) {
+                      size_t *results, coord_t *result_dists) {
   size_t n = tree.num_leaves;
   if (n == 0 || num_queries == 0) return;
 
@@ -780,8 +780,8 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
   const coord_t *dev_qx = ensure_device_readable(q, qx, num_queries, qx_alloc);
   const coord_t *dev_qy = ensure_device_readable(q, qy, num_queries, qy_alloc);
   const coord_t *dev_qz = ensure_device_readable(q, qz, num_queries, qz_alloc);
-  int *dev_results = ensure_device_writable(q, results, num_queries * k, res_alloc);
-  coord_t *dev_result_dists = ensure_device_writable(q, result_dists, num_queries * k, dist_alloc);
+  size_t *dev_results = ensure_device_writable(q, results, num_queries * static_cast<size_t>(k), res_alloc);
+  coord_t *dev_result_dists = ensure_device_writable(q, result_dists, num_queries * static_cast<size_t>(k), dist_alloc);
 
   coord_t *p_min_x = tree.min_x, *p_max_x = tree.max_x;
   coord_t *p_min_y = tree.min_y, *p_max_y = tree.max_y;
@@ -792,7 +792,7 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
   // Use a fixed K for the priority queue in the kernel
   // In a real implementation, K would be a template parameter or handled more dynamically
   q.parallel_for(sycl::range<1>(num_queries), [=](sycl::id<1> idx) {
-     int qi = idx[0];
+     size_t qi = idx[0];
      coord_t px = dev_qx[qi], py = dev_qy[qi], pz = dev_qz[qi];
 
      int stack[MAX_STACK_DEPTH];
@@ -860,13 +860,14 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
        }
      }
 
+     size_t offset = qi * static_cast<size_t>(k);
      for (int i = 0; i < k; ++i) {
        if (i < pq.count) {
-         dev_results[qi * k + (k - 1 - i)] = pq.indices[i];
-         dev_result_dists[qi * k + (k - 1 - i)] = std::sqrt(pq.data[i]);
+         dev_results[offset + (k - 1 - i)] = pq.indices[i];
+         dev_result_dists[offset + (k - 1 - i)] = std::sqrt(pq.data[i]);
        } else {
-         dev_results[qi * k + i] = -1;
-         dev_result_dists[qi * k + i] = INFINITY;
+         dev_results[offset + i] = -1;
+         dev_result_dists[offset + i] = INFINITY;
        }
      }
    }).wait();
@@ -874,8 +875,8 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
   free_device_readable(q, dev_qx, qx_alloc);
   free_device_readable(q, dev_qy, qy_alloc);
   free_device_readable(q, dev_qz, qz_alloc);
-  copy_back_and_free(q, dev_results, results, num_queries * k, res_alloc);
-  copy_back_and_free(q, dev_result_dists, result_dists, num_queries * k, dist_alloc);
+  copy_back_and_free(q, dev_results, results, num_queries * static_cast<size_t>(k), res_alloc);
+  copy_back_and_free(q, dev_result_dists, result_dists, num_queries * static_cast<size_t>(k), dist_alloc);
 }
 
 #define MAX_STACK_DEPTH 64
@@ -913,7 +914,7 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
   const coord_t *dev_qz = ensure_device_readable(q, qz, num_queries, qz_alloc);
   const coord_t *dev_r_min = ensure_device_readable(q, r_min, num_queries, r_min_alloc);
   const coord_t *dev_r_max = ensure_device_readable(q, r_max, num_queries, r_max_alloc);
-  int *dev_results = ensure_device_writable(q, results, num_queries * max_results_per_query, res_alloc);
+  int *dev_results = ensure_device_writable(q, results, num_queries * static_cast<size_t>(max_results_per_query), res_alloc);
   int *dev_result_counts = ensure_device_writable(q, result_counts, num_queries, counts_alloc);
 
   coord_t *p_min_x = tree.min_x, *p_max_x = tree.max_x;
@@ -923,7 +924,7 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
   int *p_orig_idx = tree.orig_idx;
 
   q.parallel_for(sycl::range<1>(num_queries), [=](sycl::id<1> idx) {
-     int qi = idx[0];
+     size_t qi = idx[0];
      coord_t px = dev_qx[qi], py = dev_qy[qi], pz = dev_qz[qi];
      coord_t rm = dev_r_min[qi], RM = dev_r_max[qi];
      coord_t RM2 = RM * RM;
@@ -939,6 +940,7 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
      }
 
      int count = 0;
+     size_t offset = qi * static_cast<size_t>(max_results_per_query);
      while (stack_ptr > 0) {
        int node_idx = stack[--stack_ptr];
 
@@ -956,9 +958,9 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
            if (d2 >= rm2) {
              if (count < max_results_per_query) {
 #if defined(RETURN_ORIG_INDICES)
-               dev_results[qi * max_results_per_query + count] = p_orig_idx[node_idx];
+               dev_results[offset + count] = p_orig_idx[node_idx];
 #else
-               dev_results[qi * max_results_per_query + count] = node_idx - (n - 1);
+               dev_results[offset + count] = node_idx - (n - 1);
 #endif
              }
              count++;
@@ -967,9 +969,9 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
            if (d2 >= rm2) {
              if (count < max_results_per_query) {
 #if defined(RETURN_ORIG_INDICES)
-               dev_results[qi * max_results_per_query + count] = p_orig_idx[0];
+               dev_results[offset + count] = p_orig_idx[0];
 #else
-               dev_results[qi * max_results_per_query + count] = 0;
+               dev_results[offset + count] = 0;
 #endif
              }
              count++;
@@ -989,7 +991,7 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
   free_device_readable(q, dev_qz, qz_alloc);
   free_device_readable(q, dev_r_min, r_min_alloc);
   free_device_readable(q, dev_r_max, r_max_alloc);
-  copy_back_and_free(q, dev_results, results, num_queries * max_results_per_query, res_alloc);
+  copy_back_and_free(q, dev_results, results, num_queries * static_cast<size_t>(max_results_per_query), res_alloc);
   copy_back_and_free(q, dev_result_counts, result_counts, num_queries, counts_alloc);
 }
 

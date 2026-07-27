@@ -112,7 +112,7 @@ int main() {
 
   // 5. kNN Query Verification
   int k = 5;
-  int *knn_res = sycl::malloc_shared<int>(k, q);
+  size_t *knn_res = sycl::malloc_shared<size_t>(k, q);
   coord_t *knn_dists = sycl::malloc_shared<coord_t>(k, q);
   knn_query(q, tree, dqx, dqy, dqz, k, 1, knn_res, knn_dists);
   q.wait();

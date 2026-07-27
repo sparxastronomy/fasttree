@@ -382,7 +382,7 @@ void test_ghost_visibility(sycl::queue &q) {
   // =========================================================================
   qx[0] = static_cast<coord_t>(9.5);
   int k = 2;
-  int *knn_results = sycl::malloc_shared<int>(k, q);
+  size_t *knn_results = sycl::malloc_shared<size_t>(k, q);
   coord_t *knn_dists = sycl::malloc_shared<coord_t>(k, q);
 
   knn_query(q, tree, qx, qy, qz, k, 1, knn_results, knn_dists);
