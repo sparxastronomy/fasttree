@@ -780,8 +780,8 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
   const coord_t *dev_qx = ensure_device_readable(q, qx, num_queries, qx_alloc);
   const coord_t *dev_qy = ensure_device_readable(q, qy, num_queries, qy_alloc);
   const coord_t *dev_qz = ensure_device_readable(q, qz, num_queries, qz_alloc);
-  size_t *dev_results = ensure_device_writable(q, results, num_queries * static_cast<size_t>(k), res_alloc);
-  coord_t *dev_result_dists = ensure_device_writable(q, result_dists, num_queries * static_cast<size_t>(k), dist_alloc);
+  size_t *dev_results = ensure_device_writable(q, results, static_cast<size_t>(num_queries) * static_cast<size_t>(k), res_alloc);
+  coord_t *dev_result_dists = ensure_device_writable(q, result_dists, static_cast<size_t>(num_queries) * static_cast<size_t>(k), dist_alloc);
 
   coord_t *p_min_x = tree.min_x, *p_max_x = tree.max_x;
   coord_t *p_min_y = tree.min_y, *p_max_y = tree.max_y;
@@ -875,8 +875,8 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
   free_device_readable(q, dev_qx, qx_alloc);
   free_device_readable(q, dev_qy, qy_alloc);
   free_device_readable(q, dev_qz, qz_alloc);
-  copy_back_and_free(q, dev_results, results, num_queries * static_cast<size_t>(k), res_alloc);
-  copy_back_and_free(q, dev_result_dists, result_dists, num_queries * static_cast<size_t>(k), dist_alloc);
+  copy_back_and_free(q, dev_results, results, static_cast<size_t>(num_queries) * static_cast<size_t>(k), res_alloc);
+  copy_back_and_free(q, dev_result_dists, result_dists, static_cast<size_t>(num_queries) * static_cast<size_t>(k), dist_alloc);
 }
 
 #define MAX_STACK_DEPTH 64
@@ -914,8 +914,8 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
   const coord_t *dev_qz = ensure_device_readable(q, qz, num_queries, qz_alloc);
   const coord_t *dev_r_min = ensure_device_readable(q, r_min, num_queries, r_min_alloc);
   const coord_t *dev_r_max = ensure_device_readable(q, r_max, num_queries, r_max_alloc);
-  int *dev_results = ensure_device_writable(q, results, num_queries * static_cast<size_t>(max_results_per_query), res_alloc);
-  int *dev_result_counts = ensure_device_writable(q, result_counts, num_queries, counts_alloc);
+  int *dev_results = ensure_device_writable(q, results, static_cast<size_t>(num_queries) * static_cast<size_t>(max_results_per_query), res_alloc);
+  int *dev_result_counts = ensure_device_writable(q, result_counts, static_cast<size_t>(num_queries), counts_alloc);
 
   coord_t *p_min_x = tree.min_x, *p_max_x = tree.max_x;
   coord_t *p_min_y = tree.min_y, *p_max_y = tree.max_y;
@@ -991,8 +991,8 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
   free_device_readable(q, dev_qz, qz_alloc);
   free_device_readable(q, dev_r_min, r_min_alloc);
   free_device_readable(q, dev_r_max, r_max_alloc);
-  copy_back_and_free(q, dev_results, results, num_queries * static_cast<size_t>(max_results_per_query), res_alloc);
-  copy_back_and_free(q, dev_result_counts, result_counts, num_queries, counts_alloc);
+  copy_back_and_free(q, dev_results, results, static_cast<size_t>(num_queries) * static_cast<size_t>(max_results_per_query), res_alloc);
+  copy_back_and_free(q, dev_result_counts, result_counts, static_cast<size_t>(num_queries), counts_alloc);
 }
 
 /**
