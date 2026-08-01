@@ -42,14 +42,14 @@ message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
 # Check which path is available on your system. For now this is set to the path either on Vera or my Mac
 #
 set(GCC_TOOLCHAIN_PATH "")
-if(EXISTS "/mpcdf/soft/SLE_15/packages/x86_64/gcc/15.1.0")
-    set(GCC_TOOLCHAIN_PATH "/mpcdf/soft/SLE_15/packages/x86_64/gcc/15.1.0")
-    message(STATUS "Found GCC 15 toolchain at ${GCC_TOOLCHAIN_PATH}")
+if(EXISTS "/mpcdf/soft/SLE_15/packages/x86_64/gcc/16.1.0")
+    set(GCC_TOOLCHAIN_PATH "/mpcdf/soft/SLE_15/packages/x86_64/gcc/16.1.0")
+    message(STATUS "Found GCC toolchain at ${GCC_TOOLCHAIN_PATH}")
 elseif(EXISTS "/Library/Developer/CommandLineTools/usr/bin")
     set(GCC_TOOLCHAIN_PATH "/Library/Developer/CommandLineTools/usr/bin")
     message(STATUS "Found Apple Clang toolchain at ${GCC_TOOLCHAIN_PATH}")
 else()
-    message(FATAL_ERROR "GCC 15 toolchain not found. Please install it or set the correct path.")
+    message(FATAL_ERROR "GCC toolchain not found. Please install it or set the correct path.")
 endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=${GCC_TOOLCHAIN_PATH}")
 
@@ -101,8 +101,8 @@ endif()
 #
 # Find MPI libraries
 #
-find_package(MPI REQUIRED COMPONENTS C CXX)
-include_directories(${MPI_C_INCLUDE_DIRS} ${MPI_CXX_INCLUDE_DIRS})
+find_package(MPI REQUIRED COMPONENTS CXX)
+include_directories(${MPI_CXX_INCLUDE_DIRS})
 
 # Include oneDPL headers since the custom DPC++ compiler might not bundle them
 include_directories(/u/bipra/ptmp/library/oneDPL/include)
@@ -140,9 +140,17 @@ set(TARGET_GPU "" CACHE STRING "Target GPU architecture: nvidia, amd, or empty f
 set(GPU_SYCL_FLAGS "")
 set(USER_FLAG "" CACHE STRING "User-defined flags for the compiler")
 if(TARGET_GPU STREQUAL "nvidia")
-    set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=nvptx64-nvidia-cuda,native_cpu;-Xsycl-target-backend=nvptx64-nvidia-cuda;--cuda-gpu-arch=sm_80")
+    if(CMAKE_CXX_COMPILER MATCHES "(^|.*/)?acpp$")
+        set(GPU_SYCL_FLAGS "--acpp-targets=cuda.explicit-multipass")
+    else()
+        set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=nvptx64-nvidia-cuda,native_cpu;-Xsycl-target-backend=nvptx64-nvidia-cuda;--cuda-gpu-arch=sm_80")
+    endif()
 elseif(TARGET_GPU STREQUAL "amd")
-    set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=amdgcn-amd-amdhsa")
+    if(CMAKE_CXX_COMPILER MATCHES "(^|.*/)?acpp$")
+        set(GPU_SYCL_FLAGS "--acpp-targets=hip.explicit-multipass")
+    else()
+        set(GPU_SYCL_FLAGS "-fsycl;-fsycl-targets=amdgcn-amd-amdhsa")
+    endif()
 else()
     # Official Intel oneAPI Compiler (icpx) uses production-grade CPU runtime (OpenCL + TBB) via default -fsycl
     if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
@@ -151,7 +159,7 @@ else()
     # AdaptiveCpp is SYCL-compatible by default; do not add -fsycl
     # any extra flags must be passed by the user in USER_FLAG
     elseif(CMAKE_CXX_COMPILER MATCHES "(^|.*/)?acpp$")
-        set(GPU_SYCL_FLAGS "")
+        set(GPU_SYCL_FLAGS "--acpp-targets=omp.accelerated")
     
     # Custom LLVM compiler uses native_cpu for CPU runs
     else()

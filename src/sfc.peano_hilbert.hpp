@@ -56,8 +56,8 @@ inline sfc_key sfc_encode3D(sfc1D px, sfc1D py, sfc1D pz) noexcept {
 
     const uint32_t old_px = px;
     const uint32_t new_px = (px & mask0) | (py & mask1) | (pz & mask2);
-    const uint32_t new_py = (py & mask0) | (pz & mask1) | (py & mask2);
-    const uint32_t new_pz = (pz & mask0) | (old_px & ~mask0);
+    const uint32_t new_py = (py & mask0) | (pz & mask1) | (old_px & mask2);
+    const uint32_t new_pz = (pz & mask0) | (old_px & mask1) | (py & mask2);
 
     px = new_px;
     py = new_py;
@@ -95,8 +95,8 @@ inline void decodePeano3D(int Nlev, sfc_key key, uint32_t &px, uint32_t &py, uin
     const uint32_t old_px = px;
     const uint32_t old_py = py;
 
-    const uint32_t new_px = (px & mask0) | (pz & mask1) | (pz & mask2);
-    const uint32_t new_py = (py & mask0) | (old_px & mask1) | (py & mask2);
+    const uint32_t new_px = (px & mask0) | (pz & mask1) | (py & mask2);
+    const uint32_t new_py = (py & mask0) | (old_px & mask1) | (pz & mask2);
     const uint32_t new_pz = (pz & mask0) | (old_py & mask1) | (old_px & mask2);
 
     px = new_px;

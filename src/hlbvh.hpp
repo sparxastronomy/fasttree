@@ -298,13 +298,15 @@ inline void sfc_encode(sycl::queue &q, const FloatT *pos_x, const FloatT *pos_y,
   FloatT inv_dx = (dx == 0) ? static_cast<FloatT>(0.0) : (static_cast<FloatT>(1.0) / dx);
   FloatT inv_dy = (dy == 0) ? static_cast<FloatT>(0.0) : (static_cast<FloatT>(1.0) / dy);
   FloatT inv_dz = (dz == 0) ? static_cast<FloatT>(0.0) : (static_cast<FloatT>(1.0) / dz);
+  FloatT clamp_upper = std::nextafter(static_cast<FloatT>(1.0), static_cast<FloatT>(0.0));
+  FloatT clamp_lower = static_cast<FloatT>(0.0);
 
   q.parallel_for(sycl::range<1>(num_particles), [=](sycl::id<1> idx) {
      size_t i = idx[0];
 
-     FloatT nx = std::min((dev_pos_x[i] - bbox.min_x) * inv_dx, static_cast<FloatT>(0.999999));
-     FloatT ny = std::min((dev_pos_y[i] - bbox.min_y) * inv_dy, static_cast<FloatT>(0.999999));
-     FloatT nz = std::min((dev_pos_z[i] - bbox.min_z) * inv_dz, static_cast<FloatT>(0.999999));
+     FloatT nx = sycl::clamp((dev_pos_x[i] - bbox.min_x) * inv_dx, clamp_lower, clamp_upper);
+     FloatT ny = sycl::clamp((dev_pos_y[i] - bbox.min_y) * inv_dy, clamp_lower, clamp_upper);
+     FloatT nz = sycl::clamp((dev_pos_z[i] - bbox.min_z) * inv_dz, clamp_lower, clamp_upper);
 
      sfc1D ix = encode_to_sfc1d(static_cast<FloatT>(1.0) + nx);
      sfc1D iy = encode_to_sfc1d(static_cast<FloatT>(1.0) + ny);
