@@ -34,6 +34,31 @@ struct mpi_type_traits<double> {
   static MPI_Datatype type() { return MPI_DOUBLE; }
 };
 
+template <>
+struct mpi_type_traits<uint32_t> {
+  /// Returns MPI_UINT32_T for 32-bit integer coordinates.
+  static MPI_Datatype type() { return MPI_UINT32_T; }
+};
+
+template <>
+struct mpi_type_traits<uint64_t> {
+  /// Returns MPI_UINT64_T for 64-bit integer coordinates.
+  static MPI_Datatype type() { return MPI_UINT64_T; }
+};
+
+template <>
+struct mpi_type_traits<uint128_t> {
+  /// Returns 16-byte contiguous MPI type for 128-bit integer coordinates.
+  static MPI_Datatype type() {
+    static MPI_Datatype dtype = MPI_DATATYPE_NULL;
+    if (dtype == MPI_DATATYPE_NULL) {
+      MPI_Type_contiguous(16, MPI_BYTE, &dtype);
+      MPI_Type_commit(&dtype);
+    }
+    return dtype;
+  }
+};
+
 // Phase 1: Global Bounding Box Calculation
 /**
  * @brief Calculates the global spatial bounding box spanning all particles across all MPI ranks.
@@ -51,10 +76,12 @@ template <typename FloatT>
 inline BoundingBox<FloatT> get_global_bounding_box(sycl::queue &q, const particles<FloatT> &p) {
   size_t n = p.pos_x.size();
 
+  if constexpr (std::is_same_v<FloatT, uint128_t>) { return (n > 0) ? compute_bbox(q, p, n) : BoundingBox<FloatT>{}; }
+
   // 1. Handle empty particle array: return empty box and let MPI allreduce resolve it
   if (n == 0) {
-    FloatT min_val = std::numeric_limits<FloatT>::max();
-    FloatT max_val = -std::numeric_limits<FloatT>::max();
+    FloatT min_val = type_identity_min<FloatT>();
+    FloatT max_val = type_identity_max<FloatT>();
     FloatT local_min_x = min_val, local_max_x = max_val;
     FloatT local_min_y = min_val, local_max_y = max_val;
     FloatT local_min_z = min_val, local_max_z = max_val;
@@ -123,14 +150,14 @@ inline std::vector<int> get_global_histogram(sycl::queue &q, const particles<Flo
 
   // 2. Generate Morton/SFC keys and compute bucket indices if particles exist locally
   if (n > 0) {
-    uint64_t *d_keys = sycl::malloc_shared<uint64_t>(n, q);
+    sfc_key *d_keys = sycl::malloc_shared<sfc_key>(n, q);
     sfc_encode(q, p, d_keys, global_bbox);
     q.wait();
 
     // 3. Increment histogram buckets using atomic additions on the GPU
     q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
        size_t i = idx[0];
-       uint32_t bucket_idx = static_cast<uint32_t>(d_keys[i] >> (63 - m));
+       uint32_t bucket_idx = extract_bucket_id(d_keys[i], m);
        auto atomic_ref = sycl::atomic_ref<int, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space>(
            d_local_hist[bucket_idx]);
        atomic_ref.fetch_add(1);
@@ -248,7 +275,7 @@ inline std::vector<sfc_key> get_deterministic_splitters(sycl::queue &q, const pa
   size_t n = p.pos_x.size();
   const int S = 128;  // Number of samples per rank
 
-  std::vector<sfc_key> local_samples(S, std::numeric_limits<sfc_key>::max());
+  std::vector<sfc_key> local_samples(S, sfc_key_max());
 
   if (n > 0) {
     // 1. Allocate and compute local SFC keys
@@ -281,40 +308,36 @@ inline std::vector<sfc_key> get_deterministic_splitters(sycl::queue &q, const pa
 
   // 5. Gather all samples to Rank 0
   std::vector<sfc_key> global_samples(P * S);
-  // TODO: Add a trait to determine the correct MPI datatype for sfc_key (uint64_t) and use it in MPI_Gather
-  // For now sfc_key is set to uint64_t, so we can use MPI_UINT64_T
-  MPI_Gather(local_samples.data(), S, MPI_UINT64_T, global_samples.data(), S, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+  MPI_Gather(local_samples.data(), S * sizeof(sfc_key), MPI_BYTE, global_samples.data(), S * sizeof(sfc_key), MPI_BYTE, 0, MPI_COMM_WORLD);
 
   std::vector<sfc_key> splitters(P + 1);
-  splitters[0] = 0;                                    // Minimum possible 64-bit key
-  splitters[P] = std::numeric_limits<sfc_key>::max();  // Maximum possible 64-bit key
+  splitters[0] = sfc_key{};
+  splitters[P] = sfc_key_max();
 
   // 6. Rank 0 calculates the perfect boundaries
   if (rank == 0) {
     // Sort the aggregated samples
     std::sort(global_samples.begin(), global_samples.end());
 
-    // Count valid samples (ignore the max keys from empty ranks)
     int num_valid = 0;
+    const sfc_key max_k = sfc_key_max();
     for (const auto &s : global_samples) {
-      if (s != std::numeric_limits<sfc_key>::max()) { num_valid++; }
+      if (s != max_k) { num_valid++; }
     }
 
-    // Extract exact percentiles to define domain boundaries
     if (num_valid > 0) {
       for (int i = 1; i < P; ++i) {
         int idx = (i * num_valid) / P;
+        if (idx >= num_valid) idx = num_valid - 1;
         splitters[i] = global_samples[idx];
       }
     } else {
-      // Fallback if the entire simulation is completely empty
-      for (int i = 1; i < P; ++i) { splitters[i] = 0; }
+      for (int i = 1; i < P; ++i) { splitters[i] = sfc_key{}; }
     }
   }
 
-  // 7. Broadcast the final 64-bit splitters to all ranks
-  // TODO: Same here, add a trait to determine the correct MPI type
-  MPI_Bcast(splitters.data(), P + 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+  // 7. Broadcast the final splitters to all ranks
+  MPI_Bcast(splitters.data(), (P + 1) * sizeof(sfc_key), MPI_BYTE, 0, MPI_COMM_WORLD);
 
   return splitters;
 }
@@ -354,7 +377,7 @@ inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT
   normalize_particles(p, n);
 
   // 2. Allocate USM structures for keys, destination ranks, and indices
-  uint64_t *d_keys = sycl::malloc_shared<uint64_t>(n > 0 ? n : 1, q);
+  sfc_key *d_keys = sycl::malloc_shared<sfc_key>(n > 0 ? n : 1, q);
   int *d_dest_ranks = sycl::malloc_shared<int>(n > 0 ? n : 1, q);
   size_t *d_indices = sycl::malloc_shared<size_t>(n > 0 ? n : 1, q);
 
@@ -365,21 +388,21 @@ inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT
 
 #if defined(DCOMPOSITION_TYPE_SAMPLING)
     // 4. Copy splitters to USM shared memory for GPU kernel access
-    uint64_t *d_splitters = sycl::malloc_shared<uint64_t>(P + 1, q);
+    sfc_key *d_splitters = sycl::malloc_shared<sfc_key>(P + 1, q);
     q.copy(rank_splitters.data(), d_splitters, P + 1).wait();
 
-    // 5. Run binary search to identify target destination rank for each particle using full 64-bit keys
+    // 5. Run binary search to identify target destination rank for each particle using full sfc_key
     q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
        size_t i = idx[0];
        d_indices[i] = i;
-       uint64_t key = d_keys[i];
+       sfc_key key = d_keys[i];
 
        int low = 0;
        int high = P - 1;
        int dest_rank = 0;
        while (low <= high) {
          int mid = low + (high - low) / 2;
-         if (key >= d_splitters[mid]) {
+         if (!(key < d_splitters[mid])) {
            dest_rank = mid;
            low = mid + 1;
          } else {
@@ -397,7 +420,7 @@ inline particles<FloatT> redistribute_particles(sycl::queue &q, particles<FloatT
     q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
        size_t i = idx[0];
        d_indices[i] = i;
-       uint32_t bucket_id = static_cast<uint32_t>(d_keys[i] >> (63 - m));
+       uint32_t bucket_id = extract_bucket_id(d_keys[i], m);
 
        int low = 0;
        int high = P - 1;

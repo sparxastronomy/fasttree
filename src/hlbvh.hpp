@@ -31,6 +31,43 @@ struct particles {
   /// Ghost particle flag: 0 for locally owned particles, 1 for boundary ghost particles.
   std::vector<int8_t> is_ghost;
 };
+}  // namespace fasttree
+
+#if defined(SFC_TYPE_PEANO_HILBERT)
+#include "sfc.peano_hilbert.hpp"
+#elif defined(SFC_TYPE_MORTON)
+#include "sfc.morton.hpp"
+#else
+#error "Undefined SFC_TYPE - either SFC_TYPE_PEANO_HILBERT or SFC_TYPE_MORTON must be defined"
+#endif
+
+namespace fasttree {
+
+template <typename T>
+inline T type_identity_min() {
+  if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
+    return std::numeric_limits<T>::max();
+  } else if constexpr (std::is_same_v<T, uint32_t>) {
+    return 0xFFFFFFFFu;
+  } else if constexpr (std::is_same_v<T, uint64_t>) {
+    return 0xFFFFFFFFFFFFFFFFull;
+  } else {  // uint128_t
+    return uint128_t(0xFFFFFFFFFFFFFFFFull, 0xFFFFFFFFFFFFFFFFull);
+  }
+}
+
+template <typename T>
+inline T type_identity_max() {
+  if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
+    return -std::numeric_limits<T>::max();
+  } else if constexpr (std::is_same_v<T, uint32_t>) {
+    return 0u;
+  } else if constexpr (std::is_same_v<T, uint64_t>) {
+    return 0ull;
+  } else {  // uint128_t
+    return uint128_t(0ull, 0ull);
+  }
+}
 
 /**
  * @brief Represents a 3D axis-aligned bounding box.
@@ -57,29 +94,20 @@ struct BoundingBox {
    */
   BoundingBox(FloatT min_x_, FloatT max_x_, FloatT min_y_, FloatT max_y_, FloatT min_z_, FloatT max_z_)
       : min_x(min_x_), max_x(max_x_), min_y(min_y_), max_y(max_y_), min_z(min_z_), max_z(max_z_) {
-    static_assert(std::is_same_v<FloatT, float> || std::is_same_v<FloatT, double>, "BoundingBox only supports float or double");
+    static_assert(std::is_same_v<FloatT, float> || std::is_same_v<FloatT, double> || std::is_same_v<FloatT, uint32_t> ||
+                      std::is_same_v<FloatT, uint64_t> || std::is_same_v<FloatT, uint128_t>,
+                  "BoundingBox supports float, double, uint32_t, uint64_t, and uint128_t");
   }
 
   // Overload, initialize with std::numeric_limits for empty bounding box
   BoundingBox()
-      : min_x(std::numeric_limits<FloatT>::max()),
-        max_x(-std::numeric_limits<FloatT>::max()),
-        min_y(std::numeric_limits<FloatT>::max()),
-        max_y(-std::numeric_limits<FloatT>::max()),
-        min_z(std::numeric_limits<FloatT>::max()),
-        max_z(-std::numeric_limits<FloatT>::max()) {}
+      : min_x(type_identity_min<FloatT>()),
+        max_x(type_identity_max<FloatT>()),
+        min_y(type_identity_min<FloatT>()),
+        max_y(type_identity_max<FloatT>()),
+        min_z(type_identity_min<FloatT>()),
+        max_z(type_identity_max<FloatT>()) {}
 };
-}  // namespace fasttree
-
-#if defined(SFC_TYPE_PEANO_HILBERT)
-#include "sfc.peano_hilbert.hpp"
-#elif defined(SFC_TYPE_MORTON)
-#include "sfc.morton.hpp"
-#else
-#error "Undefined SFC_TYPE - either SFC_TYPE_PEANO_HILBERT or SFC_TYPE_MORTON must be defined"
-#endif
-
-namespace fasttree {
 
 /**
  * Helper function to ensure a pointer is readable on the SYCL device.
@@ -170,12 +198,12 @@ inline void free_device_readable(sycl::queue &q, T *dev_ptr, bool allocated) {
 }
 
 // Define the coordinate type
-#if defined(COORDS_TYPE_FLOAT)
-using coord_t = float;
+#if defined(FASTTREE_INTEGER_COORDS)
+using coord_t = MyIntPosType;
 #elif defined(COORDS_TYPE_DOUBLE)
 using coord_t = double;
 #else
-#error "Undefined COORDS_TYPE - either COORDS_TYPE_FLOAT or COORDS_TYPE_DOUBLE must be defined"
+using coord_t = float;
 #endif
 
 /**
@@ -251,20 +279,58 @@ inline sfc1D encode_to_sfc1d(FloatT val) noexcept {
  */
 inline int get_common_prefix_length(std::uint64_t c1, std::uint64_t c2) {
   if (c1 == c2) return 64;
-#if defined(__GNUC__) || defined(__clang__)
-  // leading common bits = number of leading zeros in xor
-  return __builtin_clzll(c1 ^ c2);
-#else
-  // portable fallback
-  std::uint64_t x = c1 ^ c2;
-  int n = 0;
-  for (int i = 63; i >= 0; --i) {
-    if ((x >> i) & 1ULL) break;
-    ++n;
-  }
-  return n;
-#endif
+  uint32_t hi = static_cast<uint32_t>((c1 ^ c2) >> 32);
+  uint32_t lo = static_cast<uint32_t>(c1 ^ c2);
+  if (hi != 0) return sycl::clz(hi);
+  return 32 + sycl::clz(lo);
 }
+
+#if defined(SFC_TYPE_PEANO_HILBERT)
+inline int get_common_prefix_length(const sfc_key &k1, const sfc_key &k2) {
+  if (k1 == k2) return KEY_TOTAL_BITS;
+
+  auto count_clz = [](auto val) -> int {
+    using T = decltype(val);
+    if constexpr (std::is_same_v<T, uint32_t>) {
+      return sycl::clz(val);
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
+      uint32_t hi = static_cast<uint32_t>(val >> 32);
+      uint32_t lo = static_cast<uint32_t>(val);
+      if (hi != 0) return sycl::clz(hi);
+      return 32 + sycl::clz(lo);
+    } else if constexpr (std::is_same_v<T, uint128_t>) {
+      if (val.hi != 0) {
+        uint32_t hi32 = static_cast<uint32_t>(val.hi >> 32);
+        uint32_t lo32 = static_cast<uint32_t>(val.hi);
+        if (hi32 != 0) return sycl::clz(hi32);
+        return 32 + sycl::clz(lo32);
+      }
+      uint32_t hi32 = static_cast<uint32_t>(val.lo >> 32);
+      uint32_t lo32 = static_cast<uint32_t>(val.lo);
+      if (hi32 != 0) return 64 + sycl::clz(hi32);
+      return 96 + sycl::clz(lo32);
+    }
+    return 0;
+  };
+
+  constexpr int bits_in_hs = (KEY_TOTAL_BITS > 2 * BITS_FOR_POSITIONS) ? (KEY_TOTAL_BITS - 2 * BITS_FOR_POSITIONS) : 0;
+  constexpr int unused_hs = BITS_FOR_POSITIONS - bits_in_hs;
+
+  if (k1.hs != k2.hs) { return count_clz(k1.hs ^ k2.hs) - unused_hs; }
+
+  constexpr int bits_above_ls = KEY_TOTAL_BITS - BITS_FOR_POSITIONS;
+  constexpr int bits_in_is = (bits_above_ls > 0) ? ((bits_above_ls > BITS_FOR_POSITIONS) ? BITS_FOR_POSITIONS : bits_above_ls) : 0;
+  constexpr int unused_is = BITS_FOR_POSITIONS - bits_in_is;
+
+  if (k1.is != k2.is) { return bits_in_hs + count_clz(k1.is ^ k2.is) - unused_is; }
+
+  constexpr int bits_in_ls = KEY_TOTAL_BITS - bits_in_hs - bits_in_is;
+  constexpr int unused_ls = BITS_FOR_POSITIONS - bits_in_ls;
+
+  if (k1.ls != k2.ls) { return bits_in_hs + bits_in_is + count_clz(k1.ls ^ k2.ls) - unused_ls; }
+  return KEY_TOTAL_BITS;
+}
+#endif
 
 /**
  * @brief Encodes particle coordinates into 3D Space-Filling Curve (SFC) keys.
@@ -292,6 +358,19 @@ inline void sfc_encode(sycl::queue &q, const FloatT *pos_x, const FloatT *pos_y,
   const FloatT *dev_pos_z = ensure_device_readable(q, pos_z, num_particles, z_alloc);
   sfc_key *dev_keys = ensure_device_writable(q, keys, num_particles, keys_alloc);
 
+#if defined(FASTTREE_INTEGER_COORDS)
+  q.parallel_for(sycl::range<1>(num_particles), [=](sycl::id<1> idx) {
+     size_t i = idx[0];
+     sfc1D ix = static_cast<sfc1D>(dev_pos_x[i]);
+     sfc1D iy = static_cast<sfc1D>(dev_pos_y[i]);
+     sfc1D iz = static_cast<sfc1D>(dev_pos_z[i]);
+#if defined(SFC_TYPE_PEANO_HILBERT)
+     dev_keys[i] = sfc_encode3D(ix, iy, iz);
+#elif defined(SFC_TYPE_MORTON)
+     dev_keys[i] = spread3_u64(ix) | (spread3_u64(iy) << 1) | (spread3_u64(iz) << 2);
+#endif
+   }).wait();
+#else
   FloatT dx = bbox.max_x - bbox.min_x;
   FloatT dy = bbox.max_y - bbox.min_y;
   FloatT dz = bbox.max_z - bbox.min_z;
@@ -308,16 +387,19 @@ inline void sfc_encode(sycl::queue &q, const FloatT *pos_x, const FloatT *pos_y,
      FloatT ny = sycl::clamp((dev_pos_y[i] - bbox.min_y) * inv_dy, clamp_lower, clamp_upper);
      FloatT nz = sycl::clamp((dev_pos_z[i] - bbox.min_z) * inv_dz, clamp_lower, clamp_upper);
 
+#if defined(SFC_TYPE_PEANO_HILBERT)
+     sfc1D ix = quantize_coord(nx);
+     sfc1D iy = quantize_coord(ny);
+     sfc1D iz = quantize_coord(nz);
+     dev_keys[i] = sfc_encode3D(ix, iy, iz);
+#elif defined(SFC_TYPE_MORTON)
      sfc1D ix = encode_to_sfc1d(static_cast<FloatT>(1.0) + nx);
      sfc1D iy = encode_to_sfc1d(static_cast<FloatT>(1.0) + ny);
      sfc1D iz = encode_to_sfc1d(static_cast<FloatT>(1.0) + nz);
-
-#if defined(SFC_TYPE_PEANO_HILBERT)
-     dev_keys[i] = sfc_encode3D(ix, iy, iz);
-#elif defined(SFC_TYPE_MORTON)
-    dev_keys[i] = spread3_u64(ix) | (spread3_u64(iy) << 1) | (spread3_u64(iz) << 2);
+     dev_keys[i] = spread3_u64(ix) | (spread3_u64(iy) << 1) | (spread3_u64(iz) << 2);
 #endif
    }).wait();
+#endif
 
   free_device_readable(q, dev_pos_x, x_alloc);
   free_device_readable(q, dev_pos_y, y_alloc);
@@ -352,8 +434,8 @@ inline void sfc_encode(sycl::queue &q, const particles<FloatT> &particles, sfc_k
 template <typename FloatT>
 inline BoundingBox<FloatT> compute_bbox(sycl::queue &q, const FloatT *pos_x, const FloatT *pos_y, const FloatT *pos_z, size_t n) {
   if (n == 0) {
-    return BoundingBox<FloatT>(std::numeric_limits<FloatT>::max(), -std::numeric_limits<FloatT>::max(), std::numeric_limits<FloatT>::max(),
-                               -std::numeric_limits<FloatT>::max(), std::numeric_limits<FloatT>::max(), -std::numeric_limits<FloatT>::max());
+    return BoundingBox<FloatT>(type_identity_min<FloatT>(), type_identity_max<FloatT>(), type_identity_min<FloatT>(), type_identity_max<FloatT>(),
+                               type_identity_min<FloatT>(), type_identity_max<FloatT>());
   }
 
   bool x_alloc = false, y_alloc = false, z_alloc = false;
@@ -364,30 +446,53 @@ inline BoundingBox<FloatT> compute_bbox(sycl::queue &q, const FloatT *pos_x, con
   FloatT *d_bbox_reduction = sycl::malloc_shared<FloatT>(6, q);
 
   // Initialize shared memory on host with identity values for reductions
-  d_bbox_reduction[0] = std::numeric_limits<FloatT>::max();
-  d_bbox_reduction[1] = -std::numeric_limits<FloatT>::max();
-  d_bbox_reduction[2] = std::numeric_limits<FloatT>::max();
-  d_bbox_reduction[3] = -std::numeric_limits<FloatT>::max();
-  d_bbox_reduction[4] = std::numeric_limits<FloatT>::max();
-  d_bbox_reduction[5] = -std::numeric_limits<FloatT>::max();
+  d_bbox_reduction[0] = type_identity_min<FloatT>();
+  d_bbox_reduction[1] = type_identity_max<FloatT>();
+  d_bbox_reduction[2] = type_identity_min<FloatT>();
+  d_bbox_reduction[3] = type_identity_max<FloatT>();
+  d_bbox_reduction[4] = type_identity_min<FloatT>();
+  d_bbox_reduction[5] = type_identity_max<FloatT>();
 
-  q.submit([&](sycl::handler &h) {
-     h.parallel_for(sycl::range<1>(n), sycl::reduction(d_bbox_reduction + 0, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
-                    sycl::reduction(d_bbox_reduction + 1, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
-                    sycl::reduction(d_bbox_reduction + 2, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
-                    sycl::reduction(d_bbox_reduction + 3, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
-                    sycl::reduction(d_bbox_reduction + 4, std::numeric_limits<FloatT>::max(), sycl::minimum<FloatT>()),
-                    sycl::reduction(d_bbox_reduction + 5, -std::numeric_limits<FloatT>::max(), sycl::maximum<FloatT>()),
-                    [=](sycl::id<1> idx, auto &r_min_x, auto &r_max_x, auto &r_min_y, auto &r_max_y, auto &r_min_z, auto &r_max_z) {
-                      size_t i = idx[0];
-                      r_min_x.combine(dev_pos_x[i]);
-                      r_max_x.combine(dev_pos_x[i]);
-                      r_min_y.combine(dev_pos_y[i]);
-                      r_max_y.combine(dev_pos_y[i]);
-                      r_min_z.combine(dev_pos_z[i]);
-                      r_max_z.combine(dev_pos_z[i]);
-                    });
-   }).wait();
+  if constexpr (std::is_same_v<FloatT, float> || std::is_same_v<FloatT, double> || std::is_same_v<FloatT, uint32_t> ||
+                std::is_same_v<FloatT, uint64_t>) {
+    q.submit([&](sycl::handler &h) {
+       h.parallel_for(sycl::range<1>(n), sycl::reduction(d_bbox_reduction + 0, type_identity_min<FloatT>(), sycl::minimum<FloatT>()),
+                      sycl::reduction(d_bbox_reduction + 1, type_identity_max<FloatT>(), sycl::maximum<FloatT>()),
+                      sycl::reduction(d_bbox_reduction + 2, type_identity_min<FloatT>(), sycl::minimum<FloatT>()),
+                      sycl::reduction(d_bbox_reduction + 3, type_identity_max<FloatT>(), sycl::maximum<FloatT>()),
+                      sycl::reduction(d_bbox_reduction + 4, type_identity_min<FloatT>(), sycl::minimum<FloatT>()),
+                      sycl::reduction(d_bbox_reduction + 5, type_identity_max<FloatT>(), sycl::maximum<FloatT>()),
+                      [=](sycl::id<1> idx, auto &r_min_x, auto &r_max_x, auto &r_min_y, auto &r_max_y, auto &r_min_z, auto &r_max_z) {
+                        size_t i = idx[0];
+                        r_min_x.combine(dev_pos_x[i]);
+                        r_max_x.combine(dev_pos_x[i]);
+                        r_min_y.combine(dev_pos_y[i]);
+                        r_max_y.combine(dev_pos_y[i]);
+                        r_min_z.combine(dev_pos_z[i]);
+                        r_max_z.combine(dev_pos_z[i]);
+                      });
+     }).wait();
+  } else {
+    q.single_task([=]() {
+       FloatT min_x = dev_pos_x[0], max_x = dev_pos_x[0];
+       FloatT min_y = dev_pos_y[0], max_y = dev_pos_y[0];
+       FloatT min_z = dev_pos_z[0], max_z = dev_pos_z[0];
+       for (size_t i = 1; i < n; ++i) {
+         if (dev_pos_x[i] < min_x) min_x = dev_pos_x[i];
+         if (max_x < dev_pos_x[i]) max_x = dev_pos_x[i];
+         if (dev_pos_y[i] < min_y) min_y = dev_pos_y[i];
+         if (max_y < dev_pos_y[i]) max_y = dev_pos_y[i];
+         if (dev_pos_z[i] < min_z) min_z = dev_pos_z[i];
+         if (max_z < dev_pos_z[i]) max_z = dev_pos_z[i];
+       }
+       d_bbox_reduction[0] = min_x;
+       d_bbox_reduction[1] = max_x;
+       d_bbox_reduction[2] = min_y;
+       d_bbox_reduction[3] = max_y;
+       d_bbox_reduction[4] = min_z;
+       d_bbox_reduction[5] = max_z;
+     }).wait();
+  }
 
   BoundingBox<FloatT> bbox = {d_bbox_reduction[0], d_bbox_reduction[1], d_bbox_reduction[2],
                               d_bbox_reduction[3], d_bbox_reduction[4], d_bbox_reduction[5]};
@@ -405,6 +510,24 @@ inline BoundingBox<FloatT> compute_bbox(sycl::queue &q, const FloatT *pos_x, con
 template <typename FloatT>
 inline BoundingBox<FloatT> compute_bbox(sycl::queue &q, const particles<FloatT> &p, size_t n) {
   return compute_bbox(q, p.pos_x.data(), p.pos_y.data(), p.pos_z.data(), n);
+}
+
+template <typename T>
+inline T sfc_min(T a, T b) {
+  if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
+    return sycl::fmin(a, b);
+  } else {
+    return (a < b) ? a : b;
+  }
+}
+
+template <typename T>
+inline T sfc_max(T a, T b) {
+  if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
+    return sycl::fmax(a, b);
+  } else {
+    return (a < b) ? b : a;
+  }
 }
 
 /**
@@ -573,11 +696,11 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
   // 1. Construct internal nodes (Karras 2012)
   auto delta = [=](int i, int j) {
     if (j < 0 || j >= (int)n) return -1;
-    std::uint64_t k_i = dev_keys[i];
-    std::uint64_t k_j = dev_keys[j];
+    sfc_key k_i = dev_keys[i];
+    sfc_key k_j = dev_keys[j];
     if (k_i != k_j) return get_common_prefix_length(k_i, k_j);
     // Tie-breaker using indices as per Karras 2012
-    return 64 + get_common_prefix_length((std::uint64_t)i, (std::uint64_t)j);
+    return KEY_TOTAL_BITS + get_common_prefix_length((std::uint64_t)i, (std::uint64_t)j);
   };
 
   q.parallel_for(sycl::range<1>(n - 1), [=](sycl::id<1> idx) {
@@ -669,15 +792,18 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
 
        if (atomic_ref.fetch_add(1) == 0) return;  // First child to arrive
 
-       // Second child arrived, compute BB using sycl::fmin/fmax
+       // Fence: ensure all writes to child BBs are visible before reading them
+       sycl::atomic_fence(sycl::memory_order::acquire, sycl::memory_scope::device);
+
+       // Second child arrived, compute BB using sfc_min/sfc_max
        int l = p_left_child[p];
        int r = p_right_child[p];
-       p_min_x[p] = sycl::fmin(p_min_x[l], p_min_x[r]);
-       p_max_x[p] = sycl::fmax(p_max_x[l], p_max_x[r]);
-       p_min_y[p] = sycl::fmin(p_min_y[l], p_min_y[r]);
-       p_max_y[p] = sycl::fmax(p_max_y[l], p_max_y[r]);
-       p_min_z[p] = sycl::fmin(p_min_z[l], p_min_z[r]);
-       p_max_z[p] = sycl::fmax(p_max_z[l], p_max_z[r]);
+       p_min_x[p] = sfc_min(p_min_x[l], p_min_x[r]);
+       p_max_x[p] = sfc_max(p_max_x[l], p_max_x[r]);
+       p_min_y[p] = sfc_min(p_min_y[l], p_min_y[r]);
+       p_max_y[p] = sfc_max(p_max_y[l], p_max_y[r]);
+       p_min_z[p] = sfc_min(p_min_z[l], p_min_z[r]);
+       p_max_z[p] = sfc_max(p_max_z[l], p_max_z[r]);
        curr = p;
      }
    }).wait();
@@ -753,6 +879,35 @@ struct PriorityQueue {
   }
 };
 
+template <typename T>
+inline auto node_distance_sq(T px, T py, T pz, T bmin_x, T bmax_x, T bmin_y, T bmax_y, T bmin_z, T bmax_z) {
+  if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
+    T dx = sycl::fmax(bmin_x - px, sycl::fmax(T(0.0), px - bmax_x));
+    T dy = sycl::fmax(bmin_y - py, sycl::fmax(T(0.0), py - bmax_y));
+    T dz = sycl::fmax(bmin_z - pz, sycl::fmax(T(0.0), pz - bmax_z));
+    return dx * dx + dy * dy + dz * dz;
+  } else if constexpr (std::is_same_v<T, uint128_t>) {
+    auto diff = [](const uint128_t &a, const uint128_t &b) -> double {
+      uint128_t d = a - b;
+      return static_cast<double>(d);
+    };
+    double dx = (px < bmin_x) ? diff(bmin_x, px) : ((bmax_x < px) ? diff(px, bmax_x) : 0.0);
+    double dy = (py < bmin_y) ? diff(bmin_y, py) : ((bmax_y < py) ? diff(py, bmax_y) : 0.0);
+    double dz = (pz < bmin_z) ? diff(bmin_z, pz) : ((bmax_z < pz) ? diff(pz, bmax_z) : 0.0);
+    return dx * dx + dy * dy + dz * dz;
+  } else {
+    auto diff = [](T val, T bmin, T bmax) -> double {
+      if (val < bmin) return static_cast<double>(bmin - val);
+      if (val > bmax) return static_cast<double>(val - bmax);
+      return 0.0;
+    };
+    double dx = diff(px, bmin_x, bmax_x);
+    double dy = diff(py, bmin_y, bmax_y);
+    double dz = diff(pz, bmin_z, bmax_z);
+    return dx * dx + dy * dy + dz * dz;
+  }
+}
+
 /**
  * @brief Finds the k-nearest neighbor particles for multiple query points.
  *
@@ -808,7 +963,7 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
 
      // We'll use a local buffer for PQ. Since K is dynamic in the API but fixed in the struct,
      // we handle with a compile-time constant _MAX_K_ for the priority queue.
-     PriorityQueue<coord_t, _MAX_K_> pq;
+     PriorityQueue<double, _MAX_K_> pq;
 
      while (stack_ptr > 0) {
        int node_idx = stack[--stack_ptr];
@@ -817,10 +972,7 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
        coord_t bmin_y = p_min_y[node_idx], bmax_y = p_max_y[node_idx];
        coord_t bmin_z = p_min_z[node_idx], bmax_z = p_max_z[node_idx];
 
-       coord_t dx = sycl::fmax(bmin_x - px, sycl::fmax(coord_t(0.0), px - bmax_x));
-       coord_t dy = sycl::fmax(bmin_y - py, sycl::fmax(coord_t(0.0), py - bmax_y));
-       coord_t dz = sycl::fmax(bmin_z - pz, sycl::fmax(coord_t(0.0), pz - bmax_z));
-       coord_t d2 = dx * dx + dy * dy + dz * dz;
+       auto d2 = node_distance_sq(px, py, pz, bmin_x, bmax_x, bmin_y, bmax_y, bmin_z, bmax_z);
 
        if (pq.count < k || d2 < pq.data[0]) {
          if (node_idx >= (int)n - 1 && n > 1) {  // Leaf
@@ -841,15 +993,8 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
            int r = p_right_child[node_idx];
 
            // Heuristic: push the closer child last so it's processed first
-           coord_t l_dx = sycl::fmax(p_min_x[l] - px, sycl::fmax(coord_t(0.0), px - p_max_x[l]));
-           coord_t l_dy = sycl::fmax(p_min_y[l] - py, sycl::fmax(coord_t(0.0), py - p_max_y[l]));
-           coord_t l_dz = sycl::fmax(p_min_z[l] - pz, sycl::fmax(coord_t(0.0), pz - p_max_z[l]));
-           coord_t l_d2 = l_dx * l_dx + l_dy * l_dy + l_dz * l_dz;
-
-           coord_t r_dx = sycl::fmax(p_min_x[r] - px, sycl::fmax(coord_t(0.0), px - p_max_x[r]));
-           coord_t r_dy = sycl::fmax(p_min_y[r] - py, sycl::fmax(coord_t(0.0), py - p_max_y[r]));
-           coord_t r_dz = sycl::fmax(p_min_z[r] - pz, sycl::fmax(coord_t(0.0), pz - p_max_z[r]));
-           coord_t r_d2 = r_dx * r_dx + r_dy * r_dy + r_dz * r_dz;
+           auto l_d2 = node_distance_sq(px, py, pz, p_min_x[l], p_max_x[l], p_min_y[l], p_max_y[l], p_min_z[l], p_max_z[l]);
+           auto r_d2 = node_distance_sq(px, py, pz, p_min_x[r], p_max_x[r], p_min_y[r], p_max_y[r], p_min_z[r], p_max_z[r]);
 
            if (l_d2 < r_d2) {
              stack[stack_ptr++] = r;
@@ -864,12 +1009,13 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
 
      size_t offset = qi * static_cast<size_t>(k);
      for (int i = 0; i < k; ++i) {
+       int out_idx = k - 1 - i;
        if (i < pq.count) {
-         dev_results[offset + (k - 1 - i)] = pq.indices[i];
-         dev_result_dists[offset + (k - 1 - i)] = std::sqrt(pq.data[i]);
+         dev_results[offset + out_idx] = pq.indices[i];
+         dev_result_dists[offset + out_idx] = static_cast<coord_t>(sycl::sqrt(pq.data[i]));
        } else {
-         dev_results[offset + i] = -1;
-         dev_result_dists[offset + i] = INFINITY;
+         dev_results[offset + out_idx] = -1;
+         dev_result_dists[offset + out_idx] = type_identity_max<coord_t>();
        }
      }
    }).wait();
@@ -880,8 +1026,6 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
   copy_back_and_free(q, dev_results, results, static_cast<size_t>(num_queries) * static_cast<size_t>(k), res_alloc);
   copy_back_and_free(q, dev_result_dists, result_dists, static_cast<size_t>(num_queries) * static_cast<size_t>(k), dist_alloc);
 }
-
-#define MAX_STACK_DEPTH 64
 
 /**
  * @brief Finds all particles within a specified distance range from multiple query points.
@@ -928,9 +1072,10 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
   q.parallel_for(sycl::range<1>(num_queries), [=](sycl::id<1> idx) {
      size_t qi = idx[0];
      coord_t px = dev_qx[qi], py = dev_qy[qi], pz = dev_qz[qi];
-     coord_t rm = dev_r_min[qi], RM = dev_r_max[qi];
-     coord_t RM2 = RM * RM;
-     coord_t rm2 = rm * rm;
+     double rm_d = static_cast<double>(dev_r_min[qi]);
+     double RM_d = static_cast<double>(dev_r_max[qi]);
+     double RM2 = RM_d * RM_d;
+     double rm2 = rm_d * rm_d;
 
      int stack[MAX_STACK_DEPTH];
      int stack_ptr = 0;
@@ -950,10 +1095,7 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
        coord_t bmin_y = p_min_y[node_idx], bmax_y = p_max_y[node_idx];
        coord_t bmin_z = p_min_z[node_idx], bmax_z = p_max_z[node_idx];
 
-       coord_t dx = sycl::fmax(bmin_x - px, sycl::fmax(coord_t(0.0), px - bmax_x));
-       coord_t dy = sycl::fmax(bmin_y - py, sycl::fmax(coord_t(0.0), py - bmax_y));
-       coord_t dz = sycl::fmax(bmin_z - pz, sycl::fmax(coord_t(0.0), pz - bmax_z));
-       coord_t d2 = dx * dx + dy * dy + dz * dz;
+       auto d2 = node_distance_sq(px, py, pz, bmin_x, bmax_x, bmin_y, bmax_y, bmin_z, bmax_z);
 
        if (d2 <= RM2) {
          if (node_idx >= (int)n - 1 && n > 1) {  // Leaf node
@@ -1039,12 +1181,28 @@ inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, TreeSoA &tree
   q.wait();
 
   // 4. Single-Pass Full GPU Sort using oneDPL
+#if (3 * BITS_PER_DIMENSION) <= 64
+  uint64_t *d_sort_keys = sycl::malloc_shared<uint64_t>(n, q);
+  sfc_key *d_smk_ptr = d_smk;
+  q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
+     size_t i = idx[0];
+     d_sort_keys[i] = to_sort_key(d_smk_ptr[i]);
+   }).wait();
+
+  auto zip2_begin = oneapi::dpl::make_zip_iterator(d_sort_keys, d_smk, d_indices);
+  auto zip2_end = zip2_begin + n;
+  oneapi::dpl::sort(oneapi::dpl::execution::make_device_policy(q), zip2_begin, zip2_end,
+                    [](auto a, auto b) { return oneapi::dpl::get<0>(a) < oneapi::dpl::get<0>(b); });
+  q.wait();
+  sycl::free(d_sort_keys, q);
+#else
   auto policy = oneapi::dpl::execution::make_device_policy(q);
   auto zip_begin = oneapi::dpl::make_zip_iterator(d_smk, d_indices);
   auto zip_end = zip_begin + n;
 
   oneapi::dpl::sort(policy, zip_begin, zip_end, [](auto a, auto b) { return oneapi::dpl::get<0>(a) < oneapi::dpl::get<0>(b); });
   q.wait();
+#endif
 
   // Prepare ID and Ghost arrays
   const uint32_t *p_id = nullptr;

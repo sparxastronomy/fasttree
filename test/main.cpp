@@ -21,14 +21,25 @@ int main() {
 
   // Random distribution
   for (int i = 0; i < n; ++i) {
+#if defined(FASTTREE_INTEGER_COORDS)
+    uint64_t max_c = (BITS_PER_DIMENSION < 30) ? (1ULL << (BITS_PER_DIMENSION < 30 ? BITS_PER_DIMENSION : 0)) : 1073741824ULL;
+    p.pos_x[i] = static_cast<coord_t>(rand() % max_c);
+    p.pos_y[i] = static_cast<coord_t>(rand() % max_c);
+    p.pos_z[i] = static_cast<coord_t>(rand() % max_c);
+#else
     p.pos_x[i] = static_cast<coord_t>(rand()) / RAND_MAX * static_cast<coord_t>(100.0);
     p.pos_y[i] = static_cast<coord_t>(rand()) / RAND_MAX * static_cast<coord_t>(100.0);
     p.pos_z[i] = static_cast<coord_t>(rand()) / RAND_MAX * static_cast<coord_t>(100.0);
+#endif
   }
 
   // 1. Calculate Bounding Box
   BoundingBox<coord_t> bbox = compute_bbox(q, p, n);
+#if defined(FASTTREE_INTEGER_COORDS)
+  std::cout << "Bounding Box computed for Integer Coordinates." << std::endl;
+#else
   printf("Bounding Box: [%.3f, %.3f] x [%.3f, %.3f] x [%.3f, %.3f]\n", bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y, bbox.min_z, bbox.max_z);
+#endif
 
   // 2. HLBVH Construction (Coarse + Intra-Voxel)
   std::cout << "Building Tree..." << std::endl;
@@ -52,15 +63,13 @@ int main() {
 
   // 3. Monotonicity Check
   std::cout << "Checking Monotonicity..." << std::endl;
-  std::vector<uint64_t> mk_check(n);
+  std::vector<sfc_key> mk_check(n);
   sfc_encode(q, tree_parts, mk_check.data(), bbox);
   q.wait();
 
   for (int i = 0; i < n - 1; ++i) {
-    if (mk_check[i] > mk_check[i + 1]) {
+    if (mk_check[i + 1] < mk_check[i]) {
       std::cout << "FAILURE: SFC keys in tree are NOT monotonic (verified by lib)." << std::endl;
-      std::cout << "  MK[" << i << "]: " << mk_check[i] << std::endl;
-      std::cout << "  MK[" << i + 1 << "]: " << mk_check[i + 1] << std::endl;
       success = false;
       break;
     }
@@ -68,8 +77,14 @@ int main() {
   if (success) { std::cout << "SUCCESS: SFC keys in tree are strictly monotonic." << std::endl; }
 
   // 4. Range Query Verification
+#if defined(FASTTREE_INTEGER_COORDS)
+  uint64_t mid_c = (BITS_PER_DIMENSION < 30) ? (1ULL << (BITS_PER_DIMENSION < 30 ? BITS_PER_DIMENSION : 0)) / 2 : 536870912ULL;
+  coord_t qx = static_cast<coord_t>(mid_c), qy = static_cast<coord_t>(mid_c), qz = static_cast<coord_t>(mid_c);
+  coord_t r_min = static_cast<coord_t>(0), r_max = static_cast<coord_t>(mid_c / 2);
+#else
   coord_t qx = static_cast<coord_t>(50.5), qy = static_cast<coord_t>(50.0), qz = static_cast<coord_t>(50.0);
   coord_t r_min = static_cast<coord_t>(0.0), r_max = static_cast<coord_t>(20.0);
+#endif
   int max_res = 1000;
 
   coord_t *dqx = sycl::malloc_shared<coord_t>(1, q);
@@ -94,13 +109,13 @@ int main() {
   // Brute force verify against the reordered leaf nodes
   int expected_cnt = 0;
   for (int i = 0; i < n; ++i) {
-    coord_t dx = tree_parts.pos_x[i] - qx;
-    coord_t dy = tree_parts.pos_y[i] - qy;
-    coord_t dz = tree_parts.pos_z[i] - qz;
-    coord_t dist = std::sqrt(dx * dx + dy * dy + dz * dz);
-    if (dist >= r_min && dist <= r_max) { expected_cnt++; }
+    double dx = static_cast<double>(tree_parts.pos_x[i]) - static_cast<double>(qx);
+    double dy = static_cast<double>(tree_parts.pos_y[i]) - static_cast<double>(qy);
+    double dz = static_cast<double>(tree_parts.pos_z[i]) - static_cast<double>(qz);
+    double dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+    if (dist >= static_cast<double>(r_min) && dist <= static_cast<double>(r_max)) { expected_cnt++; }
   }
-  std::cout << "Found " << res_cnt[0] << " particles within radius " << r_max << " of " << qx << std::endl;
+  std::cout << "Found " << res_cnt[0] << " particles within range" << std::endl;
   std::cout << "Expected (brute force): " << expected_cnt << std::endl;
 
   if (res_cnt[0] != expected_cnt) {
@@ -117,15 +132,12 @@ int main() {
   knn_query(q, tree, dqx, dqy, dqz, k, 1, knn_res, knn_dists);
   q.wait();
 
-  std::cout << "Testing kNN query for k=" << k << " around (" << qx << ", " << qy << ", " << qz << "):" << std::endl;
+  std::cout << "Testing kNN query for k=" << k << std::endl;
   for (int i = 0; i < k; ++i) {
 #ifndef RETURN_ORIG_INDICES
-    // std::cout << "  Neighbor " << i << ": index " << knn_res[i] << ", dist " << knn_dists[i] << std::endl;
-    printf("  Neighbor %d: index(in tree) %4d, dist %8.4f pos (%5.3f, %5.3f, %5.3f)\n", i, knn_res[i], knn_dists[i], tree_parts.pos_x[knn_res[i]],
-           tree_parts.pos_y[knn_res[i]], tree_parts.pos_z[knn_res[i]]);
+    std::cout << "  Neighbor " << i << ": index(in tree) " << knn_res[i] << ", dist " << static_cast<double>(knn_dists[i]) << std::endl;
 #else
-    printf("  Neighbor %d: index(orig) %4d, dist %8.4f pos (%5.3f, %5.3f, %5.3f)\n", i, knn_res[i], knn_dists[i], p.pos_x[knn_res[i]],
-           p.pos_y[knn_res[i]], p.pos_z[knn_res[i]]);
+    std::cout << "  Neighbor " << i << ": index(orig) " << knn_res[i] << ", dist " << static_cast<double>(knn_dists[i]) << std::endl;
 #endif
   }
 
