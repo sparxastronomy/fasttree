@@ -15,14 +15,25 @@ namespace fasttree {
 // SECTION 0: Always define uint128_t emulation struct
 // ================================================================
 
+/**
+ * @brief Emulated 128-bit unsigned integer structure for SYCL device and host execution.
+ *
+ * Provides bitwise shifts, arithmetic operators (+, -), comparison operators, and double conversions.
+ * Used for 128-bit integer position representation and multi-word space-filling curve keys.
+ */
 struct uint128_t {
-  uint64_t lo = 0;
-  uint64_t hi = 0;
+  uint64_t lo = 0;  ///< Lower 64 bits
+  uint64_t hi = 0;  ///< Upper 64 bits
 
   constexpr uint128_t() noexcept = default;
   constexpr uint128_t(uint64_t h, uint64_t l) noexcept : lo(l), hi(h) {}
   constexpr uint128_t(uint64_t v) noexcept : lo(v), hi(0) {}
 
+  /**
+   * @brief Left shift operator with boundary handling (n <= 0, n = 64, n > 64, n >= 128).
+   * @note Standard C++ bit shifts >= 64 bits on 64-bit integers produce undefined behavior.
+   *       This implementation explicitly handles all shift range cases.
+   */
   constexpr uint128_t &operator<<=(int n) noexcept {
     if (n <= 0) {
       // do nothing
@@ -69,7 +80,7 @@ struct uint128_t {
   explicit operator double() const noexcept { return static_cast<double>(hi) * 1.8446744073709551616e19 + static_cast<double>(lo); }
 
   constexpr bool operator==(const uint128_t &o) const noexcept { return hi == o.hi && lo == o.lo; }
-  constexpr bool operator!=(const uint128_t &o) const noexcept { return hi != o.hi || lo != o.lo; }
+  constexpr bool operator!=(const uint128_t &o) const noexcept { return !(*this == o); }
   constexpr bool operator<(const uint128_t &o) const noexcept {
     if (hi != o.hi) return hi < o.hi;
     return lo < o.lo;
@@ -79,6 +90,9 @@ struct uint128_t {
   constexpr bool operator>=(const uint128_t &o) const noexcept { return !(*this < o); }
 };
 
+/**
+ * @brief Helper functions to extract the lowest 64-bit word across integral types and uint128_t.
+ */
 inline uint64_t get_lo_word(uint32_t w) noexcept { return w; }
 inline uint64_t get_lo_word(uint64_t w) noexcept { return w; }
 inline uint64_t get_lo_word(const uint128_t &w) noexcept { return w.lo; }
@@ -157,10 +171,16 @@ constexpr int KEY_WORDS_NEEDED = (KEY_TOTAL_BITS + BITS_FOR_POSITIONS - 1) / BIT
 
 static_assert(KEY_WORDS_NEEDED <= 3, "Internal error: key requires more than 3 words");
 
+/**
+ * @brief Multi-word Space-Filling Curve (SFC) key container.
+ *
+ * Holds up to 3 words {hs, is, ls} of type MyIntPosType to represent 3D SFC keys
+ * spanning up to 3 x BITS_PER_DIMENSION bits.
+ */
 struct sfc_key {
-  MyIntPosType hs = {};
-  MyIntPosType is = {};
-  MyIntPosType ls = {};
+  MyIntPosType hs = {};  ///< High word
+  MyIntPosType is = {};  ///< Intermediate word
+  MyIntPosType ls = {};  ///< Low word
 
   constexpr bool operator<(const sfc_key &o) const noexcept {
     if (hs != o.hs) return hs < o.hs;
@@ -201,6 +221,9 @@ inline sfc_key sfc_key_max_impl(uint32_t *) noexcept {
 }
 #endif
 
+/**
+ * @brief Returns the maximum possible sfc_key value.
+ */
 inline sfc_key sfc_key_max() noexcept {
   MyIntPosType *tag = nullptr;
   return sfc_key_max_impl(tag);
@@ -208,9 +231,16 @@ inline sfc_key sfc_key_max() noexcept {
 
 #if (3 * BITS_PER_DIMENSION) <= 64
 using sort_key_t = uint64_t;
+/**
+ * @brief Extracts a 64-bit primitive sort key for high-performance single-pass GPU radix sort.
+ * @note Used when KEY_TOTAL_BITS <= 64. For 64-bit integer positions (MyIntPosType = uint64_t),
+ *       returns k.ls directly since the 63-bit key resides entirely in k.ls.
+ */
 inline sort_key_t to_sort_key(const sfc_key &k) noexcept {
   if constexpr (std::is_same_v<MyIntPosType, uint32_t>) {
     return (static_cast<uint64_t>(k.is) << 32) | static_cast<uint64_t>(k.ls);
+  } else if constexpr (std::is_same_v<MyIntPosType, uint64_t>) {
+    return k.ls;
   } else {
     return get_lo_word(k.ls);
   }
@@ -220,6 +250,12 @@ using sort_key_t = sfc_key;
 inline sort_key_t to_sort_key(const sfc_key &k) noexcept { return k; }
 #endif
 
+/**
+ * @brief Extracts the top m bits of an sfc_key as a bucket identifier for domain decomposition.
+ * @param[in] k Space-filling curve key.
+ * @param[in] m Number of top bits to extract.
+ * @return 32-bit bucket identifier.
+ */
 inline uint32_t extract_bucket_id(const sfc_key &k, int m) noexcept {
 #if (3 * BITS_PER_DIMENSION) <= 64
   uint64_t sort_k = to_sort_key(k);
@@ -278,6 +314,9 @@ inline uint64_t top3_to_bottom(uint32_t w) noexcept { return w >> 29; }
 inline uint64_t top3_to_bottom(uint64_t w) noexcept { return w >> 61; }
 inline uint64_t top3_to_bottom(const uint128_t &w) noexcept { return w.top3(); }
 
+/**
+ * @brief Pushes 3 bits of subpixel octant index into the multi-word sfc_key shift-register {hs, is, ls}.
+ */
 inline void key_push_3bits(sfc_key &key, uint8_t chunk) noexcept {
   key.hs <<= 3;
   key.hs |= top3_to_bottom(key.is);
@@ -290,14 +329,19 @@ inline void key_push_3bits(sfc_key &key, uint8_t chunk) noexcept {
 }
 
 // ================================================================
-// SECTION 8: Quantization
+// SECTION 8: Quantization (IEEE 754 Bit Reinterpretation)
 // ================================================================
 
+/**
+ * @brief Quantizes a normalized floating-point coordinate mapped to [1.0, 2.0) into discrete integer bits.
+ * @note Reinterprets IEEE 754 double mantissa bits using sycl::bit_cast to perform fast hardware quantization.
+ */
 inline uint32_t convert_to_sfc1d_impl(double d, uint32_t * /*tag*/) noexcept {
   const uint64_t bits = sycl::bit_cast<uint64_t>(d);
-  constexpr int shift = (52 > BITS_PER_DIMENSION) ? (52 - BITS_PER_DIMENSION) : 0;
+  constexpr int b_dim = (BITS_PER_DIMENSION < 52) ? BITS_PER_DIMENSION : 52;
+  constexpr int shift = 52 - b_dim;
   constexpr uint32_t mask = (BITS_PER_DIMENSION < 32) ? static_cast<uint32_t>((1ULL << BITS_PER_DIMENSION) - 1u) : 0xFFFFFFFFu;
-  return static_cast<uint32_t>((bits >> shift) & mask);
+  return static_cast<uint32_t>(((bits & 0x000FFFFFFFFFFFFFull) >> shift) & mask);
 }
 
 inline uint64_t convert_to_sfc1d_impl(double d, uint64_t * /*tag*/) noexcept {
@@ -334,6 +378,9 @@ inline MyIntPosType convert_to_sfc1d(float f) noexcept {
   return convert_to_sfc1d_impl(f, tag);
 }
 
+/**
+ * @brief Maps normalized float in [0.0, 1.0) into the biased IEEE 754 exponent range [1.0, 2.0) and quantizes.
+ */
 template <typename FloatT>
 inline MyIntPosType quantize_coord(FloatT normalized) noexcept {
   constexpr double upper = 0x1.fffffffffffffp+0;
@@ -342,9 +389,66 @@ inline MyIntPosType quantize_coord(FloatT normalized) noexcept {
 }
 
 // ================================================================
-// SECTION 9: Core encoder
+// SECTION 8.5: Conversion Utilities between Float & Integer Reps
 // ================================================================
 
+/**
+ * @brief Converts a normalized floating-point coordinate in [0, 1) into an integer representation.
+ */
+template <typename FloatT = double>
+inline MyIntPosType float_to_int_rep(FloatT normalized) noexcept {
+  return quantize_coord(normalized);
+}
+
+/**
+ * @brief Converts a physical floating-point coordinate into an integer representation relative to domain min_val.
+ */
+template <typename FloatT>
+inline MyIntPosType float_to_int_rep(FloatT val, FloatT min_val, FloatT inv_dx) noexcept {
+  constexpr double clamp_upper = 0x1.fffffffffffffp+0;
+  double nx = sycl::clamp((static_cast<double>(val) - static_cast<double>(min_val)) * static_cast<double>(inv_dx), 0.0, clamp_upper);
+  return quantize_coord(nx);
+}
+
+/**
+ * @brief Converts an integer coordinate representation back to a normalized float in [0, 1).
+ * @note When BITS_PER_DIMENSION > 52 with 64-bit integer coordinates, double conversion is lossy
+ *       due to IEEE 754 double 52-bit mantissa precision limits.
+ */
+inline double int_rep_to_float(MyIntPosType int_val) noexcept {
+#if defined(POSITIONS_IN_32BIT)
+  uint64_t mantissa = static_cast<uint64_t>(int_val) << (52 - BITS_PER_DIMENSION);
+  uint64_t bits = (1023ULL << 52) | mantissa;
+  return sycl::bit_cast<double>(bits) - 1.0;
+#elif defined(POSITIONS_IN_64BIT)
+  constexpr int b_dim = (BITS_PER_DIMENSION < 52) ? BITS_PER_DIMENSION : 52;
+  uint64_t mantissa = (int_val & ((1ULL << b_dim) - 1ULL)) << (52 - b_dim);
+  uint64_t bits = (1023ULL << 52) | mantissa;
+  return sycl::bit_cast<double>(bits) - 1.0;
+#else
+  uint64_t mantissa = int_val.hi >> (64 - 52);
+  uint64_t bits = (1023ULL << 52) | mantissa;
+  return sycl::bit_cast<double>(bits) - 1.0;
+#endif
+}
+
+/**
+ * @brief Converts an integer coordinate representation back to physical floating-point coordinates.
+ */
+template <typename FloatT>
+inline double int_rep_to_float(MyIntPosType int_val, FloatT min_val, FloatT dx) noexcept {
+  double norm = int_rep_to_float(int_val);
+  return static_cast<double>(min_val) + norm * static_cast<double>(dx);
+}
+
+// ================================================================
+// SECTION 9: Core AREPO Peano-Hilbert 3D Encoder
+// ================================================================
+
+/**
+ * @brief Encodes 3D integer coordinates into a multi-word Peano-Hilbert sfc_key.
+ * @note Iteratively reflects and rotates coordinate octants using AREPO rottable3 and subpix3 lookup tables.
+ */
 template <typename PosType>
 inline sfc_key sfc_encode3D(PosType px, PosType py, PosType pz) noexcept {
   sfc_key key = {};

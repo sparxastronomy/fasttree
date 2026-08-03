@@ -3,18 +3,26 @@
 The project includes an extensive test suite verifying the functional correctness, structural topology, and distributed MPI capabilities of the HLBVH implementation. All tests are located in the `test/` directory.
 
 ## 1. Core Integration Test (`main.cpp`)
-**Target:** `fasttree`
-**Purpose:** Verifies the complete end-to-end functionality of the library locally.
+**Target:** `fasttree.exe`
+**Purpose:** Verifies the complete end-to-end functionality of the library locally across floating-point and integer coordinate representations.
 **Execution:**
 ```bash
-./fasttree
+# Floating-point build
+cd build_cpu && ./fasttree.exe
+
+# 32-bit, 64-bit, and 128-bit integer coordinate builds
+cd build_int32 && ./fasttree.exe
+cd build_int64 && ./fasttree.exe
+cd build_int128 && ./fasttree.exe
 ```
 **Test Workflow:**
-1. Generates 1,000 dummy particles.
-2. Executes `build_bvh` to compute Morton codes, sort the points, and build the `TreeSoA` structure.
-3. Issues a `range_query` for particles within a fixed radius.
-4. Uses a CPU-based brute-force distance calculation to compute the expected particle count and validates the GPU tree results against it.
-5. Executes a `knn_query` and verifies the returned distances are sorted and logically correct.
+1. Generates a deterministic $10 \times 10 \times 10 = 1,000$ particle 3D grid across $[0.0, 100.0]^3$.
+2. In integer modes (`FASTTREE_INTEGER_COORDS`), converts positions to discrete integer representations using `float_to_int_rep()`.
+3. Executes `build_bvh` to compute SFC keys (Morton/Peano-Hilbert), sort points, and build the `TreeSoA` structure.
+4. Validates strict SFC key monotonicity across all sorted particles.
+5. Issues a `range_query` for particles within a fixed radius.
+6. Uses CPU-based brute-force distance calculation to compute the expected particle count and validates the GPU tree results against it.
+7. Executes a `knn_query` for $k=5$, printing physical floating-point coordinates and distances, and verifying identical nearest particle IDs across all coordinate representation builds.
 
 ---
 

@@ -695,7 +695,7 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
 
   // 1. Construct internal nodes (Karras 2012)
   auto delta = [=](int i, int j) {
-    if (j < 0 || j >= (int)n) return -1;
+    if (j < 0 || static_cast<size_t>(j) >= n) return -1;
     sfc_key k_i = dev_keys[i];
     sfc_key k_j = dev_keys[j];
     if (k_i != k_j) return get_common_prefix_length(k_i, k_j);
@@ -879,6 +879,23 @@ struct PriorityQueue {
   }
 };
 
+/**
+ * @brief Computes the minimum squared distance between a 3D query point and an axis-aligned bounding box.
+ *
+ * @tparam T Coordinate type (float, double, or integer position type).
+ * @param[in] px Query point x-coordinate.
+ * @param[in] py Query point y-coordinate.
+ * @param[in] pz Query point z-coordinate.
+ * @param[in] bmin_x Box minimum x.
+ * @param[in] bmax_x Box maximum x.
+ * @param[in] bmin_y Box minimum y.
+ * @param[in] bmax_y Box maximum y.
+ * @param[in] bmin_z Box minimum z.
+ * @param[in] bmax_z Box maximum z.
+ * @return Squared distance from the query point to the closest point on the bounding box.
+ * @note In integer coordinate mode (FASTTREE_INTEGER_COORDS), coordinates are converted to normalized doubles in [0, 1)
+ *       via int_rep_to_float() before computing differences, returning normalized squared distance in [0, 3].
+ */
 template <typename T>
 inline auto node_distance_sq(T px, T py, T pz, T bmin_x, T bmax_x, T bmin_y, T bmax_y, T bmin_z, T bmax_z) {
   if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
@@ -886,21 +903,17 @@ inline auto node_distance_sq(T px, T py, T pz, T bmin_x, T bmax_x, T bmin_y, T b
     T dy = sycl::fmax(bmin_y - py, sycl::fmax(T(0.0), py - bmax_y));
     T dz = sycl::fmax(bmin_z - pz, sycl::fmax(T(0.0), pz - bmax_z));
     return dx * dx + dy * dy + dz * dz;
-  } else if constexpr (std::is_same_v<T, uint128_t>) {
-    auto diff = [](const uint128_t &a, const uint128_t &b) -> double {
-      uint128_t d = a - b;
-      return static_cast<double>(d);
-    };
-    double dx = (px < bmin_x) ? diff(bmin_x, px) : ((bmax_x < px) ? diff(px, bmax_x) : 0.0);
-    double dy = (py < bmin_y) ? diff(bmin_y, py) : ((bmax_y < py) ? diff(py, bmax_y) : 0.0);
-    double dz = (pz < bmin_z) ? diff(bmin_z, pz) : ((bmax_z < pz) ? diff(pz, bmax_z) : 0.0);
-    return dx * dx + dy * dy + dz * dz;
   } else {
+    // Step 1: Map integer coordinates to normalized double space [0, 1)
     auto diff = [](T val, T bmin, T bmax) -> double {
-      if (val < bmin) return static_cast<double>(bmin - val);
-      if (val > bmax) return static_cast<double>(val - bmax);
+      double val_f = int_rep_to_float(val);
+      double bmin_f = int_rep_to_float(bmin);
+      double bmax_f = int_rep_to_float(bmax);
+      if (val_f < bmin_f) return bmin_f - val_f;
+      if (val_f > bmax_f) return val_f - bmax_f;
       return 0.0;
     };
+    // Step 2: Compute Euclidean coordinate differences in normalized space
     double dx = diff(px, bmin_x, bmax_x);
     double dy = diff(py, bmin_y, bmax_y);
     double dz = diff(pz, bmin_z, bmax_z);
@@ -996,12 +1009,14 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
            auto l_d2 = node_distance_sq(px, py, pz, p_min_x[l], p_max_x[l], p_min_y[l], p_max_y[l], p_min_z[l], p_max_z[l]);
            auto r_d2 = node_distance_sq(px, py, pz, p_min_x[r], p_max_x[r], p_min_y[r], p_max_y[r], p_min_z[r], p_max_z[r]);
 
-           if (l_d2 < r_d2) {
-             stack[stack_ptr++] = r;
-             stack[stack_ptr++] = l;
-           } else {
-             stack[stack_ptr++] = l;
-             stack[stack_ptr++] = r;
+           if (stack_ptr < MAX_STACK_DEPTH - 2) {
+             if (l_d2 < r_d2) {
+               stack[stack_ptr++] = r;
+               stack[stack_ptr++] = l;
+             } else {
+               stack[stack_ptr++] = l;
+               stack[stack_ptr++] = r;
+             }
            }
          }
        }
@@ -1012,7 +1027,11 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
        int out_idx = k - 1 - i;
        if (i < pq.count) {
          dev_results[offset + out_idx] = pq.indices[i];
+#if defined(FASTTREE_INTEGER_COORDS)
+         dev_result_dists[offset + out_idx] = float_to_int_rep(sycl::sqrt(pq.data[i]));
+#else
          dev_result_dists[offset + out_idx] = static_cast<coord_t>(sycl::sqrt(pq.data[i]));
+#endif
        } else {
          dev_results[offset + out_idx] = -1;
          dev_result_dists[offset + out_idx] = type_identity_max<coord_t>();
@@ -1045,6 +1064,8 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
  * @param[out] results Flat array containing results. Size: num_queries * max_results_per_query.
  * @param[out] result_counts Counts of matching particles found for each query. Size: num_queries.
  * @param[in] max_results_per_query Maximum number of matches to store per query.
+ * @note result_counts[i] records total matching particles found. If result_counts[i] > max_results_per_query,
+ *       the output results buffer is truncated to max_results_per_query.
  */
 inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, const coord_t *qy, const coord_t *qz, const coord_t *r_min,
                         const coord_t *r_max, int num_queries, int *results, int *result_counts, int max_results_per_query) {
@@ -1072,8 +1093,13 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
   q.parallel_for(sycl::range<1>(num_queries), [=](sycl::id<1> idx) {
      size_t qi = idx[0];
      coord_t px = dev_qx[qi], py = dev_qy[qi], pz = dev_qz[qi];
+#if defined(FASTTREE_INTEGER_COORDS)
+     double rm_d = int_rep_to_float(dev_r_min[qi]);
+     double RM_d = int_rep_to_float(dev_r_max[qi]);
+#else
      double rm_d = static_cast<double>(dev_r_min[qi]);
      double RM_d = static_cast<double>(dev_r_max[qi]);
+#endif
      double RM2 = RM_d * RM_d;
      double rm2 = rm_d * rm_d;
 
@@ -1121,9 +1147,14 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
              count++;
            }
          } else {
-           // Internal node, push children
-           stack[stack_ptr++] = p_right_child[node_idx];
-           stack[stack_ptr++] = p_left_child[node_idx];
+           // Internal node: traverse both children
+           int l = p_left_child[node_idx];
+           int r = p_right_child[node_idx];
+
+           if (stack_ptr < MAX_STACK_DEPTH - 2) {
+             stack[stack_ptr++] = r;
+             stack[stack_ptr++] = l;
+           }
          }
        }
      }
@@ -1157,6 +1188,10 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
 inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, TreeSoA &tree, BoundingBox<coord_t> *bbox = nullptr) {
   size_t n = p.pos_x.size();
   if (n == 0) return;
+
+  if (n > static_cast<size_t>(std::numeric_limits<int>::max() / 2)) {
+    throw std::runtime_error("Particle count n exceeds maximum supported tree size (INT_MAX / 2).");
+  }
 
   // 1. Single-Pass Host-to-Device Staging Buffer
   bool x_alloc = false, y_alloc = false, z_alloc = false;
