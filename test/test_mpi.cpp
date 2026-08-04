@@ -9,7 +9,20 @@ using namespace fasttree;
 
 // Dynamic MPI Datatype traits
 template <typename T>
-struct mpi_type_traits;
+struct mpi_type_traits {
+  static MPI_Datatype type() {
+    if constexpr (sizeof(T) == 1)
+      return MPI_UINT8_T;
+    else if constexpr (sizeof(T) == 2)
+      return MPI_UINT16_T;
+    else if constexpr (sizeof(T) == 4)
+      return MPI_UINT32_T;
+    else if constexpr (sizeof(T) == 8)
+      return MPI_UINT64_T;
+    else
+      return MPI_BYTE;
+  }
+};
 
 template <>
 struct mpi_type_traits<float> {
@@ -44,14 +57,14 @@ int main(int argc, char **argv) {
     coord_t *sx = sycl::malloc_shared<coord_t>(n, q);
     coord_t *sy = sycl::malloc_shared<coord_t>(n, q);
     coord_t *sz = sycl::malloc_shared<coord_t>(n, q);
-    uint64_t *smk = sycl::malloc_shared<uint64_t>(n, q);
+    sfc_key *smk = sycl::malloc_shared<sfc_key>(n, q);
 
     // Generate simple data
     for (int i = 0; i < n; ++i) {
       sx[i] = static_cast<coord_t>(i);
       sy[i] = static_cast<coord_t>(0.0);
       sz[i] = static_cast<coord_t>(0.0);
-      smk[i] = static_cast<uint64_t>(i);  // dummy sorted morton keys
+      smk[i] = static_cast<sfc_key>(i);  // dummy sorted keys
     }
 
     tree_ptr = new TreeSoA(q, n);

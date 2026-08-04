@@ -13,7 +13,10 @@ The behavior, space-filling curve encoding, precision, and hardware acceleration
 | CMake Cache Variable | Preprocessor Macro | Supported Values | Default | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `SFC_TYPE` | `SFC_TYPE_MORTON` <br> `SFC_TYPE_PEANO_HILBERT` | `MORTON`, `PEANO_HILBERT` | `MORTON` | Configures the underlying Space-Filling Curve (SFC) for spatial indexing and tree construction. |
-| `COORDS_TYPE` | `COORDS_TYPE_FLOAT` <br> `COORDS_TYPE_DOUBLE` | `FLOAT`, `DOUBLE` | `FLOAT` | Sets the precision type `coord_t` for particle coordinates and bounding boxes. |
+| `COORDS_REPRESENTATION` | `FASTTREE_INTEGER_COORDS` | `FLOAT`, `INTEGER` | `FLOAT` | Chooses between floating-point and integer coordinate representations. |
+| `COORDS_TYPE` | `COORDS_TYPE_FLOAT` <br> `COORDS_TYPE_DOUBLE` | `FLOAT`, `DOUBLE` | `FLOAT` | Sets the floating-point precision type `coord_t` (`float` or `double`) when floating-point coordinates are used. |
+| `POSITIONS_PRECISION` | `POSITIONS_IN_32BIT` <br> `POSITIONS_IN_64BIT` <br> `POSITIONS_IN_128BIT` | `32`, `64`, `128` | `32` | Sets integer position word precision (32-bit, 64-bit, or 128-bit) when `COORDS_REPRESENTATION` is `INTEGER`. |
+| `RETURN_ORIG_INDICES` | `RETURN_ORIG_INDICES` | `True`, `False` | `False` | When `True`, tree queries return original input particle IDs instead of sorted leaf position indices. |
 | `DCOMPOSITION_TYPE` | `DCOMPOSITION_TYPE_HISTOGRAM` <br> `DCOMPOSITION_TYPE_SAMPLING` | `HISTOGRAM`, `SAMPLING` | `HISTOGRAM` | Selects between histogram-based splitters and stride-based sampling for domain decomposition. |
 | `TARGET_GPU` | (Compiler Flags) | `nvidia`, `amd`, or empty (CPU) | (empty) | Adds target-specific SYCL compilation flags (e.g. for NVIDIA `nvptx64` with CUDA). |
 
@@ -99,16 +102,37 @@ To prevent GPU driver page faults and hangs on systems without Heterogeneous Mem
 
 ---
 
-## 4. Space-Filling Curves (SFC) Encoding
+## 4. Space-Filling Curves (SFC) & Coordinate Representation
 
-The spatial coordinates are projected onto a 1D SFC index representing a 3D grid layout. The dimensionality is fixed to `BITS_PER_DIMENSION = 21` (yielding 63 bits total, with bit 63 reserved as 0).
+The spatial coordinates can be represented either directly as floating-point numbers (`float`/`double`) or as discrete integer position representations (`uint32_t`, `uint64_t`, or `uint128_t`). Coordinates are mapped onto a 1D SFC index representing a 3D grid layout (`BITS_PER_DIMENSION = 21` for 32-bit positions, up to `BITS_PER_DIMENSION = 42` for 64-bit/128-bit positions).
+
+### `float_to_int_rep`
+```cpp
+template <typename FloatT = double>
+inline MyIntPosType float_to_int_rep(FloatT normalized) noexcept;
+
+template <typename FloatT>
+inline MyIntPosType float_to_int_rep(FloatT val, FloatT min_val, FloatT inv_dx) noexcept;
+```
+* **Description:** Converts a physical or normalized floating-point coordinate into its corresponding integer coordinate representation `MyIntPosType`.
+* **Methodology:** Normalizes `val` to $[0.0, 1.0)$, shifts to $[1.0, 2.0)$, extracts mantissa bits via `sycl::bit_cast<uint64_t>`, and stores quantized integer bits.
+
+### `int_rep_to_float`
+```cpp
+inline double int_rep_to_float(MyIntPosType int_val) noexcept;
+
+template <typename FloatT>
+inline double int_rep_to_float(MyIntPosType int_val, FloatT min_val, FloatT dx) noexcept;
+```
+* **Description:** Converts an integer coordinate representation `MyIntPosType` back to a normalized `double` in $[0.0, 1.0)$ or a physical coordinate.
+* **Precision Note:** When `BITS_PER_DIMENSION > 52` with 64-bit integer coordinates, double precision conversion is lossy due to IEEE 754 52-bit mantissa precision limits.
 
 ### `encode_to_sfc1d`
 ```cpp
 template <typename FloatT>
 inline sfc1D encode_to_sfc1d(FloatT val) noexcept;
 ```
-* **Methodology:** Implements the Arepo/Gadget double-to-int conversion. For normalized coordinate `val` in $[1.0, 2.0)$, it reinterprets the bits using `sycl::bit_cast` and shifts them to extract the top 21 bits of the mantissa field.
+* **Methodology:** For normalized coordinate `val` in $[1.0, 2.0)$, it reinterprets bits using `sycl::bit_cast` and shifts them to extract the top quantized bits of the mantissa field.
 
 ### `sfc_encode`
 ```cpp
@@ -117,9 +141,9 @@ inline void sfc_encode(sycl::queue &q, const FloatT *pos_x, const FloatT *pos_y,
                        size_t num_particles, sfc_key *keys, const BoundingBox<FloatT> &bbox);
 ```
 * **Algorithm:**
-  Normalizes coordinates into $[0.0, 1.0)$ relative to the bounding box, maps them to the range $[1.0, 2.0)$ by adding `1.0`, and calls `encode_to_sfc1d` to obtain 21-bit integer coordinates `(ix, iy, iz)`.
-  * **Morton Encoding (`SFC_TYPE_MORTON`):** Spreads the bits of `ix`, `iy`, and `iz` with 2-bit gaps using lookup masks (`spread3_u64`) and interleaves them.
-  * **Peano-Hilbert Encoding (`SFC_TYPE_PEANO_HILBERT`):** Invokes `sfc_encode3D` which iteratively rotates and reflects the coordinate octants to preserve better spatial locality.
+  Normalizes coordinates into $[0.0, 1.0)$ relative to the bounding box, maps them to $[1.0, 2.0)$, and calls `encode_to_sfc1d` to obtain integer coordinates `(ix, iy, iz)`.
+  * **Morton Encoding (`SFC_TYPE_MORTON`):** Spreads bits of `ix`, `iy`, and `iz` with 2-bit gaps using lookup masks (`spread3_u64`) and interleaves them.
+  * **Peano-Hilbert Encoding (`SFC_TYPE_PEANO_HILBERT`):** Invokes `sfc_encode3D` which iteratively rotates and reflects coordinate octants to preserve optimal spatial locality.
 
 ---
 
@@ -158,18 +182,25 @@ inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, TreeSoA &tree
 
 ## 6. Query APIs
 
-### `PriorityQueue<T, MAX_K>`
-A statically sized priority queue structure designed for device memory.
-* **Design:** Because dynamic memory allocations are not supported in device kernels, `PriorityQueue` stores results in a fixed-size array on the thread's registers/local stack.
-* **Sorting:** Uses insertion sort upon pushing a new element. If the queue is full, the incoming element replaces the head (which contains the largest distance value) if it is closer.
+### `RegisterMaxHeap` & `SharedMaxHeap`
+Fixed-capacity max-heap data structures designed for SYCL GPU execution.
+* **`RegisterMaxHeap<T, IndexT, MAX_K>` ($k \le 32$):** Resides entirely in GPU thread registers for zero-overhead local stack operations.
+* **`SharedMaxHeap<T, IndexT>` ($k > 32$):** Resides in work-group shared memory (`sycl::local_accessor`), using parallel bitonic sorting and reduction barriers across work-group threads to process large $k$ values efficiently.
 
 ### `knn_query`
 ```cpp
 inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, const coord_t *qy, const coord_t *qz, int k, int num_queries,
-                      int *results, coord_t *result_dists);
+                      size_t *results, coord_t *result_dists);
 ```
-* **Algorithm:** Launches a thread per query. Traverse the tree using a local stack array. Prunes branches if the queue is full and the squared distance to the node's bounding box is greater than the queue's current maximum distance.
-* **Heuristics:** Visited children are prioritized: the distance to both children's bounding boxes is calculated, and the closer child is pushed onto the stack last (so it is popped and evaluated first).
+* **Return Format:** Stores **squared distances ($d^2$)** directly in `result_dists` rather than Euclidean distance $d = \sqrt{d^2}$. This eliminates GPU kernel `sycl::sqrt()` instruction overhead and directly feeds Voronoi cell clipping and Delaunay triangulation algorithms.
+* **MaxHeap Dispatch:** Automatically dispatches to `knn_query_small_k` ($k \le 32$, register-resident) or `knn_query_large_k` ($k > 32$, shared-memory bitonic sort).
+* **Caller-Managed Scaling:** `knn_query` performs no internal scaling or division by $3.0$ on returned distance values, avoiding extra binary floating-point division round-off error.
+* **Decoding Formulas:**
+  * **Floating-Point Mode (`!FASTTREE_INTEGER_COORDS`):**
+    $$d_{\text{phys}}^2 = \text{result\_dists}[i]$$
+  * **Integer Coordinate Mode (`FASTTREE_INTEGER_COORDS`):**
+    $$d_{\text{norm}}^2 = \text{int\_rep\_to\_float}(\text{result\_dists}[i])$$
+    $$d_{\text{phys}}^2 = d_{\text{norm}}^2 \times (box\_max - box\_min)^2$$
 
 ### `range_query`
 ```cpp

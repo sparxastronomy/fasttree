@@ -92,8 +92,13 @@ The project is designed to be included as a Git submodule. The core implementati
   - The initial plan is listed in `PLAN.md` where domain decomposition is carried out to top level splitting. 
   - We also extend the benchmark suite to test rebuild  scaling -- which simulates the one time-step of a real NBody/Hydro simulation where the particles have been kicked and we need to rebuild the tree for the next step.
 
-- [ ] **v.1.0.0-beta3 :** This release should focus on dynamic load balancing and complete profiling of the code.
+- [x] **v.1.0.0-beta3 :** This release should focus on dynamic load balancing and complete profiling of the code.
   - We add an option to switch between Morton and Peano-Hilbert encoding as the underlying space-filling curve for tree construction.
   - We will implement a better load balancing scheme to ensure that the workload is evenly distributed across all GPUs/CPUs in a multi-GPU setting (i.e. when we are doing domain decomposition)
   - We will also perform complete profiling of the code (both CPU and GPU) to identify any bottlenecks and optimize performance further. This will include profiling GPU occupancy, register usage, shared memory usage, and other relevant metrics to ensure that we are maximizing the performance of our implementation on NVIDIA GPUs.
   - This release adds docstrings compatible with Doxygen, followoing the LSST style guide for commetents and function and class descriptions. 
+
+- [ ] **v.1.1.0 :** This release focuss on three major features:
+  - Moving from current implementation of the Peano-Hilbert encoding to AREPO like implementaion of Peano-Hilbert encoding.
+  - Adding support for using integer coordinates instead of floating point coordinates for tree construction. This allows for native downstream usage of this tree utility in cosmological simulations
+  - From from Priority Queue to a more efficient Max-Heap structure. This should improve the performance of the batched query.

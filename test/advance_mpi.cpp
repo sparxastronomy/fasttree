@@ -10,7 +10,20 @@ using namespace fasttree;
 
 // Dynamic MPI Datatype traits
 template <typename T>
-struct mpi_type_traits;
+struct mpi_type_traits {
+  static MPI_Datatype type() {
+    if constexpr (sizeof(T) == 1)
+      return MPI_UINT8_T;
+    else if constexpr (sizeof(T) == 2)
+      return MPI_UINT16_T;
+    else if constexpr (sizeof(T) == 4)
+      return MPI_UINT32_T;
+    else if constexpr (sizeof(T) == 8)
+      return MPI_UINT64_T;
+    else
+      return MPI_BYTE;
+  }
+};
 
 template <>
 struct mpi_type_traits<float> {
@@ -41,17 +54,27 @@ int main(int argc, char **argv) {
   // Domain setup:
   // Rank 0 owns [0, 100] in X. Halo region is [90, 100].
   // Rank 1 owns [100, 200] in X. Halo region is [100, 110].
-  coord_t domain_min = rank * static_cast<coord_t>(100.0);
+  double rank_min_val = rank * 100.0;
   coord_t halo_min, halo_max;
   int neighbor;
 
   if (rank == 0) {
+#if defined(FASTTREE_INTEGER_COORDS)
+    halo_min = float_to_int_rep(90.0, 0.0, 200.0);
+    halo_max = float_to_int_rep(100.0, 0.0, 200.0);
+#else
     halo_min = static_cast<coord_t>(90.0);
     halo_max = static_cast<coord_t>(100.0);
+#endif
     neighbor = 1;
   } else {
+#if defined(FASTTREE_INTEGER_COORDS)
+    halo_min = float_to_int_rep(100.0, 0.0, 200.0);
+    halo_max = float_to_int_rep(110.0, 0.0, 200.0);
+#else
     halo_min = static_cast<coord_t>(100.0);
     halo_max = static_cast<coord_t>(110.0);
+#endif
     neighbor = 0;
   }
 
@@ -62,9 +85,18 @@ int main(int argc, char **argv) {
 
   // Generate uniform particles across the domain
   for (int i = 0; i < n; ++i) {
-    p.pos_x[i] = domain_min + static_cast<coord_t>(i) / n * static_cast<coord_t>(100.0);
-    p.pos_y[i] = static_cast<coord_t>(rand()) / RAND_MAX * static_cast<coord_t>(100.0);
-    p.pos_z[i] = static_cast<coord_t>(rand()) / RAND_MAX * static_cast<coord_t>(100.0);
+    double px = rank_min_val + (static_cast<double>(i) / n) * 100.0;
+    double py = (static_cast<double>(rand()) / RAND_MAX) * 100.0;
+    double pz = (static_cast<double>(rand()) / RAND_MAX) * 100.0;
+#if defined(FASTTREE_INTEGER_COORDS)
+    p.pos_x[i] = float_to_int_rep(px, 0.0, 200.0);
+    p.pos_y[i] = float_to_int_rep(py, 0.0, 200.0);
+    p.pos_z[i] = float_to_int_rep(pz, 0.0, 200.0);
+#else
+    p.pos_x[i] = static_cast<coord_t>(px);
+    p.pos_y[i] = static_cast<coord_t>(py);
+    p.pos_z[i] = static_cast<coord_t>(pz);
+#endif
   }
 
   MPI_Barrier(MPI_COMM_WORLD);

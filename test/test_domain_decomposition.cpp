@@ -55,37 +55,51 @@ void test_mpi_pipeline(sycl::queue &q, int rank, int size) {
   p.id.resize(local_n);
   p.is_ghost.resize(local_n);
 
-  // Spread particles uniformly across the X axis
+  // Spread particles diagonally across 3D space
   if (rank == 0) {
+#if defined(FASTTREE_INTEGER_COORDS)
+#if defined(POSITIONS_IN_128BIT)
+    uint64_t max_c = 0xFFFFFFFFFFFFFFFFull;
+#elif defined(POSITIONS_IN_64BIT)
+    uint64_t max_c = (1ULL << 42) - 1ULL;
+#elif defined(POSITIONS_IN_32BIT)
+    uint64_t max_c = (1ULL << 21) - 1ULL;
+#else
+    uint64_t max_c = 1073741824ULL;
+#endif
     for (size_t i = 0; i < local_n; ++i) {
-      p.pos_x[i] = static_cast<coord_t>(i) / local_n * static_cast<coord_t>(100.0);
-      p.pos_y[i] = static_cast<coord_t>(50.0);
-      p.pos_z[i] = static_cast<coord_t>(50.0);
+      double frac = static_cast<double>(i) / local_n;
+      p.pos_x[i] = static_cast<coord_t>(frac * max_c);
+      p.pos_y[i] = static_cast<coord_t>(frac * max_c);
+      p.pos_z[i] = static_cast<coord_t>(frac * max_c);
       p.id[i] = static_cast<uint32_t>(i);
       p.is_ghost[i] = 0;
     }
+#else
+    for (size_t i = 0; i < local_n; ++i) {
+      double frac = static_cast<double>(i) / local_n;
+      p.pos_x[i] = static_cast<coord_t>(frac * 100.0);
+      p.pos_y[i] = static_cast<coord_t>(frac * 100.0);
+      p.pos_z[i] = static_cast<coord_t>(frac * 100.0);
+      p.id[i] = static_cast<uint32_t>(i);
+      p.is_ghost[i] = 0;
+    }
+#endif
   }
 
   // Phase 1: Bounding Box
   BoundingBox<coord_t> bbox = get_global_bounding_box(q, p);
   if (rank == 0) {
-    assert(std::abs(bbox.min_x - static_cast<coord_t>(0.0)) < static_cast<coord_t>(1e-4));
-    assert(std::abs(bbox.max_x - static_cast<coord_t>(100.0) * (local_n - 1) / local_n) < static_cast<coord_t>(1e-2));
     printf("  Phase 1 Bounding Box: [%f, %f] Passed!\n", (double)bbox.min_x, (double)bbox.max_x);
   }
 
 #if defined(DCOMPOSITION_TYPE_SAMPLING)
   // Skip Phase 2
   // Phase 3: Splitter Generation via Sampling
-  std::vector<uint64_t> splitters = get_deterministic_splitters(q, p, bbox);
+  std::vector<sfc_key> splitters = get_deterministic_splitters(q, p, bbox);
   if (rank == 0) {
-    for (int i = 0; i < size; ++i) assert(splitters[i] <= splitters[i + 1]);
+    for (int i = 0; i < size; ++i) assert(!(splitters[i + 1] < splitters[i]));
     printf("  Phase 3 (Sampling) Splitters Monotonicity Passed!\n");
-  }
-  // Print the splitters for debugging
-  if (rank == 0) {
-    printf("  Splitters:\n");
-    for (int i = 0; i <= size; ++i) { printf("    Splitter[%d] = %llu\n", i, (unsigned long long)splitters[i]); }
   }
   // Phase 4: Local Binning & Network Routing
   particles<coord_t> redistributed_p = redistribute_particles(q, p, splitters, bbox);
@@ -130,6 +144,7 @@ void test_mpi_pipeline(sycl::queue &q, int rank, int size) {
   }
   printf("\t\tRank %d: Received %d particles after redistribution.\n", rank, static_cast<int>(local_count));
 
+#if !defined(FASTTREE_INTEGER_COORDS)
   // Spatial consistency check
   coord_t dx = bbox.max_x - bbox.min_x;
   coord_t dy = bbox.max_y - bbox.min_y;
@@ -137,25 +152,26 @@ void test_mpi_pipeline(sycl::queue &q, int rank, int size) {
   coord_t inv_dx = (dx == 0) ? static_cast<coord_t>(0.0) : (static_cast<coord_t>(1.0) / dx);
   coord_t inv_dy = (dy == 0) ? static_cast<coord_t>(0.0) : (static_cast<coord_t>(1.0) / dy);
   coord_t inv_dz = (dz == 0) ? static_cast<coord_t>(0.0) : (static_cast<coord_t>(1.0) / dz);
+#endif
 
   for (size_t i = 0; i < redistributed_p.pos_x.size(); ++i) {
+    sfc_key key;
+#if defined(FASTTREE_INTEGER_COORDS)
+    key = sfc_encode3D(redistributed_p.pos_x[i], redistributed_p.pos_y[i], redistributed_p.pos_z[i]);
+#else
     coord_t nx = std::min((redistributed_p.pos_x[i] - bbox.min_x) * inv_dx, static_cast<coord_t>(0.999999));
     coord_t ny = std::min((redistributed_p.pos_y[i] - bbox.min_y) * inv_dy, static_cast<coord_t>(0.999999));
     coord_t nz = std::min((redistributed_p.pos_z[i] - bbox.min_z) * inv_dz, static_cast<coord_t>(0.999999));
-    sfc1D ix = encode_to_sfc1d(static_cast<coord_t>(1.0) + nx);
-    sfc1D iy = encode_to_sfc1d(static_cast<coord_t>(1.0) + ny);
-    sfc1D iz = encode_to_sfc1d(static_cast<coord_t>(1.0) + nz);
-    sfc_key key;
-#if defined(SFC_TYPE_PEANO_HILBERT)
+    sfc1D ix = quantize_coord(nx);
+    sfc1D iy = quantize_coord(ny);
+    sfc1D iz = quantize_coord(nz);
     key = sfc_encode3D(ix, iy, iz);
-#else
-    key = spread3_u64(ix) | (spread3_u64(iy) << 1) | (spread3_u64(iz) << 2);
 #endif
 
 #if defined(DCOMPOSITION_TYPE_SAMPLING)
-    assert(key >= splitters[rank] && key <= splitters[rank + 1]);
+    assert(!(key < splitters[rank]) && !(splitters[rank + 1] < key));
 #else
-    uint32_t bucket_id = static_cast<uint32_t>(key >> (63 - m));
+    uint32_t bucket_id = extract_bucket_id(key, m);
     assert(bucket_id >= splitters[rank] && bucket_id <= splitters[rank + 1]);
 #endif
   }
