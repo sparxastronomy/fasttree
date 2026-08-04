@@ -165,40 +165,49 @@ int main() {
     std::cout << "SUCCESS: Range query result count matches brute force." << std::endl;
   }
 
-  // 5. kNN Query Verification
-  int k = 5;
-  size_t *knn_res = sycl::malloc_shared<size_t>(k, q);
-  coord_t *knn_dists = sycl::malloc_shared<coord_t>(k, q);
-  knn_query(q, tree, dqx, dqy, dqz, k, 1, knn_res, knn_dists);
-  q.wait();
+  // 5. kNN Query Verification (Small k=5 and Large k=48)
+  for (int k : {5, 48}) {
+    size_t *knn_res = sycl::malloc_shared<size_t>(k, q);
+    coord_t *knn_dists = sycl::malloc_shared<coord_t>(k, q);
+    knn_query<128>(q, tree, dqx, dqy, dqz, k, 1, knn_res, knn_dists);
+    q.wait();
 
-  std::cout << "Testing kNN query for k=" << k << " (Query Point: " << float_qx << ", " << float_qy << ", " << float_qz << ")" << std::endl;
-  for (int i = 0; i < k; ++i) {
+    std::cout << "Testing kNN query for k=" << k << " (Query Point: " << float_qx << ", " << float_qy << ", " << float_qz << ")" << std::endl;
+    for (int i = 0; i < std::min(k, 5); ++i) {
 #if defined(RETURN_ORIG_INDICES)
-    uint32_t pid = static_cast<uint32_t>(knn_res[i]);
-    double phys_d2 = static_cast<double>(knn_dists[i]);
-    std::cout << "  Neighbor " << i << ": particle ID " << pid << ", dist^2 " << phys_d2 << ", dist " << std::sqrt(phys_d2) << std::endl;
+      uint32_t pid = static_cast<uint32_t>(knn_res[i]);
+#if defined(FASTTREE_INTEGER_COORDS)
+      double norm_d2 = int_rep_to_float(knn_dists[i]);
+      double phys_d2 = norm_d2 * (box_max - box_min) * (box_max - box_min);
 #else
-    size_t leaf_idx = (n - 1) + knn_res[i];
-    uint32_t pid = tree.id[leaf_idx];
+      double phys_d2 = static_cast<double>(knn_dists[i]);
+#endif
+      std::cout << "  Neighbor " << i << ": particle ID " << pid << ", dist^2 " << phys_d2 << ", dist " << std::sqrt(phys_d2) << std::endl;
+#else
+      size_t leaf_idx = (n - 1) + knn_res[i];
+      uint32_t pid = tree.id[leaf_idx];
 
 #if defined(FASTTREE_INTEGER_COORDS)
-    double px = int_rep_to_float(tree.min_x[leaf_idx], box_min, box_max - box_min);
-    double py = int_rep_to_float(tree.min_y[leaf_idx], box_min, box_max - box_min);
-    double pz = int_rep_to_float(tree.min_z[leaf_idx], box_min, box_max - box_min);
-    double norm_d2 = int_rep_to_float(knn_dists[i]);
-    double phys_d2 = norm_d2 * (box_max - box_min) * (box_max - box_min);
-    double phys_dist = std::sqrt(phys_d2);
+      double px = int_rep_to_float(tree.min_x[leaf_idx], box_min, box_max - box_min);
+      double py = int_rep_to_float(tree.min_y[leaf_idx], box_min, box_max - box_min);
+      double pz = int_rep_to_float(tree.min_z[leaf_idx], box_min, box_max - box_min);
+      double norm_d2 = int_rep_to_float(knn_dists[i]);
+      double phys_d2 = norm_d2 * (box_max - box_min) * (box_max - box_min);
+      double phys_dist = std::sqrt(phys_d2);
 #else
-    double px = static_cast<double>(tree.min_x[leaf_idx]);
-    double py = static_cast<double>(tree.min_y[leaf_idx]);
-    double pz = static_cast<double>(tree.min_z[leaf_idx]);
-    double phys_d2 = static_cast<double>(knn_dists[i]);
-    double phys_dist = std::sqrt(phys_d2);
+      double px = static_cast<double>(tree.min_x[leaf_idx]);
+      double py = static_cast<double>(tree.min_y[leaf_idx]);
+      double pz = static_cast<double>(tree.min_z[leaf_idx]);
+      double phys_d2 = static_cast<double>(knn_dists[i]);
+      double phys_dist = std::sqrt(phys_d2);
 #endif
 
-    std::cout << "  Neighbor " << i << ": particle ID " << pid << ", pos (" << px << ", " << py << ", " << pz << "), dist^2 " << phys_d2 << ", dist " << phys_dist << std::endl;
+      std::cout << "  Neighbor " << i << ": particle ID " << pid << ", pos (" << px << ", " << py << ", " << pz << "), dist^2 " << phys_d2
+                << ", dist " << phys_dist << std::endl;
 #endif
+    }
+    sycl::free(knn_res, q);
+    sycl::free(knn_dists, q);
   }
 
   // Cleanup
@@ -210,8 +219,6 @@ int main() {
   sycl::free(dRM, q);
   sycl::free(res, q);
   sycl::free(res_cnt, q);
-  sycl::free(knn_res, q);
-  sycl::free(knn_dists, q);
 
   return success ? 0 : 1;
 }

@@ -22,7 +22,7 @@ cd build_int128 && ./fasttree.exe
 4. Validates strict SFC key monotonicity across all sorted particles.
 5. Issues a `range_query` for particles within a fixed radius.
 6. Uses CPU-based brute-force distance calculation to compute the expected particle count and validates the GPU tree results against it.
-7. Executes a `knn_query` for $k=5$, printing physical floating-point coordinates and distances, and verifying identical nearest particle IDs across all coordinate representation builds.
+7. Executes `knn_query` for both small $k=5$ ($k \le 32$, register-resident `RegisterMaxHeap`) and large $k=48$ ($k > 32$, shared-memory bitonic sort `SharedMaxHeap`), printing physical floating-point coordinates and squared distances, and verifying identical nearest particle IDs and ascending squared distances across floating-point and integer coordinate representation builds.
 
 ---
 

@@ -90,6 +90,11 @@ struct uint128_t {
   constexpr bool operator>=(const uint128_t &o) const noexcept { return !(*this < o); }
 };
 
+inline std::ostream &operator<<(std::ostream &os, const uint128_t &v) {
+  if (v.hi == 0) return os << v.lo;
+  return os << "0x" << std::hex << v.hi << std::setfill('0') << std::setw(16) << v.lo << std::dec;
+}
+
 /**
  * @brief Helper functions to extract the lowest 64-bit word across integral types and uint128_t.
  */

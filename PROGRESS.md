@@ -3,6 +3,9 @@
 **Target release version:** v.1.2.0 (Planned)
 
 ## Completed Tasks
+- [x] Release v1.2.0: MaxHeap Migration & Unified KNN Query Dispatch (2026-08-04): Created `src/maxheap.hpp` containing `RegisterMaxHeap` ($k \le 32$, register-resident) and `SharedMaxHeap` ($k > 32$, shared-memory with parallel bitonic sorting). Refactored `knn_query` in `src/hlbvh.hpp` to dispatch based on $k$, returning squared distance $d^2$ directly. Validated across `build_cpu`, `build_int32`, `build_int64`, and `build_int128` target configurations.
+- [x] Release v1.2.0: Caller-Managed Distance Scaling (2026-08-04): Removed internal `/ 3.0` division in `knn_query` to eliminate non-exact binary floating-point division round-off error, leaving distance scaling to caller code. Updated `docs/API_REFERENCE.md` and `test/main.cpp`.
+- [x] Release v1.2.0: API Reference Documentation Update for MaxHeap & Distance Squared Normalization (2026-08-04): Updated Section 6 of `docs/API_REFERENCE.md` to document `RegisterMaxHeap`, `SharedMaxHeap`, squared distance return format, and integer coordinate 1/3.0 normalization factor decoding formulas.
 - [x] Release v1.1.0 Phase 1: AREPO Peano-Hilbert SFC using lookup tables (`rottable3`, `subpix3`, multi-word `sfc_key`, `uint128_t` emulation struct) (2026-08-02)
 - [x] Release v1.1.0 Phase 1: Compile-time choice between floating-point vs integer coordinate representations (`FLOAT` / `INTEGER`) via CMake (`FASTTREE_INTEGER_COORDS`, `POSITIONS_IN_32BIT`, `POSITIONS_IN_64BIT`, `POSITIONS_IN_128BIT`) (2026-08-02)
 - [x] Release v1.1.0 Phase 1: Multi-precision tree construction (`hlbvh.hpp`), domain decomposition (`domain_decomposition.hpp`), and test suite (`main.cpp`, `test_domain_decomposition.cpp`) support for multi-word `sfc_key` and integer positions (2026-08-02)
@@ -12,6 +15,7 @@
 - [x] Release v1.1.0 Phase 1: Final Code Review Resolution (2026-08-03): Fixed delta lambda `size_t` overflow guard (Bug 4), added max particle size guard (`n < INT_MAX / 2`) (Bug 5), documented 64-bit float conversion precision limit for `BITS_PER_DIMENSION > 52` (Bug 6), unified `phys_dist` calculation via `int_rep_to_float` in `main.cpp` (Bug 7), and verified exact brute-force range query match across all targets.
 - [x] Release v1.1.0 Phase 1: API & Testing Documentation Updates (2026-08-03): Updated `docs/API_REFERENCE.md` and `docs/TESTING.md` with coordinate representation CMake flags, `float_to_int_rep` / `int_rep_to_float` utility specifications, precision notes, and multi-build execution instructions.
 - [x] Release v1.1.0 Phase 1: Complete In-Code Function Docstrings & Step Notes (2026-08-03): Added Doxygen docstrings to all functions/structs in `hlbvh.hpp` and `sfc.peano_hilbert.hpp`, succinct step comments for algorithms, and developer notes on precision limits, stack depth guards, and USM pointer handling.
+- [x] Release v1.1.0 Phase 1: kNN Query Direct Distance Squared ($d^2$) Return Optimization (2026-08-04): Updated `knn_query` in `hlbvh.hpp` to store $d^2$ directly in `result_dists` without GPU `sycl::sqrt` overhead, and updated `test/main.cpp` to convert integer/float $d^2$ to physical distance squared and physical distance.
 - [x] Basic Morton encoding/decoding (2026-05-07)
 - [x] Morton key sorting utility (2026-05-07)
 - [x] HLBVH Tree Construction (SoA, pointer-free) (2026-05-07)

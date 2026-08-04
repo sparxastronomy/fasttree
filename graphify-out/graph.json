@@ -68,6 +68,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "domain_decomposition.hpp"
     },
     {
@@ -78,6 +79,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_mpi_type_traits",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "mpi_type_traits"
     },
     {
@@ -88,6 +90,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_mpi_type_traits_float",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "mpi_type_traits<float>"
     },
     {
@@ -98,6 +101,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_mpi_type_traits_float_type",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": ".type()"
     },
     {
@@ -108,6 +112,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_hpp_mpi_datatype",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "mpi_datatype"
     },
     {
@@ -118,6 +123,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_mpi_type_traits_double",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "mpi_type_traits<double>"
     },
     {
@@ -128,6 +134,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_mpi_type_traits_double_type",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": ".type()"
     },
     {
@@ -138,6 +145,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_mpi_type_traits_uint32_t",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "mpi_type_traits<uint32_t>"
     },
     {
@@ -148,6 +156,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_mpi_type_traits_uint32_t_type",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": ".type()"
     },
     {
@@ -158,6 +167,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_mpi_type_traits_uint64_t",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "mpi_type_traits<uint64_t>"
     },
     {
@@ -168,6 +178,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_mpi_type_traits_uint64_t_type",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": ".type()"
     },
     {
@@ -178,6 +189,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_mpi_type_traits_uint128_t",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "mpi_type_traits<uint128_t>"
     },
     {
@@ -188,6 +200,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_mpi_type_traits_uint128_t_type",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": ".type()"
     },
     {
@@ -198,6 +211,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_get_global_bounding_box",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "get_global_bounding_box()"
     },
     {
@@ -208,6 +222,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_hpp_floatt",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "floatt"
     },
     {
@@ -218,6 +233,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_hpp_queue",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "queue"
     },
     {
@@ -228,6 +244,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_get_global_histogram",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "get_global_histogram()"
     },
     {
@@ -238,6 +255,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_hpp_vector",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "vector"
     },
     {
@@ -248,6 +266,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_generate_splitters",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "generate_splitters()"
     },
     {
@@ -258,6 +277,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_normalize_particles",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "normalize_particles()"
     },
     {
@@ -268,6 +288,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_get_deterministic_splitters",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "get_deterministic_splitters()"
     },
     {
@@ -278,6 +299,7 @@
       "_origin": "ast",
       "id": "src_domain_decomposition_exchange_halos",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "exchange_halos()"
     },
     {
@@ -288,16 +310,18 @@
       "_origin": "ast",
       "id": "src_hlbvh",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "hlbvh.hpp"
     },
     {
       "label": "particles",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L26",
+      "source_location": "L27",
       "_origin": "ast",
       "id": "src_hlbvh_particles",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "particles"
     },
     {
@@ -308,6 +332,7 @@
       "_origin": "ast",
       "id": "src_hlbvh_hpp_vector",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "vector"
     },
     {
@@ -318,86 +343,95 @@
       "_origin": "ast",
       "id": "t",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "t"
     },
     {
       "label": "pos_x",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L28",
+      "source_location": "L29",
       "_origin": "ast",
       "id": "src_hlbvh_particles_pos_x",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "pos_x"
     },
     {
       "label": "pos_y",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L28",
+      "source_location": "L29",
       "_origin": "ast",
       "id": "src_hlbvh_particles_pos_y",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "pos_y"
     },
     {
       "label": "pos_z",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L28",
+      "source_location": "L29",
       "_origin": "ast",
       "id": "src_hlbvh_particles_pos_z",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "pos_z"
     },
     {
       "label": "id",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L30",
+      "source_location": "L31",
       "_origin": "ast",
       "id": "src_hlbvh_particles_id",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "id"
     },
     {
       "label": "is_ghost",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L32",
+      "source_location": "L33",
       "_origin": "ast",
       "id": "src_hlbvh_particles_is_ghost",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "is_ghost"
     },
     {
       "label": "type_identity_min()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L47",
+      "source_location": "L48",
       "_origin": "ast",
       "id": "src_hlbvh_type_identity_min",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "type_identity_min()"
     },
     {
       "label": "type_identity_max()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L60",
+      "source_location": "L61",
       "_origin": "ast",
       "id": "src_hlbvh_type_identity_max",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "type_identity_max()"
     },
     {
       "label": "BoundingBox",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L80",
+      "source_location": "L81",
       "_origin": "ast",
       "id": "src_hlbvh_boundingbox",
-      "community": 6,
+      "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "boundingbox"
     },
     {
@@ -408,86 +442,95 @@
       "_origin": "ast",
       "id": "src_hlbvh_hpp_floatt",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "floatt"
     },
     {
       "label": "min_x",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L81",
+      "source_location": "L82",
       "_origin": "ast",
       "id": "src_hlbvh_boundingbox_min_x",
-      "community": 6,
+      "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "min_x"
     },
     {
       "label": "max_x",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L81",
+      "source_location": "L82",
       "_origin": "ast",
       "id": "src_hlbvh_boundingbox_max_x",
-      "community": 6,
+      "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "max_x"
     },
     {
       "label": "min_y",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L82",
+      "source_location": "L83",
       "_origin": "ast",
       "id": "src_hlbvh_boundingbox_min_y",
-      "community": 6,
+      "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "min_y"
     },
     {
       "label": "max_y",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L82",
+      "source_location": "L83",
       "_origin": "ast",
       "id": "src_hlbvh_boundingbox_max_y",
-      "community": 6,
+      "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "max_y"
     },
     {
       "label": "min_z",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L83",
+      "source_location": "L84",
       "_origin": "ast",
       "id": "src_hlbvh_boundingbox_min_z",
-      "community": 6,
+      "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "min_z"
     },
     {
       "label": "max_z",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L83",
+      "source_location": "L84",
       "_origin": "ast",
       "id": "src_hlbvh_boundingbox_max_z",
-      "community": 6,
+      "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "max_z"
     },
     {
       "label": ".BoundingBox()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L95",
+      "source_location": "L96",
       "_origin": "ast",
       "id": "src_hlbvh_boundingbox_boundingbox",
-      "community": 6,
+      "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": ".boundingbox()"
     },
     {
       "label": "ensure_device_readable()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L126",
+      "source_location": "L127",
       "_origin": "ast",
       "id": "src_hlbvh_ensure_device_readable",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "ensure_device_readable()"
     },
     {
@@ -498,56 +541,62 @@
       "_origin": "ast",
       "id": "src_hlbvh_hpp_queue",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "queue"
     },
     {
       "label": "ensure_device_writable()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L156",
+      "source_location": "L157",
       "_origin": "ast",
       "id": "src_hlbvh_ensure_device_writable",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "ensure_device_writable()"
     },
     {
       "label": "copy_back_and_free()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L181",
+      "source_location": "L182",
       "_origin": "ast",
       "id": "src_hlbvh_copy_back_and_free",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "copy_back_and_free()"
     },
     {
       "label": "free_device_readable()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L196",
+      "source_location": "L197",
       "_origin": "ast",
       "id": "src_hlbvh_free_device_readable",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "free_device_readable()"
     },
     {
       "label": "ieee754_traits",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L215",
+      "source_location": "L216",
       "_origin": "ast",
       "id": "src_hlbvh_ieee754_traits",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "ieee754_traits"
     },
     {
       "label": "ieee754_traits<float>",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L218",
+      "source_location": "L219",
       "_origin": "ast",
       "id": "src_hlbvh_ieee754_traits_float",
       "community": 7,
+      "community_name": "IEEE 754 Floating-Point Traits",
       "norm_label": "ieee754_traits<float>"
     },
     {
@@ -558,66 +607,73 @@
       "_origin": "ast",
       "id": "uint_type",
       "community": 7,
+      "community_name": "IEEE 754 Floating-Point Traits",
       "norm_label": "uint_type"
     },
     {
       "label": "mantissa_mask",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L220",
+      "source_location": "L221",
       "_origin": "ast",
       "id": "src_hlbvh_ieee754_traits_float_mantissa_mask",
       "community": 7,
+      "community_name": "IEEE 754 Floating-Point Traits",
       "norm_label": "mantissa_mask"
     },
     {
       "label": "mantissa_bits",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L221",
+      "source_location": "L222",
       "_origin": "ast",
       "id": "src_hlbvh_ieee754_traits_float_mantissa_bits",
       "community": 7,
+      "community_name": "IEEE 754 Floating-Point Traits",
       "norm_label": "mantissa_bits"
     },
     {
       "label": "ieee754_traits<double>",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L226",
+      "source_location": "L227",
       "_origin": "ast",
       "id": "src_hlbvh_ieee754_traits_double",
       "community": 7,
+      "community_name": "IEEE 754 Floating-Point Traits",
       "norm_label": "ieee754_traits<double>"
     },
     {
       "label": "mantissa_mask",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L228",
+      "source_location": "L229",
       "_origin": "ast",
       "id": "src_hlbvh_ieee754_traits_double_mantissa_mask",
       "community": 7,
+      "community_name": "IEEE 754 Floating-Point Traits",
       "norm_label": "mantissa_mask"
     },
     {
       "label": "mantissa_bits",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L229",
+      "source_location": "L230",
       "_origin": "ast",
       "id": "src_hlbvh_ieee754_traits_double_mantissa_bits",
       "community": 7,
+      "community_name": "IEEE 754 Floating-Point Traits",
       "norm_label": "mantissa_bits"
     },
     {
       "label": "encode_to_sfc1d()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L248",
+      "source_location": "L249",
       "_origin": "ast",
       "id": "src_hlbvh_encode_to_sfc1d",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "encode_to_sfc1d()"
     },
     {
@@ -628,16 +684,18 @@
       "_origin": "ast",
       "id": "src_hlbvh_hpp_sfc1d",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "sfc1d"
     },
     {
       "label": "get_common_prefix_length()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L280",
+      "source_location": "L281",
       "_origin": "ast",
       "id": "src_hlbvh_get_common_prefix_length",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "get_common_prefix_length()"
     },
     {
@@ -648,56 +706,62 @@
       "_origin": "ast",
       "id": "uint64_t",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "uint64_t"
     },
     {
       "label": "sfc_encode()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L351",
+      "source_location": "L352",
       "_origin": "ast",
       "id": "src_hlbvh_sfc_encode",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "sfc_encode()"
     },
     {
       "label": "compute_bbox()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L435",
+      "source_location": "L436",
       "_origin": "ast",
       "id": "src_hlbvh_compute_bbox",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "compute_bbox()"
     },
     {
       "label": "sfc_min()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L516",
+      "source_location": "L517",
       "_origin": "ast",
       "id": "src_hlbvh_sfc_min",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "sfc_min()"
     },
     {
       "label": "sfc_max()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L525",
+      "source_location": "L526",
       "_origin": "ast",
       "id": "src_hlbvh_sfc_max",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "sfc_max()"
     },
     {
       "label": "TreeSoA",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L546",
+      "source_location": "L547",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "treesoa"
     },
     {
@@ -708,287 +772,591 @@
       "_origin": "ast",
       "id": "src_hlbvh_hpp_coord_t",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "coord_t"
     },
     {
       "label": "min_x",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L547",
+      "source_location": "L548",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_min_x",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "min_x"
     },
     {
       "label": "max_x",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L547",
+      "source_location": "L548",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_max_x",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "max_x"
     },
     {
       "label": "min_y",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L548",
+      "source_location": "L549",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_min_y",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "min_y"
     },
     {
       "label": "max_y",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L548",
+      "source_location": "L549",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_max_y",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "max_y"
     },
     {
       "label": "min_z",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L549",
+      "source_location": "L550",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_min_z",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "min_z"
     },
     {
       "label": "max_z",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L549",
+      "source_location": "L550",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_max_z",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "max_z"
     },
     {
       "label": "left_child",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L550",
+      "source_location": "L551",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_left_child",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "left_child"
     },
     {
       "label": "right_child",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L551",
+      "source_location": "L552",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_right_child",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "right_child"
     },
     {
       "label": "parent",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L552",
+      "source_location": "L553",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_parent",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "parent"
     },
     {
       "label": "id",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L553",
+      "source_location": "L554",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_id",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "id"
     },
     {
       "label": "is_ghost",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L554",
+      "source_location": "L555",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_is_ghost",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "is_ghost"
     },
     {
       "label": "orig_idx",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L555",
+      "source_location": "L556",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_orig_idx",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "orig_idx"
     },
     {
       "label": "num_leaves",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L556",
+      "source_location": "L557",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_num_leaves",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "num_leaves"
     },
     {
       "label": "num_internal",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L557",
+      "source_location": "L558",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_num_internal",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "num_internal"
     },
     {
       "label": ".TreeSoA()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L565",
+      "source_location": "L566",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_treesoa",
-      "community": 4,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": ".treesoa()"
     },
     {
       "label": ".free()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L588",
+      "source_location": "L589",
       "_origin": "ast",
       "id": "src_hlbvh_treesoa_free",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": ".free()"
     },
     {
       "label": "sgn()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L611",
+      "source_location": "L612",
       "_origin": "ast",
       "id": "src_hlbvh_sgn",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "sgn()"
     },
     {
       "label": "build_tree()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L629",
+      "source_location": "L630",
       "_origin": "ast",
       "id": "src_hlbvh_build_tree",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "build_tree()"
-    },
-    {
-      "label": "PriorityQueue",
-      "file_type": "code",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L837",
-      "_origin": "ast",
-      "id": "src_hlbvh_priorityqueue",
-      "community": 1,
-      "norm_label": "priorityqueue"
-    },
-    {
-      "label": "data",
-      "file_type": "code",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L838",
-      "_origin": "ast",
-      "id": "src_hlbvh_priorityqueue_data",
-      "community": 1,
-      "norm_label": "data"
-    },
-    {
-      "label": "indices",
-      "file_type": "code",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L839",
-      "_origin": "ast",
-      "id": "src_hlbvh_priorityqueue_indices",
-      "community": 1,
-      "norm_label": "indices"
-    },
-    {
-      "label": "count",
-      "file_type": "code",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L840",
-      "_origin": "ast",
-      "id": "src_hlbvh_priorityqueue_count",
-      "community": 1,
-      "norm_label": "count"
-    },
-    {
-      "label": ".PriorityQueue()",
-      "file_type": "code",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L845",
-      "_origin": "ast",
-      "id": "src_hlbvh_priorityqueue_priorityqueue",
-      "community": 1,
-      "norm_label": ".priorityqueue()"
-    },
-    {
-      "label": ".push()",
-      "file_type": "code",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L854",
-      "_origin": "ast",
-      "id": "src_hlbvh_priorityqueue_push",
-      "community": 1,
-      "norm_label": ".push()"
     },
     {
       "label": "node_distance_sq()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L900",
+      "source_location": "L831",
       "_origin": "ast",
       "id": "src_hlbvh_node_distance_sq",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "node_distance_sq()"
+    },
+    {
+      "label": "knn_query_small_k()",
+      "file_type": "code",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L854",
+      "_origin": "ast",
+      "id": "src_hlbvh_knn_query_small_k",
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
+      "norm_label": "knn_query_small_k()"
+    },
+    {
+      "label": "knn_query_large_k()",
+      "file_type": "code",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L947",
+      "_origin": "ast",
+      "id": "src_hlbvh_knn_query_large_k",
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
+      "norm_label": "knn_query_large_k()"
     },
     {
       "label": "knn_query()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L942",
+      "source_location": "L1103",
       "_origin": "ast",
       "id": "src_hlbvh_knn_query",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "knn_query()"
     },
     {
       "label": "range_query()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1070",
+      "source_location": "L1152",
       "_origin": "ast",
       "id": "src_hlbvh_range_query",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "range_query()"
     },
     {
       "label": "build_bvh()",
       "file_type": "code",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1188",
+      "source_location": "L1270",
       "_origin": "ast",
       "id": "src_hlbvh_build_bvh",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "build_bvh()"
+    },
+    {
+      "label": "maxheap.hpp",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_maxheap",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "maxheap.hpp"
+    },
+    {
+      "label": "RegisterMaxHeap",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L34",
+      "_origin": "ast",
+      "id": "src_maxheap_registermaxheap",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "registermaxheap"
+    },
+    {
+      "label": "DistT",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "distt",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "distt"
+    },
+    {
+      "label": "dist",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L39",
+      "_origin": "ast",
+      "id": "src_maxheap_registermaxheap_dist",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "dist"
+    },
+    {
+      "label": "IdxT",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "idxt",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "idxt"
+    },
+    {
+      "label": "idx",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L40",
+      "_origin": "ast",
+      "id": "src_maxheap_registermaxheap_idx",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "idx"
+    },
+    {
+      "label": "count",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L41",
+      "_origin": "ast",
+      "id": "src_maxheap_registermaxheap_count",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "count"
+    },
+    {
+      "label": "DIST_MAX",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L43",
+      "_origin": "ast",
+      "id": "src_maxheap_registermaxheap_dist_max",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "dist_max"
+    },
+    {
+      "label": "IDX_NONE",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L44",
+      "_origin": "ast",
+      "id": "src_maxheap_registermaxheap_idx_none",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "idx_none"
+    },
+    {
+      "label": ".RegisterMaxHeap()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L49",
+      "_origin": "ast",
+      "id": "src_maxheap_registermaxheap_registermaxheap",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": ".registermaxheap()"
+    },
+    {
+      "label": ".should_prune()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L63",
+      "_origin": "ast",
+      "id": "src_maxheap_registermaxheap_should_prune",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": ".should_prune()"
+    },
+    {
+      "label": ".push()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L71",
+      "_origin": "ast",
+      "id": "src_maxheap_registermaxheap_push",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": ".push()"
+    },
+    {
+      "label": ".extract_sorted()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L90",
+      "_origin": "ast",
+      "id": "src_maxheap_registermaxheap_extract_sorted",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": ".extract_sorted()"
+    },
+    {
+      "label": ".sift_up()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L110",
+      "_origin": "ast",
+      "id": "src_maxheap_registermaxheap_sift_up",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": ".sift_up()"
+    },
+    {
+      "label": ".sift_down()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L119",
+      "_origin": "ast",
+      "id": "src_maxheap_registermaxheap_sift_down",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": ".sift_down()"
+    },
+    {
+      "label": ".swap_entries()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L132",
+      "_origin": "ast",
+      "id": "src_maxheap_registermaxheap_swap_entries",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": ".swap_entries()"
+    },
+    {
+      "label": "local_swap()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L162",
+      "_origin": "ast",
+      "id": "src_maxheap_local_swap",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "local_swap()"
+    },
+    {
+      "label": "local_accessor",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "local_accessor",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "local_accessor"
+    },
+    {
+      "label": "local_heap_sift_up()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L179",
+      "_origin": "ast",
+      "id": "src_maxheap_local_heap_sift_up",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "local_heap_sift_up()"
+    },
+    {
+      "label": "local_heap_sift_down()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L195",
+      "_origin": "ast",
+      "id": "src_maxheap_local_heap_sift_down",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "local_heap_sift_down()"
+    },
+    {
+      "label": "local_bitonic_sort()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L223",
+      "_origin": "ast",
+      "id": "src_maxheap_local_bitonic_sort",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "local_bitonic_sort()"
+    },
+    {
+      "label": "nd_item",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "nd_item",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "nd_item"
+    },
+    {
+      "label": "SharedMaxHeap",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L254",
+      "_origin": "ast",
+      "id": "src_maxheap_sharedmaxheap",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "sharedmaxheap"
+    },
+    {
+      "label": "DIST_MAX",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L258",
+      "_origin": "ast",
+      "id": "src_maxheap_sharedmaxheap_dist_max",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "dist_max"
+    },
+    {
+      "label": "IDX_NONE",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L259",
+      "_origin": "ast",
+      "id": "src_maxheap_sharedmaxheap_idx_none",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": "idx_none"
+    },
+    {
+      "label": ".init()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L266",
+      "_origin": "ast",
+      "id": "src_maxheap_sharedmaxheap_init",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": ".init()"
+    },
+    {
+      "label": ".should_prune()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L288",
+      "_origin": "ast",
+      "id": "src_maxheap_sharedmaxheap_should_prune",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": ".should_prune()"
+    },
+    {
+      "label": ".batch_insert()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L299",
+      "_origin": "ast",
+      "id": "src_maxheap_sharedmaxheap_batch_insert",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": ".batch_insert()"
+    },
+    {
+      "label": ".extract_sorted_k()",
+      "file_type": "code",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L342",
+      "_origin": "ast",
+      "id": "src_maxheap_sharedmaxheap_extract_sorted_k",
+      "community": 5,
+      "community_name": "Particle SoA & Field Storage",
+      "norm_label": ".extract_sorted_k()"
     },
     {
       "label": "sfc.morton.hpp",
@@ -998,6 +1366,7 @@
       "_origin": "ast",
       "id": "src_sfc_morton",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "sfc.morton.hpp"
     },
     {
@@ -1008,6 +1377,7 @@
       "_origin": "ast",
       "id": "src_sfc_morton_spread3_u64",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "spread3_u64()"
     },
     {
@@ -1018,6 +1388,7 @@
       "_origin": "ast",
       "id": "src_sfc_morton_hpp_sfc1d",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "sfc1d"
     },
     {
@@ -1028,6 +1399,7 @@
       "_origin": "ast",
       "id": "src_sfc_morton_compact3_u64",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "compact3_u64()"
     },
     {
@@ -1038,6 +1410,7 @@
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "sfc.peano_hilbert.hpp"
     },
     {
@@ -1048,6 +1421,7 @@
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_uint128_t",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "uint128_t"
     },
     {
@@ -1058,6 +1432,7 @@
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_uint128_t_lo",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "lo"
     },
     {
@@ -1068,6 +1443,7 @@
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_uint128_t_hi",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "hi"
     },
     {
@@ -1078,6 +1454,7 @@
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_uint128_t_uint128_t",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": ".uint128_t()"
     },
     {
@@ -1088,6 +1465,7 @@
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_uint128_t_operator",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": ".operator-()"
     },
     {
@@ -1098,26 +1476,29 @@
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_uint128_t_top3",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": ".top3()"
     },
     {
       "label": "get_lo_word()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L96",
+      "source_location": "L101",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_get_lo_word",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "get_lo_word()"
     },
     {
       "label": "sfc_key",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L180",
+      "source_location": "L185",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_sfc_key",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "sfc_key"
     },
     {
@@ -1128,76 +1509,84 @@
       "_origin": "ast",
       "id": "myintpostype",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "myintpostype"
     },
     {
       "label": "hs",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L181",
+      "source_location": "L186",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_sfc_key_hs",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "hs"
     },
     {
       "label": "is",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L182",
+      "source_location": "L187",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_sfc_key_is",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "is"
     },
     {
       "label": "ls",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L183",
+      "source_location": "L188",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_sfc_key_ls",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "ls"
     },
     {
       "label": ".operator<()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L185",
+      "source_location": "L190",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_sfc_key_operator",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": ".operator<()"
     },
     {
       "label": "sfc_key_max_impl()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L195",
+      "source_location": "L200",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_sfc_key_max_impl",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "sfc_key_max_impl()"
     },
     {
       "label": "sfc_key_max()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L227",
+      "source_location": "L232",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_sfc_key_max",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "sfc_key_max()"
     },
     {
       "label": "to_sort_key()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L239",
+      "source_location": "L244",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_to_sort_key",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "to_sort_key()"
     },
     {
@@ -1208,66 +1597,73 @@
       "_origin": "ast",
       "id": "sort_key_t",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "sort_key_t"
     },
     {
       "label": "extract_bucket_id()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L259",
+      "source_location": "L264",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_extract_bucket_id",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "extract_bucket_id()"
     },
     {
       "label": "top3_to_bottom()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L313",
+      "source_location": "L318",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_top3_to_bottom",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "top3_to_bottom()"
     },
     {
       "label": "key_push_3bits()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L320",
+      "source_location": "L325",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_key_push_3bits",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "key_push_3bits()"
     },
     {
       "label": "convert_to_sfc1d_impl()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L339",
+      "source_location": "L344",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_convert_to_sfc1d_impl",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "convert_to_sfc1d_impl()"
     },
     {
       "label": "convert_to_sfc1d()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L371",
+      "source_location": "L376",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_convert_to_sfc1d",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "convert_to_sfc1d()"
     },
     {
       "label": "quantize_coord()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L385",
+      "source_location": "L390",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_quantize_coord",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "quantize_coord()"
     },
     {
@@ -1278,36 +1674,40 @@
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_hpp_floatt",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "floatt"
     },
     {
       "label": "float_to_int_rep()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L399",
+      "source_location": "L404",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_float_to_int_rep",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "float_to_int_rep()"
     },
     {
       "label": "int_rep_to_float()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L418",
+      "source_location": "L423",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_int_rep_to_float",
-      "community": 2,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "int_rep_to_float()"
     },
     {
       "label": "sfc_encode3D()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L453",
+      "source_location": "L458",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_sfc_encode3d",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "sfc_encode3d()"
     },
     {
@@ -1318,46 +1718,51 @@
       "_origin": "ast",
       "id": "postype",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "postype"
     },
     {
       "label": "SortSingle",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L489",
+      "source_location": "L494",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_sortsingle",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "sortsingle"
     },
     {
       "label": "SortDouble",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L490",
+      "source_location": "L495",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_sortdouble",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "sortdouble"
     },
     {
       "label": "SortTriple",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L491",
+      "source_location": "L496",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_sorttriple",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "sorttriple"
     },
     {
       "label": "print_sfc_config()",
       "file_type": "code",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L499",
+      "source_location": "L504",
       "_origin": "ast",
       "id": "src_sfc_peano_hilbert_print_sfc_config",
       "community": 2,
+      "community_name": "Morton Encoding & Key Sorting",
       "norm_label": "print_sfc_config()"
     },
     {
@@ -1368,6 +1773,7 @@
       "_origin": "ast",
       "id": "test_advance_mpi",
       "community": 8,
+      "community_name": "MPI Datatype Traits & Communication",
       "norm_label": "advance_mpi.cpp"
     },
     {
@@ -1378,26 +1784,18 @@
       "_origin": "ast",
       "id": "test_advance_mpi_mpi_type_traits",
       "community": 8,
+      "community_name": "MPI Datatype Traits & Communication",
       "norm_label": "mpi_type_traits"
-    },
-    {
-      "label": "mpi_type_traits<float>",
-      "file_type": "code",
-      "source_file": "test/advance_mpi.cpp",
-      "source_location": "L16",
-      "_origin": "ast",
-      "id": "test_advance_mpi_mpi_type_traits_float",
-      "community": 8,
-      "norm_label": "mpi_type_traits<float>"
     },
     {
       "label": ".type()",
       "file_type": "code",
       "source_file": "test/advance_mpi.cpp",
-      "source_location": "L17",
+      "source_location": "L14",
       "_origin": "ast",
-      "id": "test_advance_mpi_mpi_type_traits_float_type",
+      "id": "test_advance_mpi_mpi_type_traits_type",
       "community": 8,
+      "community_name": "MPI Datatype Traits & Communication",
       "norm_label": ".type()"
     },
     {
@@ -1408,36 +1806,62 @@
       "_origin": "ast",
       "id": "test_advance_mpi_cpp_mpi_datatype",
       "community": 8,
+      "community_name": "MPI Datatype Traits & Communication",
       "norm_label": "mpi_datatype"
+    },
+    {
+      "label": "mpi_type_traits<float>",
+      "file_type": "code",
+      "source_file": "test/advance_mpi.cpp",
+      "source_location": "L29",
+      "_origin": "ast",
+      "id": "test_advance_mpi_mpi_type_traits_float",
+      "community": 8,
+      "community_name": "MPI Datatype Traits & Communication",
+      "norm_label": "mpi_type_traits<float>"
+    },
+    {
+      "label": ".type()",
+      "file_type": "code",
+      "source_file": "test/advance_mpi.cpp",
+      "source_location": "L30",
+      "_origin": "ast",
+      "id": "test_advance_mpi_mpi_type_traits_float_type",
+      "community": 8,
+      "community_name": "MPI Datatype Traits & Communication",
+      "norm_label": ".type()"
     },
     {
       "label": "mpi_type_traits<double>",
       "file_type": "code",
       "source_file": "test/advance_mpi.cpp",
-      "source_location": "L21",
+      "source_location": "L34",
       "_origin": "ast",
       "id": "test_advance_mpi_mpi_type_traits_double",
       "community": 8,
+      "community_name": "MPI Datatype Traits & Communication",
       "norm_label": "mpi_type_traits<double>"
     },
     {
       "label": ".type()",
       "file_type": "code",
       "source_file": "test/advance_mpi.cpp",
-      "source_location": "L22",
+      "source_location": "L35",
       "_origin": "ast",
       "id": "test_advance_mpi_mpi_type_traits_double_type",
       "community": 8,
+      "community_name": "MPI Datatype Traits & Communication",
       "norm_label": ".type()"
     },
     {
       "label": "main()",
       "file_type": "code",
       "source_file": "test/advance_mpi.cpp",
-      "source_location": "L25",
+      "source_location": "L38",
       "_origin": "ast",
       "id": "test_advance_mpi_main",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "main()"
     },
     {
@@ -1448,6 +1872,7 @@
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "benchmarkutils.hpp"
     },
     {
@@ -1458,6 +1883,7 @@
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_timer",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "timer"
     },
     {
@@ -1468,6 +1894,7 @@
       "_origin": "ast",
       "id": "time_point",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "time_point"
     },
     {
@@ -1478,6 +1905,7 @@
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_timer_start_time",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "start_time"
     },
     {
@@ -1488,6 +1916,7 @@
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_hpp_string",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "string"
     },
     {
@@ -1498,6 +1927,7 @@
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_timer_name",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "name"
     },
     {
@@ -1508,6 +1938,7 @@
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_timer_timer",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": ".timer()"
     },
     {
@@ -1517,7 +1948,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_timer_stop",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": ".stop()"
     },
     {
@@ -1528,6 +1960,7 @@
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_get_peak_rss",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "get_peak_rss()"
     },
     {
@@ -1537,7 +1970,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_particledata",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "particledata"
     },
     {
@@ -1547,7 +1981,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_hpp_vector",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "vector"
     },
     {
@@ -1557,7 +1992,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_particledata_pos_x",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "pos_x"
     },
     {
@@ -1567,7 +2003,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_particledata_pos_y",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "pos_y"
     },
     {
@@ -1577,7 +2014,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_particledata_pos_z",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "pos_z"
     },
     {
@@ -1587,7 +2025,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_particledata_vel_x",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "vel_x"
     },
     {
@@ -1597,7 +2036,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_particledata_vel_y",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "vel_y"
     },
     {
@@ -1607,7 +2047,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_particledata_vel_z",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "vel_z"
     },
     {
@@ -1617,7 +2058,8 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_particledata_masses",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "masses"
     },
     {
@@ -1627,7 +2069,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_particledata_count",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "count"
     },
     {
@@ -1638,6 +2081,7 @@
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_load_hdf5_data",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "load_hdf5_data()"
     },
     {
@@ -1648,6 +2092,7 @@
       "_origin": "ast",
       "id": "test_benchmark_benchmarkutils_print_benchmark_row",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "print_benchmark_row()"
     },
     {
@@ -1658,6 +2103,7 @@
       "_origin": "ast",
       "id": "test_benchmark_domain_decomposition_scaling",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "domain_decomposition_scaling.cpp"
     },
     {
@@ -1667,7 +2113,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "test_benchmark_domain_decomposition_scaling_get_hdf5_dataset_size",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "get_hdf5_dataset_size()"
     },
     {
@@ -1677,7 +2124,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "test_benchmark_domain_decomposition_scaling_cpp_string",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "string"
     },
     {
@@ -1687,7 +2135,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "test_benchmark_domain_decomposition_scaling_load_hdf5_data_slice",
-      "community": 5,
+      "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "load_hdf5_data_slice()"
     },
     {
@@ -1698,6 +2147,7 @@
       "_origin": "ast",
       "id": "test_benchmark_domain_decomposition_scaling_main",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "main()"
     },
     {
@@ -1708,6 +2158,7 @@
       "_origin": "ast",
       "id": "test_benchmark_gpu_sort_scaling",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "gpu_sort_scaling.cpp"
     },
     {
@@ -1718,6 +2169,7 @@
       "_origin": "ast",
       "id": "test_benchmark_gpu_sort_scaling_bm_gpusort_lazy",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "bm_gpusort_lazy()"
     },
     {
@@ -1728,6 +2180,7 @@
       "_origin": "ast",
       "id": "test_benchmark_gpu_sort_scaling_cpp_state",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "state"
     },
     {
@@ -1738,6 +2191,7 @@
       "_origin": "ast",
       "id": "test_benchmark_gpu_sort_scaling_cpp_string",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "string"
     },
     {
@@ -1748,6 +2202,7 @@
       "_origin": "ast",
       "id": "test_benchmark_gpu_sort_scaling_main",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "main()"
     },
     {
@@ -1758,6 +2213,7 @@
       "_origin": "ast",
       "id": "test_benchmark_knn_query_scaling",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "knn_query_scaling.cpp"
     },
     {
@@ -1768,6 +2224,7 @@
       "_origin": "ast",
       "id": "test_benchmark_knn_query_scaling_bm_knnquery_lazy",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "bm_knnquery_lazy()"
     },
     {
@@ -1778,6 +2235,7 @@
       "_origin": "ast",
       "id": "test_benchmark_knn_query_scaling_cpp_state",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "state"
     },
     {
@@ -1788,6 +2246,7 @@
       "_origin": "ast",
       "id": "test_benchmark_knn_query_scaling_cpp_string",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "string"
     },
     {
@@ -1798,6 +2257,7 @@
       "_origin": "ast",
       "id": "test_benchmark_knn_query_scaling_main",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "main()"
     },
     {
@@ -1812,6 +2272,7 @@
       "_origin": "ast",
       "id": "test_benchmark_profile_cpu",
       "community": 9,
+      "community_name": "CPU Profiling Scripts & Options",
       "norm_label": "profile_cpu.sh"
     },
     {
@@ -1826,6 +2287,7 @@
       "_origin": "ast",
       "id": "test_benchmark_profile_cpu_sh__entry",
       "community": 9,
+      "community_name": "CPU Profiling Scripts & Options",
       "norm_label": "profile_cpu.sh script"
     },
     {
@@ -1840,6 +2302,7 @@
       "_origin": "ast",
       "id": "test_benchmark_profile_cpu_usage",
       "community": 9,
+      "community_name": "CPU Profiling Scripts & Options",
       "norm_label": "usage()"
     },
     {
@@ -1854,6 +2317,7 @@
       "_origin": "ast",
       "id": "test_benchmark_profile_cpu_cleanup",
       "community": 9,
+      "community_name": "CPU Profiling Scripts & Options",
       "norm_label": "cleanup()"
     },
     {
@@ -1868,6 +2332,7 @@
       "_origin": "ast",
       "id": "test_benchmark_profile_cpu_check_tool",
       "community": 9,
+      "community_name": "CPU Profiling Scripts & Options",
       "norm_label": "check_tool()"
     },
     {
@@ -1882,6 +2347,7 @@
       "_origin": "ast",
       "id": "test_benchmark_profile_cpu_omp_places",
       "community": 9,
+      "community_name": "CPU Profiling Scripts & Options",
       "norm_label": "omp_places"
     },
     {
@@ -1896,6 +2362,7 @@
       "_origin": "ast",
       "id": "test_benchmark_profile_cpu_omp_proc_bind",
       "community": 9,
+      "community_name": "CPU Profiling Scripts & Options",
       "norm_label": "omp_proc_bind"
     },
     {
@@ -1910,6 +2377,7 @@
       "_origin": "ast",
       "id": "test_benchmark_profile_gpu",
       "community": 14,
+      "community_name": "GPU Profiling Tools",
       "norm_label": "profile_gpu.sh"
     },
     {
@@ -1924,6 +2392,7 @@
       "_origin": "ast",
       "id": "test_benchmark_profile_gpu_sh__entry",
       "community": 14,
+      "community_name": "GPU Profiling Tools",
       "norm_label": "profile_gpu.sh script"
     },
     {
@@ -1938,6 +2407,7 @@
       "_origin": "ast",
       "id": "test_benchmark_profile_gpu_usage",
       "community": 14,
+      "community_name": "GPU Profiling Tools",
       "norm_label": "usage()"
     },
     {
@@ -1952,6 +2422,7 @@
       "_origin": "ast",
       "id": "test_benchmark_profile_gpu_cleanup",
       "community": 14,
+      "community_name": "GPU Profiling Tools",
       "norm_label": "cleanup()"
     },
     {
@@ -1966,6 +2437,7 @@
       "_origin": "ast",
       "id": "test_benchmark_profile_gpu_check_tool",
       "community": 14,
+      "community_name": "GPU Profiling Tools",
       "norm_label": "check_tool()"
     },
     {
@@ -1976,6 +2448,7 @@
       "_origin": "ast",
       "id": "test_benchmark_range_query_scaling",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "range_query_scaling.cpp"
     },
     {
@@ -1986,6 +2459,7 @@
       "_origin": "ast",
       "id": "test_benchmark_range_query_scaling_bm_rangequery_lazy",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "bm_rangequery_lazy()"
     },
     {
@@ -1996,6 +2470,7 @@
       "_origin": "ast",
       "id": "test_benchmark_range_query_scaling_cpp_state",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "state"
     },
     {
@@ -2006,6 +2481,7 @@
       "_origin": "ast",
       "id": "test_benchmark_range_query_scaling_cpp_string",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "string"
     },
     {
@@ -2016,6 +2492,7 @@
       "_origin": "ast",
       "id": "test_benchmark_range_query_scaling_cpp_coord_t",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "coord_t"
     },
     {
@@ -2026,6 +2503,7 @@
       "_origin": "ast",
       "id": "test_benchmark_range_query_scaling_main",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "main()"
     },
     {
@@ -2036,6 +2514,7 @@
       "_origin": "ast",
       "id": "test_benchmark_rebuild_scaling",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "rebuild_scaling.cpp"
     },
     {
@@ -2046,6 +2525,7 @@
       "_origin": "ast",
       "id": "test_benchmark_rebuild_scaling_bm_rebuild_lazy",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "bm_rebuild_lazy()"
     },
     {
@@ -2056,6 +2536,7 @@
       "_origin": "ast",
       "id": "test_benchmark_rebuild_scaling_cpp_state",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "state"
     },
     {
@@ -2066,6 +2547,7 @@
       "_origin": "ast",
       "id": "test_benchmark_rebuild_scaling_cpp_string",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "string"
     },
     {
@@ -2076,6 +2558,7 @@
       "_origin": "ast",
       "id": "test_benchmark_rebuild_scaling_main",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "main()"
     },
     {
@@ -2090,6 +2573,7 @@
       "_origin": "ast",
       "id": "test_benchmark_run_all_variations",
       "community": 15,
+      "community_name": "Variation Runner Scripts",
       "norm_label": "run_all_variations.sh"
     },
     {
@@ -2104,6 +2588,7 @@
       "_origin": "ast",
       "id": "test_benchmark_run_all_variations_sh__entry",
       "community": 15,
+      "community_name": "Variation Runner Scripts",
       "norm_label": "run_all_variations.sh script"
     },
     {
@@ -2118,6 +2603,7 @@
       "_origin": "ast",
       "id": "test_benchmark_run_all_variations_usage",
       "community": 15,
+      "community_name": "Variation Runner Scripts",
       "norm_label": "usage()"
     },
     {
@@ -2128,6 +2614,7 @@
       "_origin": "ast",
       "id": "test_benchmark_sfc_encoding_scaling",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "sfc_encoding_scaling.cpp"
     },
     {
@@ -2138,6 +2625,7 @@
       "_origin": "ast",
       "id": "test_benchmark_sfc_encoding_scaling_bm_mortonencode_lazy",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "bm_mortonencode_lazy()"
     },
     {
@@ -2148,6 +2636,7 @@
       "_origin": "ast",
       "id": "test_benchmark_sfc_encoding_scaling_cpp_state",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "state"
     },
     {
@@ -2158,6 +2647,7 @@
       "_origin": "ast",
       "id": "test_benchmark_sfc_encoding_scaling_cpp_string",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "string"
     },
     {
@@ -2168,6 +2658,7 @@
       "_origin": "ast",
       "id": "test_benchmark_sfc_encoding_scaling_main",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "main()"
     },
     {
@@ -2178,6 +2669,7 @@
       "_origin": "ast",
       "id": "test_benchmark_tree_build_scaling",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "tree_build_scaling.cpp"
     },
     {
@@ -2188,6 +2680,7 @@
       "_origin": "ast",
       "id": "test_benchmark_tree_build_scaling_bm_treebuild_lazy",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "bm_treebuild_lazy()"
     },
     {
@@ -2198,6 +2691,7 @@
       "_origin": "ast",
       "id": "test_benchmark_tree_build_scaling_cpp_state",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "state"
     },
     {
@@ -2208,6 +2702,7 @@
       "_origin": "ast",
       "id": "test_benchmark_tree_build_scaling_cpp_string",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "string"
     },
     {
@@ -2218,6 +2713,7 @@
       "_origin": "ast",
       "id": "test_benchmark_tree_build_scaling_main",
       "community": 0,
+      "community_name": "Utilities & Benchmark Helpers",
       "norm_label": "main()"
     },
     {
@@ -2228,6 +2724,7 @@
       "_origin": "ast",
       "id": "test_main",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "main.cpp"
     },
     {
@@ -2238,6 +2735,7 @@
       "_origin": "ast",
       "id": "test_main_main",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "main()"
     },
     {
@@ -2248,6 +2746,7 @@
       "_origin": "ast",
       "id": "test_test_bb",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "test_bb.cpp"
     },
     {
@@ -2258,6 +2757,7 @@
       "_origin": "ast",
       "id": "test_test_bb_main",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "main()"
     },
     {
@@ -2268,6 +2768,7 @@
       "_origin": "ast",
       "id": "test_test_depth",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "test_depth.cpp"
     },
     {
@@ -2278,6 +2779,7 @@
       "_origin": "ast",
       "id": "test_test_depth_main",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "main()"
     },
     {
@@ -2288,6 +2790,7 @@
       "_origin": "ast",
       "id": "test_test_domain_decomposition",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "test_domain_decomposition.cpp"
     },
     {
@@ -2298,6 +2801,7 @@
       "_origin": "ast",
       "id": "test_test_domain_decomposition_test_splitter_uniform",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "test_splitter_uniform()"
     },
     {
@@ -2308,6 +2812,7 @@
       "_origin": "ast",
       "id": "test_test_domain_decomposition_test_splitter_extreme_clustering",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "test_splitter_extreme_clustering()"
     },
     {
@@ -2318,6 +2823,7 @@
       "_origin": "ast",
       "id": "test_test_domain_decomposition_test_mpi_pipeline",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "test_mpi_pipeline()"
     },
     {
@@ -2328,6 +2834,7 @@
       "_origin": "ast",
       "id": "test_test_domain_decomposition_cpp_queue",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "queue"
     },
     {
@@ -2337,7 +2844,8 @@
       "source_location": "L305",
       "_origin": "ast",
       "id": "test_test_domain_decomposition_test_ghost_visibility",
-      "community": 3,
+      "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "test_ghost_visibility()"
     },
     {
@@ -2348,6 +2856,7 @@
       "_origin": "ast",
       "id": "test_test_domain_decomposition_main",
       "community": 3,
+      "community_name": "Domain Decomposition & MPI Halos",
       "norm_label": "main()"
     },
     {
@@ -2358,6 +2867,7 @@
       "_origin": "ast",
       "id": "test_test_mpi",
       "community": 10,
+      "community_name": "MPI Testing Suite",
       "norm_label": "test_mpi.cpp"
     },
     {
@@ -2368,26 +2878,18 @@
       "_origin": "ast",
       "id": "test_test_mpi_mpi_type_traits",
       "community": 10,
+      "community_name": "MPI Testing Suite",
       "norm_label": "mpi_type_traits"
-    },
-    {
-      "label": "mpi_type_traits<float>",
-      "file_type": "code",
-      "source_file": "test/test_mpi.cpp",
-      "source_location": "L15",
-      "_origin": "ast",
-      "id": "test_test_mpi_mpi_type_traits_float",
-      "community": 10,
-      "norm_label": "mpi_type_traits<float>"
     },
     {
       "label": ".type()",
       "file_type": "code",
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L16",
+      "source_location": "L13",
       "_origin": "ast",
-      "id": "test_test_mpi_mpi_type_traits_float_type",
+      "id": "test_test_mpi_mpi_type_traits_type",
       "community": 10,
+      "community_name": "MPI Testing Suite",
       "norm_label": ".type()"
     },
     {
@@ -2398,36 +2900,62 @@
       "_origin": "ast",
       "id": "test_test_mpi_cpp_mpi_datatype",
       "community": 10,
+      "community_name": "MPI Testing Suite",
       "norm_label": "mpi_datatype"
+    },
+    {
+      "label": "mpi_type_traits<float>",
+      "file_type": "code",
+      "source_file": "test/test_mpi.cpp",
+      "source_location": "L28",
+      "_origin": "ast",
+      "id": "test_test_mpi_mpi_type_traits_float",
+      "community": 10,
+      "community_name": "MPI Testing Suite",
+      "norm_label": "mpi_type_traits<float>"
+    },
+    {
+      "label": ".type()",
+      "file_type": "code",
+      "source_file": "test/test_mpi.cpp",
+      "source_location": "L29",
+      "_origin": "ast",
+      "id": "test_test_mpi_mpi_type_traits_float_type",
+      "community": 10,
+      "community_name": "MPI Testing Suite",
+      "norm_label": ".type()"
     },
     {
       "label": "mpi_type_traits<double>",
       "file_type": "code",
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L20",
+      "source_location": "L33",
       "_origin": "ast",
       "id": "test_test_mpi_mpi_type_traits_double",
       "community": 10,
+      "community_name": "MPI Testing Suite",
       "norm_label": "mpi_type_traits<double>"
     },
     {
       "label": ".type()",
       "file_type": "code",
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L21",
+      "source_location": "L34",
       "_origin": "ast",
       "id": "test_test_mpi_mpi_type_traits_double_type",
       "community": 10,
+      "community_name": "MPI Testing Suite",
       "norm_label": ".type()"
     },
     {
       "label": "main()",
       "file_type": "code",
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L24",
+      "source_location": "L37",
       "_origin": "ast",
       "id": "test_test_mpi_main",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "main()"
     },
     {
@@ -2438,6 +2966,7 @@
       "_origin": "ast",
       "id": "test_test_query",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "test_query.cpp"
     },
     {
@@ -2448,6 +2977,7 @@
       "_origin": "ast",
       "id": "test_test_query_main",
       "community": 1,
+      "community_name": "HLBVH Tree Construction",
       "norm_label": "main()"
     },
     {
@@ -2458,6 +2988,7 @@
       "_origin": "ast",
       "id": "test_test_sycl",
       "community": 20,
+      "community_name": "SYCL Test Suite",
       "norm_label": "test_sycl.cpp"
     },
     {
@@ -2468,7 +2999,30 @@
       "_origin": "ast",
       "id": "test_test_sycl_main",
       "community": 20,
+      "community_name": "SYCL Test Suite",
       "norm_label": "main()"
+    },
+    {
+      "label": "ponytail.md",
+      "file_type": "document",
+      "source_file": ".agents/rules/ponytail.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "agents_rules_ponytail",
+      "community": 6,
+      "community_name": "Bounding Box & Spatial Bounds",
+      "norm_label": "ponytail.md"
+    },
+    {
+      "label": "Ponytail, lazy senior dev mode",
+      "file_type": "document",
+      "source_file": ".agents/rules/ponytail.md",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "agents_rules_ponytail_ponytail_lazy_senior_dev_mode",
+      "community": 6,
+      "community_name": "Bounding Box & Spatial Bounds",
+      "norm_label": "ponytail, lazy senior dev mode"
     },
     {
       "label": "Graphify Rule Guidelines",
@@ -2479,9 +3033,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "agents_rules_graphify_graphify_rule",
       "community": 21,
-      "norm_label": "graphify rule guidelines"
+      "norm_label": "graphify rule guidelines",
+      "community_name": "Graphify Rule System",
+      "id": "agents_rules_graphify_graphify_rule"
     },
     {
       "label": "Graphify Workflow",
@@ -2492,9 +3047,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "agents_workflows_graphify_workflow",
       "community": 22,
-      "norm_label": "graphify workflow"
+      "norm_label": "graphify workflow",
+      "community_name": "Graphify Workflow Operations",
+      "id": "agents_workflows_graphify_workflow"
     },
     {
       "label": "HPC C++ & SYCL Developer Role",
@@ -2506,9 +3062,10 @@
       "author": null,
       "contributor": null,
       "rationale": "Role specification and coding heuristics for cosmological simulations using DPC++",
-      "id": "agents_hpc_sycl_developer_role",
       "community": 11,
-      "norm_label": "hpc c++ & sycl developer role"
+      "norm_label": "hpc c++ & sycl developer role",
+      "community_name": "Architecture & Design Specifications",
+      "id": "agents_hpc_sycl_developer_role"
     },
     {
       "label": "Pointer-Free Prime Directive",
@@ -2520,9 +3077,10 @@
       "author": null,
       "contributor": null,
       "rationale": "All relationships between tree nodes must be expressed as integer indices referencing contiguous arrays to allow raw MPI byte transfers.",
-      "id": "agents_prime_directive",
       "community": 16,
-      "norm_label": "pointer-free prime directive"
+      "norm_label": "pointer-free prime directive",
+      "community_name": "Pointer-Free Tree Architecture",
+      "id": "agents_prime_directive"
     },
     {
       "label": "Structure of Arrays (SoA) Mandatory Layout",
@@ -2534,9 +3092,10 @@
       "author": null,
       "contributor": null,
       "rationale": "Avoid AoS to guarantee coalesced memory access across SIMT warps on NVIDIA GPUs.",
-      "id": "agents_soa_mandatory",
       "community": 17,
-      "norm_label": "structure of arrays (soa) mandatory layout"
+      "norm_label": "structure of arrays (soa) mandatory layout",
+      "community_name": "Structure of Arrays (SoA) Standard",
+      "id": "agents_soa_mandatory"
     },
     {
       "label": "Root CMake Build System",
@@ -2547,9 +3106,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "cmakelists_root_build_system",
       "community": 18,
-      "norm_label": "root cmake build system"
+      "norm_label": "root cmake build system",
+      "community_name": "CMake Build System",
+      "id": "cmakelists_root_build_system"
     },
     {
       "label": "System Design SYCL-HLBVH",
@@ -2561,9 +3121,10 @@
       "author": null,
       "contributor": null,
       "rationale": "Architectural design for spatial search in cosmological simulations",
-      "id": "design_hlbvh_system_design",
       "community": 11,
-      "norm_label": "system design sycl-hlbvh"
+      "norm_label": "system design sycl-hlbvh",
+      "community_name": "Architecture & Design Specifications",
+      "id": "design_hlbvh_system_design"
     },
     {
       "label": "Pointer-Free Tree Topologies",
@@ -2575,9 +3136,10 @@
       "author": null,
       "contributor": null,
       "rationale": "Tree topologies use integer indices into contiguous vectors for efficient serialization over MPI.",
-      "id": "design_pointer_free_constraint",
       "community": 16,
-      "norm_label": "pointer-free tree topologies"
+      "norm_label": "pointer-free tree topologies",
+      "community_name": "Pointer-Free Tree Architecture",
+      "id": "design_pointer_free_constraint"
     },
     {
       "label": "Structure of Arrays Data Layout",
@@ -2589,9 +3151,10 @@
       "author": null,
       "contributor": null,
       "rationale": "Guarantees coalesced memory access across SIMT warps on NVIDIA GPUs.",
-      "id": "design_soa_format",
       "community": 17,
-      "norm_label": "structure of arrays data layout"
+      "norm_label": "structure of arrays data layout",
+      "community_name": "Structure of Arrays (SoA) Standard",
+      "id": "design_soa_format"
     },
     {
       "label": "SYCL and oneDPL Heterogeneous Backend",
@@ -2603,9 +3166,10 @@
       "author": null,
       "contributor": null,
       "rationale": "Provides single-source C++ standard targeting NVIDIA GPUs via Codeplay plugin and oneDPL algorithms.",
-      "id": "design_sycl_backend",
       "community": 25,
-      "norm_label": "sycl and onedpl heterogeneous backend"
+      "norm_label": "sycl and onedpl heterogeneous backend",
+      "community_name": "SYCL & oneDPL Backend Setup",
+      "id": "design_sycl_backend"
     },
     {
       "label": "HLBVH Pipeline Algorithm",
@@ -2617,9 +3181,10 @@
       "author": null,
       "contributor": null,
       "rationale": "Modified LBVH pipeline with Morton codes, CSD, intra-voxel sorting, and treelet emission.",
-      "id": "design_hlbvh_pipeline",
       "community": 11,
-      "norm_label": "hlbvh pipeline algorithm"
+      "norm_label": "hlbvh pipeline algorithm",
+      "community_name": "Architecture & Design Specifications",
+      "id": "design_hlbvh_pipeline"
     },
     {
       "label": "Compress-Sort-Decompress (CSD) Pattern",
@@ -2631,9 +3196,10 @@
       "author": null,
       "contributor": null,
       "rationale": "Compresses particles into coarse spatial grids, sorts block descriptors, and decompresses.",
-      "id": "design_csd_pattern",
       "community": 23,
-      "norm_label": "compress-sort-decompress (csd) pattern"
+      "norm_label": "compress-sort-decompress (csd) pattern",
+      "community_name": "Compress-Sort-Decompress (CSD) Pattern",
+      "id": "design_csd_pattern"
     },
     {
       "label": "Intra-Voxel Local Memory Sort",
@@ -2645,9 +3211,10 @@
       "author": null,
       "contributor": null,
       "rationale": "Fine-grained odd-even sort inside SYCL local memory to minimize global memory bandwidth.",
-      "id": "design_intra_voxel_sort",
       "community": 24,
-      "norm_label": "intra-voxel local memory sort"
+      "norm_label": "intra-voxel local memory sort",
+      "community_name": "Intra-Voxel Local Memory Sort",
+      "id": "design_intra_voxel_sort"
     },
     {
       "label": "Range and kNN Query Traversal",
@@ -2659,22 +3226,10 @@
       "author": null,
       "contributor": null,
       "rationale": "Non-recursive stack-based traversal minimizing divergent execution paths across threads.",
-      "id": "design_range_knn_query",
       "community": 19,
-      "norm_label": "range and knn query traversal"
-    },
-    {
-      "label": "Gemini Graphify Rules",
-      "file_type": "document",
-      "source_file": "GEMINI.md",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "gemini_graphify_rules",
-      "community": 27,
-      "norm_label": "gemini graphify rules"
+      "norm_label": "range and knn query traversal",
+      "community_name": "Range & kNN Traversal API",
+      "id": "design_range_knn_query"
     },
     {
       "label": "FastTree Implementation Roadmap",
@@ -2685,9 +3240,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "plan_roadmap",
       "community": 11,
-      "norm_label": "fasttree implementation roadmap"
+      "norm_label": "fasttree implementation roadmap",
+      "community_name": "Architecture & Design Specifications",
+      "id": "plan_roadmap"
     },
     {
       "label": "Project Progress Tracking",
@@ -2698,9 +3254,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "progress_tracking",
       "community": 11,
-      "norm_label": "project progress tracking"
+      "norm_label": "project progress tracking",
+      "community_name": "Architecture & Design Specifications",
+      "id": "progress_tracking"
     },
     {
       "label": "FastTree Project Overview",
@@ -2711,9 +3268,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_overview",
       "community": 28,
-      "norm_label": "fasttree project overview"
+      "norm_label": "fasttree project overview",
+      "community_name": "FastTree Core Overview",
+      "id": "readme_overview"
     },
     {
       "label": "API Reference Specification",
@@ -2724,9 +3282,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_api_reference_api_spec",
       "community": 19,
-      "norm_label": "api reference specification"
+      "norm_label": "api reference specification",
+      "community_name": "Range & kNN Traversal API",
+      "id": "docs_api_reference_api_spec"
     },
     {
       "label": "Profiling Guidelines & Setup",
@@ -2737,9 +3296,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_profiling_guide",
       "community": 12,
-      "norm_label": "profiling guidelines & setup"
+      "norm_label": "profiling guidelines & setup",
+      "community_name": "CPU/GPU Benchmark Reports",
+      "id": "docs_profiling_guide"
     },
     {
       "label": "Profiling Analysis Report",
@@ -2750,9 +3310,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_profiling_report_results",
       "community": 12,
-      "norm_label": "profiling analysis report"
+      "norm_label": "profiling analysis report",
+      "community_name": "CPU/GPU Benchmark Reports",
+      "id": "docs_profiling_report_results"
     },
     {
       "label": "Testing Framework Documentation",
@@ -2763,9 +3324,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_testing_framework",
       "community": 26,
-      "norm_label": "testing framework documentation"
+      "norm_label": "testing framework documentation",
+      "community_name": "Testing Infrastructure Guidelines",
+      "id": "docs_testing_framework"
     },
     {
       "label": "CPU Benchmark Results (All Variations)",
@@ -2776,9 +3338,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_benchmark_results_cpu_all_variations_data",
       "community": 12,
-      "norm_label": "cpu benchmark results (all variations)"
+      "norm_label": "cpu benchmark results (all variations)",
+      "community_name": "CPU/GPU Benchmark Reports",
+      "id": "docs_benchmark_results_cpu_all_variations_data"
     },
     {
       "label": "GPU Benchmark Results (All Variations)",
@@ -2789,9 +3352,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_benchmark_results_gpu_all_variations_data",
       "community": 12,
-      "norm_label": "gpu benchmark results (all variations)"
+      "norm_label": "gpu benchmark results (all variations)",
+      "community_name": "CPU/GPU Benchmark Reports",
+      "id": "docs_benchmark_results_gpu_all_variations_data"
     },
     {
       "label": "MPI CPU Benchmark Results",
@@ -2802,9 +3366,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_mpi_benchmark_results_cpu_all_variations_data",
       "community": 12,
-      "norm_label": "mpi cpu benchmark results"
+      "norm_label": "mpi cpu benchmark results",
+      "community_name": "CPU/GPU Benchmark Reports",
+      "id": "docs_mpi_benchmark_results_cpu_all_variations_data"
     },
     {
       "label": "MPI GPU Benchmark Results",
@@ -2815,9 +3380,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_mpi_benchmark_results_gpu_all_variations_data",
       "community": 12,
-      "norm_label": "mpi gpu benchmark results"
+      "norm_label": "mpi gpu benchmark results",
+      "community_name": "CPU/GPU Benchmark Reports",
+      "id": "docs_mpi_benchmark_results_gpu_all_variations_data"
     },
     {
       "label": "Benchmark Subdirectory CMake Configuration",
@@ -2828,9 +3394,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "test_benchmark_cmakelists_config",
       "community": 18,
-      "norm_label": "benchmark subdirectory cmake configuration"
+      "norm_label": "benchmark subdirectory cmake configuration",
+      "community_name": "CMake Build System",
+      "id": "test_benchmark_cmakelists_config"
     },
     {
       "label": "HLBVH Pantaleoni & Luebke Paper",
@@ -2842,9 +3409,10 @@
       "author": null,
       "contributor": null,
       "rationale": "Foundational algorithm for parallel hierarchy construction on modern GPUs.",
-      "id": "docs_hlbvh_final_pantaleoni_luebke_paper",
       "community": 11,
-      "norm_label": "hlbvh pantaleoni & luebke paper"
+      "norm_label": "hlbvh pantaleoni & luebke paper",
+      "community_name": "Architecture & Design Specifications",
+      "id": "docs_hlbvh_final_pantaleoni_luebke_paper"
     },
     {
       "label": "Benchmark Scaling Chart",
@@ -2855,9 +3423,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_benchmark_scaling_chart",
       "community": 13,
-      "norm_label": "benchmark scaling chart"
+      "norm_label": "benchmark scaling chart",
+      "community_name": "Scaling & Performance Benchmarks",
+      "id": "docs_benchmark_scaling_chart"
     },
     {
       "label": "MortonEncode Scaling Benchmark",
@@ -2868,9 +3437,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_benchmark_scaling_morton_encode",
       "community": 13,
-      "norm_label": "mortonencode scaling benchmark"
+      "norm_label": "mortonencode scaling benchmark",
+      "community_name": "Scaling & Performance Benchmarks",
+      "id": "docs_benchmark_scaling_morton_encode"
     },
     {
       "label": "RadixSort Scaling Benchmark",
@@ -2881,9 +3451,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_benchmark_scaling_radix_sort",
       "community": 13,
-      "norm_label": "radixsort scaling benchmark"
+      "norm_label": "radixsort scaling benchmark",
+      "community_name": "Scaling & Performance Benchmarks",
+      "id": "docs_benchmark_scaling_radix_sort"
     },
     {
       "label": "TreeBuild Scaling Benchmark",
@@ -2894,9 +3465,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_benchmark_scaling_tree_build",
       "community": 13,
-      "norm_label": "treebuild scaling benchmark"
+      "norm_label": "treebuild scaling benchmark",
+      "community_name": "Scaling & Performance Benchmarks",
+      "id": "docs_benchmark_scaling_tree_build"
     },
     {
       "label": "KNNQuery Scaling Benchmark",
@@ -2907,9 +3479,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_benchmark_scaling_knn_query",
       "community": 13,
-      "norm_label": "knnquery scaling benchmark"
+      "norm_label": "knnquery scaling benchmark",
+      "community_name": "Scaling & Performance Benchmarks",
+      "id": "docs_benchmark_scaling_knn_query"
     },
     {
       "label": "RangeQuery Scaling Benchmark",
@@ -2920,9 +3493,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_benchmark_scaling_range_query",
       "community": 13,
-      "norm_label": "rangequery scaling benchmark"
+      "norm_label": "rangequery scaling benchmark",
+      "community_name": "Scaling & Performance Benchmarks",
+      "id": "docs_benchmark_scaling_range_query"
     }
   ],
   "links": [
@@ -3502,7 +4076,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -3885,7 +4459,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -3896,7 +4470,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1188",
+      "source_location": "L1270",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -3907,7 +4481,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L629",
+      "source_location": "L630",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -3918,7 +4492,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L511",
+      "source_location": "L512",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -3929,7 +4503,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L181",
+      "source_location": "L182",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -3940,7 +4514,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L248",
+      "source_location": "L249",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -3951,7 +4525,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L126",
+      "source_location": "L127",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -3962,7 +4536,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L156",
+      "source_location": "L157",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -3973,7 +4547,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L196",
+      "source_location": "L197",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -3984,7 +4558,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L289",
+      "source_location": "L290",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -3995,7 +4569,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L215",
+      "source_location": "L216",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4006,7 +4580,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L226",
+      "source_location": "L227",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4017,7 +4591,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L218",
+      "source_location": "L219",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4028,7 +4602,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L942",
+      "source_location": "L1103",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4039,7 +4613,29 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L900",
+      "source_location": "L947",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_hlbvh",
+      "target": "src_hlbvh_knn_query_large_k",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L854",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_hlbvh",
+      "target": "src_hlbvh_knn_query_small_k",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L831",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4050,7 +4646,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L26",
+      "source_location": "L27",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4061,18 +4657,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L837",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hlbvh",
-      "target": "src_hlbvh_priorityqueue",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L1070",
+      "source_location": "L1152",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4083,7 +4668,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L420",
+      "source_location": "L421",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4094,7 +4679,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L525",
+      "source_location": "L526",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4105,7 +4690,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L516",
+      "source_location": "L517",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4116,7 +4701,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L611",
+      "source_location": "L612",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4127,7 +4712,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L546",
+      "source_location": "L547",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4138,7 +4723,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L60",
+      "source_location": "L61",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4149,7 +4734,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L47",
+      "source_location": "L48",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4161,7 +4746,19 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L39",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_hlbvh",
+      "target": "src_maxheap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L40",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4173,7 +4770,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L37",
+      "source_location": "L38",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh",
@@ -4328,7 +4925,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1188",
+      "source_location": "L1270",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4340,7 +4937,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L511",
+      "source_location": "L512",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4352,7 +4949,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -4364,7 +4961,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L30",
+      "source_location": "L31",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -4376,7 +4973,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -4388,7 +4985,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -4400,7 +4997,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -4412,7 +5009,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -4424,7 +5021,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1.0,
       "context": "generic_arg",
       "_origin": "ast",
@@ -4436,7 +5033,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L420",
+      "source_location": "L421",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4448,7 +5045,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L181",
+      "source_location": "L182",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4460,7 +5057,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L126",
+      "source_location": "L127",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4472,7 +5069,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L156",
+      "source_location": "L157",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4484,7 +5081,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L196",
+      "source_location": "L197",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4497,7 +5094,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L900",
+      "source_location": "L831",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_node_distance_sq",
@@ -4508,31 +5105,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L838",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_priorityqueue",
-      "target": "t",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L854",
-      "weight": 1.0,
-      "context": "parameter_type",
-      "_origin": "ast",
-      "source": "src_hlbvh_priorityqueue_push",
-      "target": "t",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L525",
+      "source_location": "L526",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4544,7 +5117,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L516",
+      "source_location": "L517",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4556,7 +5129,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L60",
+      "source_location": "L61",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -4568,7 +5141,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L47",
+      "source_location": "L48",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -4580,7 +5153,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L103",
+      "source_location": "L104",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_boundingbox",
@@ -4591,7 +5164,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L81",
+      "source_location": "L82",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -4603,7 +5176,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L82",
+      "source_location": "L83",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -4615,7 +5188,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L83",
+      "source_location": "L84",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -4627,7 +5200,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L81",
+      "source_location": "L82",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -4639,7 +5212,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L82",
+      "source_location": "L83",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -4651,7 +5224,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L83",
+      "source_location": "L84",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -4663,7 +5236,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L83",
+      "source_location": "L84",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -4675,7 +5248,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L511",
+      "source_location": "L512",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -4687,7 +5260,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L420",
+      "source_location": "L421",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4699,7 +5272,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L95",
+      "source_location": "L96",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4711,7 +5284,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L511",
+      "source_location": "L512",
       "weight": 1.0,
       "context": "generic_arg",
       "_origin": "ast",
@@ -4723,7 +5296,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L248",
+      "source_location": "L249",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4735,7 +5308,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L420",
+      "source_location": "L421",
       "weight": 1.0,
       "context": "generic_arg",
       "_origin": "ast",
@@ -4748,7 +5321,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1198",
+      "source_location": "L1280",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_bvh",
@@ -4760,7 +5333,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L638",
+      "source_location": "L639",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_tree",
@@ -4772,7 +5345,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L442",
+      "source_location": "L443",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_compute_bbox",
@@ -4783,7 +5356,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L126",
+      "source_location": "L127",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4796,7 +5369,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L950",
+      "source_location": "L1111",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_knn_query",
@@ -4808,7 +5381,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1079",
+      "source_location": "L1161",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_range_query",
@@ -4820,7 +5393,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L356",
+      "source_location": "L357",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_sfc_encode",
@@ -4831,7 +5404,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1188",
+      "source_location": "L1270",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4843,7 +5416,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L629",
+      "source_location": "L630",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4855,7 +5428,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L511",
+      "source_location": "L512",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4867,7 +5440,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L181",
+      "source_location": "L182",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4879,7 +5452,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L156",
+      "source_location": "L157",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4891,7 +5464,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L196",
+      "source_location": "L197",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4903,7 +5476,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L942",
+      "source_location": "L1103",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4915,7 +5488,31 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1070",
+      "source_location": "L947",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_hlbvh_knn_query_large_k",
+      "target": "src_hlbvh_hpp_queue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L854",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_hlbvh_knn_query_small_k",
+      "target": "src_hlbvh_hpp_queue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L1152",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4927,7 +5524,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L420",
+      "source_location": "L421",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4939,7 +5536,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L588",
+      "source_location": "L589",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4951,7 +5548,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L565",
+      "source_location": "L566",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -4964,7 +5561,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L953",
+      "source_location": "L1114",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_knn_query",
@@ -4976,7 +5573,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1084",
+      "source_location": "L1166",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_range_query",
@@ -4988,7 +5585,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L359",
+      "source_location": "L360",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_sfc_encode",
@@ -5000,7 +5597,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L184",
+      "source_location": "L185",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_copy_back_and_free",
@@ -5012,7 +5609,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1045",
+      "source_location": "L1127",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_knn_query",
@@ -5024,7 +5621,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1169",
+      "source_location": "L1251",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_range_query",
@@ -5036,7 +5633,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L407",
+      "source_location": "L408",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_sfc_encode",
@@ -5048,7 +5645,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1293",
+      "source_location": "L1375",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_bvh",
@@ -5060,7 +5657,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L663",
+      "source_location": "L664",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_tree",
@@ -5072,7 +5669,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L502",
+      "source_location": "L503",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_compute_bbox",
@@ -5084,7 +5681,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L197",
+      "source_location": "L198",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_free_device_readable",
@@ -5096,7 +5693,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1042",
+      "source_location": "L1124",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_knn_query",
@@ -5108,7 +5705,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1164",
+      "source_location": "L1246",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_range_query",
@@ -5120,7 +5717,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L404",
+      "source_location": "L405",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_sfc_encode",
@@ -5131,7 +5728,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L221",
+      "source_location": "L222",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -5143,7 +5740,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L220",
+      "source_location": "L221",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -5155,7 +5752,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L220",
+      "source_location": "L221",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -5167,7 +5764,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L228",
+      "source_location": "L229",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -5179,7 +5776,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L229",
+      "source_location": "L230",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -5191,7 +5788,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L228",
+      "source_location": "L229",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -5203,7 +5800,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L248",
+      "source_location": "L249",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -5216,7 +5813,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L396",
+      "source_location": "L397",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_sfc_encode",
@@ -5228,7 +5825,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L701",
+      "source_location": "L702",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_tree",
@@ -5239,7 +5836,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L289",
+      "source_location": "L290",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -5251,7 +5848,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L280",
+      "source_location": "L281",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -5264,7 +5861,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1214",
+      "source_location": "L1296",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_bvh",
@@ -5274,22 +5871,10 @@
     {
       "relation": "calls",
       "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L421",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hlbvh_sfc_encode",
-      "target": "src_hlbvh_priorityqueue_data",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L370",
+      "source_location": "L371",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_sfc_encode",
@@ -5301,7 +5886,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L391",
+      "source_location": "L392",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_sfc_encode",
@@ -5313,7 +5898,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L368",
+      "source_location": "L369",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_sfc_encode",
@@ -5323,7 +5908,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L420",
+      "source_location": "L421",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -5372,7 +5957,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1205",
+      "source_location": "L1287",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_bvh",
@@ -5384,19 +5969,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L512",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hlbvh_compute_bbox",
-      "target": "src_hlbvh_priorityqueue_data",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L500",
+      "source_location": "L501",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_compute_bbox",
@@ -5420,7 +5993,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L801",
+      "source_location": "L802",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_tree",
@@ -5432,7 +6005,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L802",
+      "source_location": "L803",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_tree",
@@ -5443,7 +6016,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1188",
+      "source_location": "L1270",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -5455,7 +6028,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L629",
+      "source_location": "L630",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -5467,7 +6040,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L942",
+      "source_location": "L1103",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -5479,7 +6052,31 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1070",
+      "source_location": "L947",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_hlbvh_knn_query_large_k",
+      "target": "src_hlbvh_treesoa",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L854",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_hlbvh_knn_query_small_k",
+      "target": "src_hlbvh_treesoa",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L1152",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -5491,7 +6088,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L549",
+      "source_location": "L550",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -5503,23 +6100,11 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L588",
+      "source_location": "L589",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_treesoa",
       "target": "src_hlbvh_treesoa_free",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "defines",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L553",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_treesoa",
-      "target": "src_hlbvh_treesoa_id",
       "confidence_score": 1.0
     },
     {
@@ -5531,115 +6116,7 @@
       "context": "field",
       "_origin": "ast",
       "source": "src_hlbvh_treesoa",
-      "target": "src_hlbvh_treesoa_is_ghost",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "defines",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L550",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_treesoa",
-      "target": "src_hlbvh_treesoa_left_child",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "defines",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L547",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_treesoa",
-      "target": "src_hlbvh_treesoa_max_x",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "defines",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L548",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_treesoa",
-      "target": "src_hlbvh_treesoa_max_y",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "defines",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L549",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_treesoa",
-      "target": "src_hlbvh_treesoa_max_z",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "defines",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L547",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_treesoa",
-      "target": "src_hlbvh_treesoa_min_x",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "defines",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L548",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_treesoa",
-      "target": "src_hlbvh_treesoa_min_y",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "defines",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L549",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_treesoa",
-      "target": "src_hlbvh_treesoa_min_z",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "defines",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L557",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_treesoa",
-      "target": "src_hlbvh_treesoa_num_internal",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "defines",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L556",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_treesoa",
-      "target": "src_hlbvh_treesoa_num_leaves",
+      "target": "src_hlbvh_treesoa_id",
       "confidence_score": 1.0
     },
     {
@@ -5651,19 +6128,7 @@
       "context": "field",
       "_origin": "ast",
       "source": "src_hlbvh_treesoa",
-      "target": "src_hlbvh_treesoa_orig_idx",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "defines",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L552",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_treesoa",
-      "target": "src_hlbvh_treesoa_parent",
+      "target": "src_hlbvh_treesoa_is_ghost",
       "confidence_score": 1.0
     },
     {
@@ -5675,6 +6140,138 @@
       "context": "field",
       "_origin": "ast",
       "source": "src_hlbvh_treesoa",
+      "target": "src_hlbvh_treesoa_left_child",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L548",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_hlbvh_treesoa",
+      "target": "src_hlbvh_treesoa_max_x",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L549",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_hlbvh_treesoa",
+      "target": "src_hlbvh_treesoa_max_y",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L550",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_hlbvh_treesoa",
+      "target": "src_hlbvh_treesoa_max_z",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L548",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_hlbvh_treesoa",
+      "target": "src_hlbvh_treesoa_min_x",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L549",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_hlbvh_treesoa",
+      "target": "src_hlbvh_treesoa_min_y",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L550",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_hlbvh_treesoa",
+      "target": "src_hlbvh_treesoa_min_z",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L558",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_hlbvh_treesoa",
+      "target": "src_hlbvh_treesoa_num_internal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L557",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_hlbvh_treesoa",
+      "target": "src_hlbvh_treesoa_num_leaves",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L556",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_hlbvh_treesoa",
+      "target": "src_hlbvh_treesoa_orig_idx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L553",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_hlbvh_treesoa",
+      "target": "src_hlbvh_treesoa_parent",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L552",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_hlbvh_treesoa",
       "target": "src_hlbvh_treesoa_right_child",
       "confidence_score": 1.0
     },
@@ -5682,7 +6279,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L565",
+      "source_location": "L566",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_treesoa",
@@ -5693,7 +6290,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1188",
+      "source_location": "L1270",
       "weight": 1.0,
       "context": "generic_arg",
       "_origin": "ast",
@@ -5705,7 +6302,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L942",
+      "source_location": "L1103",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -5717,7 +6314,31 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1070",
+      "source_location": "L947",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_hlbvh_knn_query_large_k",
+      "target": "src_hlbvh_hpp_coord_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L854",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_hlbvh_knn_query_small_k",
+      "target": "src_hlbvh_hpp_coord_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L1152",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -5730,7 +6351,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1232",
+      "source_location": "L1314",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_bvh",
@@ -5742,7 +6363,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L811",
+      "source_location": "L812",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_tree",
@@ -5791,7 +6412,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L151",
+      "source_location": "L164",
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_test_mpi_main",
@@ -5802,7 +6423,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L710",
+      "source_location": "L711",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_tree",
@@ -5814,7 +6435,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1290",
+      "source_location": "L1372",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_bvh",
@@ -5825,7 +6446,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L629",
+      "source_location": "L630",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -5863,7 +6484,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L58",
+      "source_location": "L71",
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_test_mpi_main",
@@ -5882,61 +6503,15 @@
       "target": "src_hlbvh_build_tree"
     },
     {
-      "relation": "defines",
+      "relation": "calls",
+      "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L840",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_priorityqueue",
-      "target": "src_hlbvh_priorityqueue_count",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "defines",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L838",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_priorityqueue",
-      "target": "src_hlbvh_priorityqueue_data",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "defines",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L839",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "src_hlbvh_priorityqueue",
-      "target": "src_hlbvh_priorityqueue_indices",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L845",
+      "source_location": "L1018",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "src_hlbvh_priorityqueue",
-      "target": "src_hlbvh_priorityqueue_priorityqueue",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L854",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hlbvh_priorityqueue",
-      "target": "src_hlbvh_priorityqueue_push",
+      "source": "src_hlbvh_knn_query_large_k",
+      "target": "src_hlbvh_node_distance_sq",
       "confidence_score": 1.0
     },
     {
@@ -5944,34 +6519,10 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1198",
+      "source_location": "L882",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "src_hlbvh_build_bvh",
-      "target": "src_hlbvh_priorityqueue_data",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L993",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hlbvh_knn_query",
-      "target": "src_hlbvh_priorityqueue_push",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hlbvh.hpp",
-      "source_location": "L988",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hlbvh_knn_query",
+      "source": "src_hlbvh_knn_query_small_k",
       "target": "src_hlbvh_node_distance_sq",
       "confidence_score": 1.0
     },
@@ -5981,7 +6532,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L909",
+      "source_location": "L839",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_node_distance_sq",
@@ -5992,7 +6543,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1124",
+      "source_location": "L1206",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_range_query",
@@ -6005,10 +6556,22 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1031",
+      "source_location": "L934",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "src_hlbvh_knn_query",
+      "source": "src_hlbvh_knn_query_small_k",
+      "target": "src_sfc_peano_hilbert_float_to_int_rep"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src/hlbvh.hpp",
+      "source_location": "L1074",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_hlbvh_knn_query_large_k",
       "target": "src_sfc_peano_hilbert_float_to_int_rep"
     },
     {
@@ -6021,18 +6584,6 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_benchmark_knn_query_scaling_bm_knnquery_lazy",
-      "target": "src_hlbvh_knn_query"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "test/main.cpp",
-      "source_location": "L172",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "test_main_main",
       "target": "src_hlbvh_knn_query"
     },
     {
@@ -6053,7 +6604,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1097",
+      "source_location": "L1179",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_range_query",
@@ -6065,7 +6616,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "test/advance_mpi.cpp",
-      "source_location": "L160",
+      "source_location": "L192",
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_advance_mpi_main",
@@ -6125,7 +6676,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L129",
+      "source_location": "L142",
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_test_mpi_main",
@@ -6137,7 +6688,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src/hlbvh.hpp",
-      "source_location": "L1224",
+      "source_location": "L1306",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hlbvh_build_bvh",
@@ -6149,7 +6700,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "test/advance_mpi.cpp",
-      "source_location": "L74",
+      "source_location": "L106",
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_advance_mpi_main",
@@ -6254,6 +6805,781 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L223",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap",
+      "target": "src_maxheap_local_bitonic_sort",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L195",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap",
+      "target": "src_maxheap_local_heap_sift_down",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L179",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap",
+      "target": "src_maxheap_local_heap_sift_up",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L162",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap",
+      "target": "src_maxheap_local_swap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L34",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap",
+      "target": "src_maxheap_registermaxheap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L254",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap",
+      "target": "src_maxheap_sharedmaxheap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L43",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "distt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L44",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "idxt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L41",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "src_maxheap_registermaxheap_count",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L39",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "src_maxheap_registermaxheap_dist",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L43",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "src_maxheap_registermaxheap_dist_max",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L90",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "src_maxheap_registermaxheap_extract_sorted",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L40",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "src_maxheap_registermaxheap_idx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L44",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "src_maxheap_registermaxheap_idx_none",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L71",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "src_maxheap_registermaxheap_push",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L49",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "src_maxheap_registermaxheap_registermaxheap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L63",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "src_maxheap_registermaxheap_should_prune",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L119",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "src_maxheap_registermaxheap_sift_down",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L110",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "src_maxheap_registermaxheap_sift_up",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L132",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap",
+      "target": "src_maxheap_registermaxheap_swap_entries",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L223",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "_origin": "ast",
+      "source": "src_maxheap_local_bitonic_sort",
+      "target": "distt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L195",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "_origin": "ast",
+      "source": "src_maxheap_local_heap_sift_down",
+      "target": "distt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L179",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "_origin": "ast",
+      "source": "src_maxheap_local_heap_sift_up",
+      "target": "distt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L162",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "_origin": "ast",
+      "source": "src_maxheap_local_swap",
+      "target": "distt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L90",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap_extract_sorted",
+      "target": "distt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L71",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap_push",
+      "target": "distt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L63",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap_should_prune",
+      "target": "distt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L258",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap",
+      "target": "distt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L299",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_batch_insert",
+      "target": "distt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L342",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_extract_sorted_k",
+      "target": "distt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L266",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_init",
+      "target": "distt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L288",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_should_prune",
+      "target": "distt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L223",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "_origin": "ast",
+      "source": "src_maxheap_local_bitonic_sort",
+      "target": "idxt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L195",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "_origin": "ast",
+      "source": "src_maxheap_local_heap_sift_down",
+      "target": "idxt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L179",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "_origin": "ast",
+      "source": "src_maxheap_local_heap_sift_up",
+      "target": "idxt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L162",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "_origin": "ast",
+      "source": "src_maxheap_local_swap",
+      "target": "idxt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L90",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap_extract_sorted",
+      "target": "idxt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L71",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap_push",
+      "target": "idxt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L259",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap",
+      "target": "idxt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L299",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_batch_insert",
+      "target": "idxt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L342",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_extract_sorted_k",
+      "target": "idxt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L266",
+      "weight": 1.0,
+      "context": "generic_arg",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_init",
+      "target": "idxt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L80",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap_push",
+      "target": "src_maxheap_registermaxheap_sift_down",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L75",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap_push",
+      "target": "src_maxheap_registermaxheap_sift_up",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L96",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap_extract_sorted",
+      "target": "src_maxheap_registermaxheap_sift_down",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L94",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap_extract_sorted",
+      "target": "src_maxheap_registermaxheap_swap_entries",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L114",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap_sift_up",
+      "target": "src_maxheap_registermaxheap_swap_entries",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L127",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_registermaxheap_sift_down",
+      "target": "src_maxheap_registermaxheap_swap_entries",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L162",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_local_swap",
+      "target": "local_accessor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L223",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_local_bitonic_sort",
+      "target": "local_accessor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L195",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_local_heap_sift_down",
+      "target": "local_accessor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L179",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_local_heap_sift_up",
+      "target": "local_accessor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L299",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_batch_insert",
+      "target": "local_accessor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L342",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_extract_sorted_k",
+      "target": "local_accessor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L266",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_init",
+      "target": "local_accessor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L288",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_should_prune",
+      "target": "local_accessor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L223",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_local_bitonic_sort",
+      "target": "nd_item",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L299",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_batch_insert",
+      "target": "nd_item",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L342",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_extract_sorted_k",
+      "target": "nd_item",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L266",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap_init",
+      "target": "nd_item",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L299",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap",
+      "target": "src_maxheap_sharedmaxheap_batch_insert",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L258",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap",
+      "target": "src_maxheap_sharedmaxheap_dist_max",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L342",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap",
+      "target": "src_maxheap_sharedmaxheap_extract_sorted_k",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L259",
+      "weight": 1.0,
+      "context": "field",
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap",
+      "target": "src_maxheap_sharedmaxheap_idx_none",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L266",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap",
+      "target": "src_maxheap_sharedmaxheap_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/maxheap.hpp",
+      "source_location": "L288",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_maxheap_sharedmaxheap",
+      "target": "src_maxheap_sharedmaxheap_should_prune",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "src/sfc.morton.hpp",
       "source_location": "L37",
       "weight": 1.0,
@@ -6313,7 +7639,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L376",
+      "source_location": "L381",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6324,7 +7650,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L369",
+      "source_location": "L374",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6335,7 +7661,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L259",
+      "source_location": "L264",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6346,7 +7672,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L407",
+      "source_location": "L412",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6357,7 +7683,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L98",
+      "source_location": "L103",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6368,7 +7694,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L439",
+      "source_location": "L444",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6379,7 +7705,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L320",
+      "source_location": "L325",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6390,7 +7716,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L499",
+      "source_location": "L504",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6401,7 +7727,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L385",
+      "source_location": "L390",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6412,7 +7738,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L453",
+      "source_location": "L458",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6423,7 +7749,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L180",
+      "source_location": "L185",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6434,7 +7760,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L227",
+      "source_location": "L232",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6445,7 +7771,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L215",
+      "source_location": "L220",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6456,7 +7782,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L490",
+      "source_location": "L495",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6467,7 +7793,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L489",
+      "source_location": "L494",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6478,7 +7804,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L491",
+      "source_location": "L496",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6489,7 +7815,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L250",
+      "source_location": "L255",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6500,7 +7826,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L315",
+      "source_location": "L320",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert",
@@ -6522,7 +7848,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L369",
+      "source_location": "L374",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -6534,7 +7860,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L98",
+      "source_location": "L103",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -6546,7 +7872,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L195",
+      "source_location": "L200",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -6558,7 +7884,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L315",
+      "source_location": "L320",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -6629,7 +7955,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L197",
+      "source_location": "L202",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert_sfc_key_max_impl",
@@ -6653,7 +7979,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L315",
+      "source_location": "L320",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert_top3_to_bottom",
@@ -6665,7 +7991,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L245",
+      "source_location": "L250",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert_to_sort_key",
@@ -6676,7 +8002,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L259",
+      "source_location": "L264",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -6688,7 +8014,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L320",
+      "source_location": "L325",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -6700,7 +8026,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L453",
+      "source_location": "L458",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -6712,7 +8038,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L183",
+      "source_location": "L188",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -6724,7 +8050,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L181",
+      "source_location": "L186",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -6736,7 +8062,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L182",
+      "source_location": "L187",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -6748,7 +8074,7 @@
       "relation": "defines",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L183",
+      "source_location": "L188",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -6760,7 +8086,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L191",
+      "source_location": "L196",
       "weight": 1.0,
       "_origin": "ast",
       "context": "parameter_type",
@@ -6772,7 +8098,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L227",
+      "source_location": "L232",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -6784,7 +8110,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L215",
+      "source_location": "L220",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -6796,7 +8122,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L250",
+      "source_location": "L255",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -6808,7 +8134,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L376",
+      "source_location": "L381",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -6820,7 +8146,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L407",
+      "source_location": "L412",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -6832,7 +8158,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L439",
+      "source_location": "L444",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -6844,7 +8170,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L385",
+      "source_location": "L390",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -6857,7 +8183,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L229",
+      "source_location": "L234",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert_sfc_key_max",
@@ -6869,7 +8195,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L261",
+      "source_location": "L266",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert_extract_bucket_id",
@@ -6880,7 +8206,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L250",
+      "source_location": "L255",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -6905,7 +8231,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L322",
+      "source_location": "L327",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert_key_push_3bits",
@@ -6917,7 +8243,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L478",
+      "source_location": "L483",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert_sfc_encode3d",
@@ -6929,7 +8255,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L373",
+      "source_location": "L378",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert_convert_to_sfc1d",
@@ -6941,7 +8267,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L388",
+      "source_location": "L393",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert_quantize_coord",
@@ -6953,7 +8279,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L400",
+      "source_location": "L405",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert_float_to_int_rep",
@@ -6964,7 +8290,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L385",
+      "source_location": "L390",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -6988,7 +8314,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L407",
+      "source_location": "L412",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -7000,13 +8326,25 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L439",
+      "source_location": "L444",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert_int_rep_to_float",
       "target": "src_sfc_peano_hilbert_hpp_floatt",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "test/advance_mpi.cpp",
+      "source_location": "L63",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "test_advance_mpi_main",
+      "target": "src_sfc_peano_hilbert_float_to_int_rep"
     },
     {
       "relation": "calls",
@@ -7037,7 +8375,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "src/sfc.peano_hilbert.hpp",
-      "source_location": "L453",
+      "source_location": "L458",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_sfc_peano_hilbert_sfc_encode3d",
@@ -7060,7 +8398,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "test/advance_mpi.cpp",
-      "source_location": "L25",
+      "source_location": "L38",
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_advance_mpi",
@@ -7082,7 +8420,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "test/advance_mpi.cpp",
-      "source_location": "L21",
+      "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_advance_mpi",
@@ -7093,7 +8431,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "test/advance_mpi.cpp",
-      "source_location": "L16",
+      "source_location": "L29",
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_advance_mpi",
@@ -7104,22 +8442,22 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "test/advance_mpi.cpp",
-      "source_location": "L17",
+      "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "test_advance_mpi_mpi_type_traits_float",
-      "target": "test_advance_mpi_mpi_type_traits_float_type",
+      "source": "test_advance_mpi_mpi_type_traits",
+      "target": "test_advance_mpi_mpi_type_traits_type",
       "confidence_score": 1.0
     },
     {
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "test/advance_mpi.cpp",
-      "source_location": "L17",
+      "source_location": "L14",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
-      "source": "test_advance_mpi_mpi_type_traits_float_type",
+      "source": "test_advance_mpi_mpi_type_traits_type",
       "target": "test_advance_mpi_cpp_mpi_datatype",
       "confidence_score": 1.0
     },
@@ -7127,7 +8465,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "test/advance_mpi.cpp",
-      "source_location": "L22",
+      "source_location": "L35",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -7136,10 +8474,33 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "test/advance_mpi.cpp",
+      "source_location": "L30",
+      "weight": 1.0,
+      "context": "return_type",
+      "_origin": "ast",
+      "source": "test_advance_mpi_mpi_type_traits_float_type",
+      "target": "test_advance_mpi_cpp_mpi_datatype",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "test/advance_mpi.cpp",
-      "source_location": "L22",
+      "source_location": "L30",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "test_advance_mpi_mpi_type_traits_float",
+      "target": "test_advance_mpi_mpi_type_traits_float_type",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "test/advance_mpi.cpp",
+      "source_location": "L35",
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_advance_mpi_mpi_type_traits_double",
@@ -8596,7 +9957,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L24",
+      "source_location": "L37",
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_test_mpi",
@@ -8618,7 +9979,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L20",
+      "source_location": "L33",
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_test_mpi",
@@ -8629,7 +9990,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L15",
+      "source_location": "L28",
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_test_mpi",
@@ -8640,22 +10001,22 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L16",
+      "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "test_test_mpi_mpi_type_traits_float",
-      "target": "test_test_mpi_mpi_type_traits_float_type",
+      "source": "test_test_mpi_mpi_type_traits",
+      "target": "test_test_mpi_mpi_type_traits_type",
       "confidence_score": 1.0
     },
     {
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L16",
+      "source_location": "L13",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
-      "source": "test_test_mpi_mpi_type_traits_float_type",
+      "source": "test_test_mpi_mpi_type_traits_type",
       "target": "test_test_mpi_cpp_mpi_datatype",
       "confidence_score": 1.0
     },
@@ -8663,7 +10024,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L21",
+      "source_location": "L34",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -8672,10 +10033,33 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "test/test_mpi.cpp",
+      "source_location": "L29",
+      "weight": 1.0,
+      "context": "return_type",
+      "_origin": "ast",
+      "source": "test_test_mpi_mpi_type_traits_float_type",
+      "target": "test_test_mpi_cpp_mpi_datatype",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "test/test_mpi.cpp",
-      "source_location": "L21",
+      "source_location": "L29",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "test_test_mpi_mpi_type_traits_float",
+      "target": "test_test_mpi_mpi_type_traits_float_type",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "test/test_mpi.cpp",
+      "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast",
       "source": "test_test_mpi_mpi_type_traits_double",
@@ -8702,6 +10086,17 @@
       "_origin": "ast",
       "source": "test_test_sycl",
       "target": "test_test_sycl_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".agents/rules/ponytail.md",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "agents_rules_ponytail",
+      "target": "agents_rules_ponytail_ponytail_lazy_senior_dev_mode",
       "confidence_score": 1.0
     },
     {
@@ -8971,5 +10366,5 @@
       "source_file": "docs/benchmark_scaling.png"
     }
   ],
-  "built_at_commit": "9d59bedc104ee98cd25e5e0b7b52085b37c11557"
+  "built_at_commit": "7a2e261aa01da6e91035a57b78f5bf954da6dbfa"
 }

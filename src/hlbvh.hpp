@@ -1,6 +1,7 @@
 #ifndef SYCL_FASTTREE_HLBVH_HPP
 #define SYCL_FASTTREE_HLBVH_HPP
 
+#include "maxheap.hpp"
 #include <oneapi/dpl/algorithm>
 #include <oneapi/dpl/execution>
 #include <oneapi/dpl/iterator>
@@ -824,77 +825,7 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
 #define MAX_STACK_DEPTH 64
 
 /**
- * @brief A fixed-capacity priority queue designed for GPU device kernels.
- *
- * Since dynamic allocations are prohibited inside SYCL GPU kernels, this queue
- * maintains the k-nearest particles sorted by distance using a statically sized array.
- * Uses insertion sort for fast execution with small K values, minimizing register usage.
- *
- * @tparam T Coordinate value precision (float or double).
- * @tparam MAX_K Maximum capacity of the priority queue.
- */
-template <typename T, int MAX_K>
-struct PriorityQueue {
-  T data[MAX_K];       ///< Squared distance values.
-  int indices[MAX_K];  ///< Particle indices corresponding to distances.
-  int count;           ///< Number of valid items in the queue.
-
-  /**
-   * @brief Construct an empty PriorityQueue.
-   */
-  PriorityQueue() : count(0) {}
-
-  /**
-   * @brief Inserts a new element if it is closer than the furthest known element.
-   *
-   * @param[in] val Squared distance value to insert.
-   * @param[in] idx Particle index.
-   * @param[in] k Active number of nearest neighbors requested (k <= MAX_K).
-   */
-  void push(T val, int idx, int k) {
-    if (count < k) {
-      data[count] = val;
-      indices[count] = idx;
-      count++;
-      // Insertion sort (small K)
-      for (int i = count - 1; i > 0; --i) {
-        if (data[i] > data[i - 1]) {
-          std::swap(data[i], data[i - 1]);
-          std::swap(indices[i], indices[i - 1]);
-        }
-      }
-    } else if (val < data[0]) {
-      data[0] = val;
-      indices[0] = idx;
-      // Insertion sort
-      for (int i = 0; i < k - 1; ++i) {
-        if (data[i] < data[i + 1]) {
-          std::swap(data[i], data[i + 1]);
-          std::swap(indices[i], indices[i + 1]);
-        } else {
-          break;
-        }
-      }
-    }
-  }
-};
-
-/**
  * @brief Computes the minimum squared distance between a 3D query point and an axis-aligned bounding box.
- *
- * @tparam T Coordinate type (float, double, or integer position type).
- * @param[in] px Query point x-coordinate.
- * @param[in] py Query point y-coordinate.
- * @param[in] pz Query point z-coordinate.
- * @param[in] bmin_x Box minimum x.
- * @param[in] bmax_x Box maximum x.
- * @param[in] bmin_y Box minimum y.
- * @param[in] bmax_y Box maximum y.
- * @param[in] bmin_z Box minimum z.
- * @param[in] bmax_z Box maximum z.
- * @return Squared distance from the query point to the closest point on the bounding box.
- * @note In integer coordinate mode (FASTTREE_INTEGER_COORDS), coordinates are converted to normalized doubles in [0, 1)
- *       via int_rep_to_float() before computing differences, returning normalized squared distance in [0, 3].
  */
 template <typename T>
 inline auto node_distance_sq(T px, T py, T pz, T bmin_x, T bmax_x, T bmin_y, T bmax_y, T bmin_z, T bmax_z) {
@@ -904,7 +835,6 @@ inline auto node_distance_sq(T px, T py, T pz, T bmin_x, T bmax_x, T bmin_y, T b
     T dz = sycl::fmax(bmin_z - pz, sycl::fmax(T(0.0), pz - bmax_z));
     return dx * dx + dy * dy + dz * dz;
   } else {
-    // Step 1: Map integer coordinates to normalized double space [0, 1)
     auto diff = [](T val, T bmin, T bmax) -> double {
       double val_f = int_rep_to_float(val);
       double bmin_f = int_rep_to_float(bmin);
@@ -913,7 +843,6 @@ inline auto node_distance_sq(T px, T py, T pz, T bmin_x, T bmax_x, T bmin_y, T b
       if (val_f > bmax_f) return val_f - bmax_f;
       return 0.0;
     };
-    // Step 2: Compute Euclidean coordinate differences in normalized space
     double dx = diff(px, bmin_x, bmax_x);
     double dy = diff(py, bmin_y, bmax_y);
     double dz = diff(pz, bmin_z, bmax_z);
@@ -921,12 +850,244 @@ inline auto node_distance_sq(T px, T py, T pz, T bmin_x, T bmax_x, T bmin_y, T b
   }
 }
 
+template <int _MAX_K_ = 32>
+void knn_query_small_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_qx, const coord_t *dev_qy, const coord_t *dev_qz, int k,
+                       int num_queries, size_t *dev_results, coord_t *dev_result_dists) {
+  static_assert(_MAX_K_ <= 32, "knn_query_small_k: use knn_query_large_k for k > 32");
+
+  size_t n = tree.num_leaves;
+  coord_t *p_min_x = tree.min_x, *p_max_x = tree.max_x;
+  coord_t *p_min_y = tree.min_y, *p_max_y = tree.max_y;
+  coord_t *p_min_z = tree.min_z, *p_max_z = tree.max_z;
+  int *p_left = tree.left_child;
+  int *p_right = tree.right_child;
+  int *p_orig_idx = tree.orig_idx;
+
+  q.parallel_for(sycl::range<1>(num_queries), [=](sycl::id<1> gid) {
+     size_t qi = gid[0];
+     coord_t px = dev_qx[qi];
+     coord_t py = dev_qy[qi];
+     coord_t pz = dev_qz[qi];
+
+     RegisterMaxHeap<double, int, _MAX_K_> heap;
+
+     // ── Traversal stack ──────────────────────────────────
+     int stack[MAX_STACK_DEPTH];
+     int sp = 0;
+     stack[sp++] = 0;  // root
+
+     while (sp > 0) {
+       int node = stack[--sp];
+
+       double d2 = node_distance_sq(px, py, pz, p_min_x[node], p_max_x[node], p_min_y[node], p_max_y[node], p_min_z[node], p_max_z[node]);
+
+       // ── Prune: skip node if farther than k-th nearest so far
+       if (heap.should_prune(d2, k)) continue;
+
+       if (node >= static_cast<int>(n) - 1 && n > 1) {
+        // ── Leaf node
+#ifdef RETURN_ORIG_INDICES
+         heap.push(d2, p_orig_idx[node], k);
+#else
+                    heap.push(d2, node - static_cast<int>(n - 1), k);
+#endif
+       } else if (n == 1) {
+        // ── Single-particle tree
+#ifdef RETURN_ORIG_INDICES
+         heap.push(d2, p_orig_idx[0], k);
+#else
+                    heap.push(d2, 0, k);
+#endif
+       } else {
+         // ── Internal node: push children
+         int l = p_left[node];
+         int r = p_right[node];
+
+         double ld2 = node_distance_sq(px, py, pz, p_min_x[l], p_max_x[l], p_min_y[l], p_max_y[l], p_min_z[l], p_max_z[l]);
+         double rd2 = node_distance_sq(px, py, pz, p_min_x[r], p_max_x[r], p_min_y[r], p_max_y[r], p_min_z[r], p_max_z[r]);
+
+         if (sp < MAX_STACK_DEPTH - 2) {
+           // Push farther child first → closer processed first
+           if (ld2 <= rd2) {
+             stack[sp++] = r;
+             stack[sp++] = l;
+           } else {
+             stack[sp++] = l;
+             stack[sp++] = r;
+           }
+         }
+       }
+     }
+
+     // ── Extract results in ascending distance order ──────
+     size_t offset = qi * static_cast<size_t>(k);
+
+     // Temporary buffers for sorted extraction
+     double sorted_dist[_MAX_K_];
+     int sorted_idx[_MAX_K_];
+     heap.extract_sorted(sorted_dist, sorted_idx, k);
+
+     for (int i = 0; i < k; ++i) {
+       if (sorted_idx[i] >= 0) {
+         dev_results[offset + i] = static_cast<size_t>(sorted_idx[i]);
+#if defined(FASTTREE_INTEGER_COORDS)
+         dev_result_dists[offset + i] = float_to_int_rep(sorted_dist[i]);
+#else
+                    dev_result_dists[offset + i] = static_cast<coord_t>(sorted_dist[i]);
+#endif
+       } else {
+         dev_results[offset + i] = static_cast<size_t>(-1);
+         dev_result_dists[offset + i] = type_identity_max<coord_t>();
+       }
+     }
+   }).wait();
+}
+
+template <int _MAX_K_ = 128>
+void knn_query_large_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_qx, const coord_t *dev_qy, const coord_t *dev_qz, int k,
+                       int num_queries, size_t *dev_results, coord_t *dev_result_dists) {
+  static_assert(_MAX_K_ > 32, "knn_query_large_k: use knn_query_small_k for k <= 32");
+
+  constexpr int HEAP_CAP = []() constexpr {
+    int cap = 1;
+    while (cap < _MAX_K_) cap <<= 1;
+    return cap;
+  }();
+
+  size_t n = tree.num_leaves;
+  coord_t *p_min_x = tree.min_x, *p_max_x = tree.max_x;
+  coord_t *p_min_y = tree.min_y, *p_max_y = tree.max_y;
+  coord_t *p_min_z = tree.min_z, *p_max_z = tree.max_z;
+  int *p_left = tree.left_child;
+  int *p_right = tree.right_child;
+  int *p_orig_idx = tree.orig_idx;
+
+  size_t lm_heap_dist = HEAP_CAP * sizeof(double);
+  size_t lm_heap_idx = HEAP_CAP * sizeof(int);
+  size_t lm_stage_dist = KNN_WG_SIZE * sizeof(double);
+  size_t lm_stage_idx = KNN_WG_SIZE * sizeof(int);
+  size_t lm_control = 2 * sizeof(int) + sizeof(double);
+  size_t lm_stack = MAX_STACK_DEPTH * sizeof(int);
+  size_t lm_total = lm_heap_dist + lm_heap_idx + lm_stage_dist + lm_stage_idx + lm_control + lm_stack;
+
+  size_t max_lm = q.get_device().template get_info<sycl::info::device::local_mem_size>();
+  if (lm_total > max_lm) {
+    throw std::runtime_error(
+        "knn_query_large_k: k too large, "
+        "local memory requirement exceeds device limit. "
+        "Reduce k or increase KNN_WG_SIZE.");
+  }
+
+  q.submit([&](sycl::handler &h) {
+     sycl::local_accessor<double, 1> sh_dist(HEAP_CAP, h);
+     sycl::local_accessor<int, 1> sh_idx(HEAP_CAP, h);
+     sycl::local_accessor<double, 1> sh_stage_dist(KNN_WG_SIZE, h);
+     sycl::local_accessor<int, 1> sh_stage_idx(KNN_WG_SIZE, h);
+     sycl::local_accessor<int, 1> sh_count(1, h);
+     sycl::local_accessor<double, 1> sh_worst(1, h);
+     sycl::local_accessor<int, 1> sh_stack(MAX_STACK_DEPTH, h);
+     sycl::local_accessor<int, 1> sh_sp(1, h);
+
+     h.parallel_for(sycl::nd_range<1>(num_queries * KNN_WG_SIZE,  // global size
+                                      KNN_WG_SIZE),               // local size (work-group)
+                    [=](sycl::nd_item<1> item) {
+                      int lid = static_cast<int>(item.get_local_id(0));
+                      size_t qi = item.get_group(0);
+
+                      coord_t px = dev_qx[qi];
+                      coord_t py = dev_qy[qi];
+                      coord_t pz = dev_qz[qi];
+
+                      SharedMaxHeap<double, int>::init(item, sh_dist, sh_idx, sh_count, sh_worst, HEAP_CAP);
+
+                      if (lid == 0) {
+                        sh_sp[0] = 1;
+                        sh_stack[0] = 0;  // push root
+                      }
+                      sycl::group_barrier(item.get_group());
+
+                      while (true) {
+                        int node = -1;
+                        if (lid == 0) {
+                          if (sh_sp[0] > 0) { node = sh_stack[--sh_sp[0]]; }
+                        }
+                        node = sycl::group_broadcast(item.get_group(), node, 0);
+                        if (node < 0) break;
+
+                        double d2 =
+                            node_distance_sq(px, py, pz, p_min_x[node], p_max_x[node], p_min_y[node], p_max_y[node], p_min_z[node], p_max_z[node]);
+
+                        if (SharedMaxHeap<double, int>::should_prune(d2, sh_worst, sh_count, k)) { continue; }
+
+                        if (node >= static_cast<int>(n) - 1 && n > 1) {
+                          double my_d = std::numeric_limits<double>::max();
+                          int my_i = -1;
+
+                          if (lid == 0) {
+#ifdef RETURN_ORIG_INDICES
+                            my_i = p_orig_idx[node];
+#else
+                            my_i = node - static_cast<int>(n - 1);
+#endif
+                            my_d = d2;
+                          }
+
+                          SharedMaxHeap<double, int>::batch_insert(item, sh_dist, sh_idx, sh_count, sh_worst, sh_stage_dist, sh_stage_idx, my_d, my_i,
+                                                                   k, HEAP_CAP);
+
+                        } else if (n == 1) {
+                          double my_d = (lid == 0) ? d2 : std::numeric_limits<double>::max();
+                          int my_i = (lid == 0) ? 0 : -1;
+                          SharedMaxHeap<double, int>::batch_insert(item, sh_dist, sh_idx, sh_count, sh_worst, sh_stage_dist, sh_stage_idx, my_d, my_i,
+                                                                   k, HEAP_CAP);
+
+                        } else {
+                          if (lid == 0) {
+                            int l = p_left[node];
+                            int r = p_right[node];
+
+                            double ld2 = node_distance_sq(px, py, pz, p_min_x[l], p_max_x[l], p_min_y[l], p_max_y[l], p_min_z[l], p_max_z[l]);
+                            double rd2 = node_distance_sq(px, py, pz, p_min_x[r], p_max_x[r], p_min_y[r], p_max_y[r], p_min_z[r], p_max_z[r]);
+
+                            if (sh_sp[0] < MAX_STACK_DEPTH - 2) {
+                              if (ld2 <= rd2) {
+                                sh_stack[sh_sp[0]++] = r;
+                                sh_stack[sh_sp[0]++] = l;
+                              } else {
+                                sh_stack[sh_sp[0]++] = l;
+                                sh_stack[sh_sp[0]++] = r;
+                              }
+                            }
+                          }
+                          sycl::group_barrier(item.get_group());
+                        }
+                      }
+
+                      size_t offset = qi * static_cast<size_t>(k);
+
+                      SharedMaxHeap<double, int>::extract_sorted_k(item, sh_dist, sh_idx, sh_count, nullptr, nullptr, k, HEAP_CAP);
+
+                      for (int i = lid; i < k; i += KNN_WG_SIZE) {
+                        if (sh_idx[i] >= 0) {
+                          dev_results[offset + i] = static_cast<size_t>(sh_idx[i]);
+#if defined(FASTTREE_INTEGER_COORDS)
+                          dev_result_dists[offset + i] = float_to_int_rep(sh_dist[i]);
+#else
+                        dev_result_dists[offset + i] = static_cast<coord_t>(sh_dist[i]);
+#endif
+                        } else {
+                          dev_results[offset + i] = static_cast<size_t>(-1);
+                          dev_result_dists[offset + i] = type_identity_max<coord_t>();
+                        }
+                      }
+                    });
+   }).wait();
+}
+
 /**
- * @brief Finds the k-nearest neighbor particles for multiple query points.
+ * @brief Unified KNN query dispatch for multiple query points.
  *
- * Executes a parallel non-recursive stack-based tree traversal. To prune the search
- * space, it visits the geometrically closer child node first and updates search bounds
- * using a local PriorityQueue.
+ * Dispatches to RegisterMaxHeap for k <= 32 or SharedMaxHeap for k > 32.
  *
  * @param[in] q SYCL queue to run the query kernel.
  * @param[in] tree The built spatial tree.
@@ -936,7 +1097,7 @@ inline auto node_distance_sq(T px, T py, T pz, T bmin_x, T bmax_x, T bmin_y, T b
  * @param[in] k Number of nearest neighbors to find.
  * @param[in] num_queries Total number of query points.
  * @param[out] results Output buffer for nearest neighbor indices. Size: num_queries * k.
- * @param[out] result_dists Output buffer for neighbor Euclidean distances. Size: num_queries * k.
+ * @param[out] result_dists Output buffer for neighbor squared distances. Size: num_queries * k.
  */
 template <int _MAX_K_ = 128>
 inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, const coord_t *qy, const coord_t *qz, int k, int num_queries,
@@ -953,91 +1114,12 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
   size_t *dev_results = ensure_device_writable(q, results, static_cast<size_t>(num_queries) * static_cast<size_t>(k), res_alloc);
   coord_t *dev_result_dists = ensure_device_writable(q, result_dists, static_cast<size_t>(num_queries) * static_cast<size_t>(k), dist_alloc);
 
-  coord_t *p_min_x = tree.min_x, *p_max_x = tree.max_x;
-  coord_t *p_min_y = tree.min_y, *p_max_y = tree.max_y;
-  coord_t *p_min_z = tree.min_z, *p_max_z = tree.max_z;
-  int *p_left_child = tree.left_child, *p_right_child = tree.right_child;
-  int *p_orig_idx = tree.orig_idx;
-
-  // Use a fixed K for the priority queue in the kernel
-  // In a real implementation, K would be a template parameter or handled more dynamically
-  q.parallel_for(sycl::range<1>(num_queries), [=](sycl::id<1> idx) {
-     size_t qi = idx[0];
-     coord_t px = dev_qx[qi], py = dev_qy[qi], pz = dev_qz[qi];
-
-     int stack[MAX_STACK_DEPTH];
-     int stack_ptr = 0;
-
-     if (n == 1) {
-       stack[stack_ptr++] = 0;
-     } else {
-       stack[stack_ptr++] = 0;
-     }
-
-     // We'll use a local buffer for PQ. Since K is dynamic in the API but fixed in the struct,
-     // we handle with a compile-time constant _MAX_K_ for the priority queue.
-     PriorityQueue<double, _MAX_K_> pq;
-
-     while (stack_ptr > 0) {
-       int node_idx = stack[--stack_ptr];
-
-       coord_t bmin_x = p_min_x[node_idx], bmax_x = p_max_x[node_idx];
-       coord_t bmin_y = p_min_y[node_idx], bmax_y = p_max_y[node_idx];
-       coord_t bmin_z = p_min_z[node_idx], bmax_z = p_max_z[node_idx];
-
-       auto d2 = node_distance_sq(px, py, pz, bmin_x, bmax_x, bmin_y, bmax_y, bmin_z, bmax_z);
-
-       if (pq.count < k || d2 < pq.data[0]) {
-         if (node_idx >= (int)n - 1 && n > 1) {  // Leaf
-#ifdef RETURN_ORIG_INDICES
-           pq.push(d2, p_orig_idx[node_idx], k);
-#else
-           pq.push(d2, node_idx - (n - 1), k);
-#endif
-         } else if (n == 1) {
-#ifdef RETURN_ORIG_INDICES
-           pq.push(d2, p_orig_idx[0], k);
-#else
-           pq.push(d2, 0, k);
-#endif
-         } else {
-           // Internal node
-           int l = p_left_child[node_idx];
-           int r = p_right_child[node_idx];
-
-           // Heuristic: push the closer child last so it's processed first
-           auto l_d2 = node_distance_sq(px, py, pz, p_min_x[l], p_max_x[l], p_min_y[l], p_max_y[l], p_min_z[l], p_max_z[l]);
-           auto r_d2 = node_distance_sq(px, py, pz, p_min_x[r], p_max_x[r], p_min_y[r], p_max_y[r], p_min_z[r], p_max_z[r]);
-
-           if (stack_ptr < MAX_STACK_DEPTH - 2) {
-             if (l_d2 < r_d2) {
-               stack[stack_ptr++] = r;
-               stack[stack_ptr++] = l;
-             } else {
-               stack[stack_ptr++] = l;
-               stack[stack_ptr++] = r;
-             }
-           }
-         }
-       }
-     }
-
-     size_t offset = qi * static_cast<size_t>(k);
-     for (int i = 0; i < k; ++i) {
-       int out_idx = k - 1 - i;
-       if (i < pq.count) {
-         dev_results[offset + out_idx] = pq.indices[i];
-#if defined(FASTTREE_INTEGER_COORDS)
-          dev_result_dists[offset + out_idx] = float_to_int_rep(pq.data[i]);
-#else
-          dev_result_dists[offset + out_idx] = static_cast<coord_t>(pq.data[i]);
-#endif
-       } else {
-         dev_results[offset + out_idx] = -1;
-         dev_result_dists[offset + out_idx] = type_identity_max<coord_t>();
-       }
-     }
-   }).wait();
+  if (k <= 32) {
+    knn_query_small_k<32>(q, tree, dev_qx, dev_qy, dev_qz, k, num_queries, dev_results, dev_result_dists);
+  } else {
+    if (k > _MAX_K_) { throw std::invalid_argument("k exceeds _MAX_K_ template parameter. Instantiate knn_query with larger _MAX_K_."); }
+    knn_query_large_k<128>(q, tree, dev_qx, dev_qy, dev_qz, k, num_queries, dev_results, dev_result_dists);
+  }
 
   free_device_readable(q, dev_qx, qx_alloc);
   free_device_readable(q, dev_qy, qy_alloc);

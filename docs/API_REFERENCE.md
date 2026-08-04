@@ -182,18 +182,25 @@ inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, TreeSoA &tree
 
 ## 6. Query APIs
 
-### `PriorityQueue<T, MAX_K>`
-A statically sized priority queue structure designed for device memory.
-* **Design:** Because dynamic memory allocations are not supported in device kernels, `PriorityQueue` stores results in a fixed-size array on the thread's registers/local stack.
-* **Sorting:** Uses insertion sort upon pushing a new element. If the queue is full, the incoming element replaces the head (which contains the largest distance value) if it is closer.
+### `RegisterMaxHeap` & `SharedMaxHeap`
+Fixed-capacity max-heap data structures designed for SYCL GPU execution.
+* **`RegisterMaxHeap<T, IndexT, MAX_K>` ($k \le 32$):** Resides entirely in GPU thread registers for zero-overhead local stack operations.
+* **`SharedMaxHeap<T, IndexT>` ($k > 32$):** Resides in work-group shared memory (`sycl::local_accessor`), using parallel bitonic sorting and reduction barriers across work-group threads to process large $k$ values efficiently.
 
 ### `knn_query`
 ```cpp
 inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, const coord_t *qy, const coord_t *qz, int k, int num_queries,
-                      int *results, coord_t *result_dists);
+                      size_t *results, coord_t *result_dists);
 ```
-* **Algorithm:** Launches a thread per query. Traverse the tree using a local stack array. Prunes branches if the queue is full and the squared distance to the node's bounding box is greater than the queue's current maximum distance.
-* **Heuristics:** Visited children are prioritized: the distance to both children's bounding boxes is calculated, and the closer child is pushed onto the stack last (so it is popped and evaluated first).
+* **Return Format:** Stores **squared distances ($d^2$)** directly in `result_dists` rather than Euclidean distance $d = \sqrt{d^2}$. This eliminates GPU kernel `sycl::sqrt()` instruction overhead and directly feeds Voronoi cell clipping and Delaunay triangulation algorithms.
+* **MaxHeap Dispatch:** Automatically dispatches to `knn_query_small_k` ($k \le 32$, register-resident) or `knn_query_large_k` ($k > 32$, shared-memory bitonic sort).
+* **Caller-Managed Scaling:** `knn_query` performs no internal scaling or division by $3.0$ on returned distance values, avoiding extra binary floating-point division round-off error.
+* **Decoding Formulas:**
+  * **Floating-Point Mode (`!FASTTREE_INTEGER_COORDS`):**
+    $$d_{\text{phys}}^2 = \text{result\_dists}[i]$$
+  * **Integer Coordinate Mode (`FASTTREE_INTEGER_COORDS`):**
+    $$d_{\text{norm}}^2 = \text{int\_rep\_to\_float}(\text{result\_dists}[i])$$
+    $$d_{\text{phys}}^2 = d_{\text{norm}}^2 \times (box\_max - box\_min)^2$$
 
 ### `range_query`
 ```cpp
