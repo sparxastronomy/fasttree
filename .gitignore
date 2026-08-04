@@ -83,3 +83,6 @@ core*
 # Agents related files
 .antigravitycli/
 .geminiignore
+graphify-out/
+graphify-out/cache/
+graphify-out/cost.json
