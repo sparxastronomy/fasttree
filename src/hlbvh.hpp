@@ -1028,9 +1028,9 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
        if (i < pq.count) {
          dev_results[offset + out_idx] = pq.indices[i];
 #if defined(FASTTREE_INTEGER_COORDS)
-         dev_result_dists[offset + out_idx] = float_to_int_rep(sycl::sqrt(pq.data[i]));
+          dev_result_dists[offset + out_idx] = float_to_int_rep(pq.data[i]);
 #else
-         dev_result_dists[offset + out_idx] = static_cast<coord_t>(sycl::sqrt(pq.data[i]));
+          dev_result_dists[offset + out_idx] = static_cast<coord_t>(pq.data[i]);
 #endif
        } else {
          dev_results[offset + out_idx] = -1;

@@ -176,7 +176,8 @@ int main() {
   for (int i = 0; i < k; ++i) {
 #if defined(RETURN_ORIG_INDICES)
     uint32_t pid = static_cast<uint32_t>(knn_res[i]);
-    std::cout << "  Neighbor " << i << ": particle ID " << pid << ", dist " << static_cast<double>(knn_dists[i]) << std::endl;
+    double phys_d2 = static_cast<double>(knn_dists[i]);
+    std::cout << "  Neighbor " << i << ": particle ID " << pid << ", dist^2 " << phys_d2 << ", dist " << std::sqrt(phys_d2) << std::endl;
 #else
     size_t leaf_idx = (n - 1) + knn_res[i];
     uint32_t pid = tree.id[leaf_idx];
@@ -185,15 +186,18 @@ int main() {
     double px = int_rep_to_float(tree.min_x[leaf_idx], box_min, box_max - box_min);
     double py = int_rep_to_float(tree.min_y[leaf_idx], box_min, box_max - box_min);
     double pz = int_rep_to_float(tree.min_z[leaf_idx], box_min, box_max - box_min);
-    double phys_dist = int_rep_to_float(knn_dists[i]) * (box_max - box_min);
+    double norm_d2 = int_rep_to_float(knn_dists[i]);
+    double phys_d2 = norm_d2 * (box_max - box_min) * (box_max - box_min);
+    double phys_dist = std::sqrt(phys_d2);
 #else
     double px = static_cast<double>(tree.min_x[leaf_idx]);
     double py = static_cast<double>(tree.min_y[leaf_idx]);
     double pz = static_cast<double>(tree.min_z[leaf_idx]);
-    double phys_dist = static_cast<double>(knn_dists[i]);
+    double phys_d2 = static_cast<double>(knn_dists[i]);
+    double phys_dist = std::sqrt(phys_d2);
 #endif
 
-    std::cout << "  Neighbor " << i << ": particle ID " << pid << ", pos (" << px << ", " << py << ", " << pz << "), dist " << phys_dist << std::endl;
+    std::cout << "  Neighbor " << i << ": particle ID " << pid << ", pos (" << px << ", " << py << ", " << pz << "), dist^2 " << phys_d2 << ", dist " << phys_dist << std::endl;
 #endif
   }
 
