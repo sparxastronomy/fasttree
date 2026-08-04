@@ -99,7 +99,7 @@ inline uint64_t get_lo_word(const uint128_t &w) noexcept { return w.lo; }
 
 // ================================================================
 // SECTION 1: Configuration
-// Exactly one of these must be defined (matches AREPO-2 convention)
+// Exactly one of these must be defined
 // ================================================================
 
 #if !defined(POSITIONS_IN_32BIT) && !defined(POSITIONS_IN_64BIT) && !defined(POSITIONS_IN_128BIT)
@@ -277,7 +277,7 @@ inline uint32_t extract_bucket_id(const sfc_key &k, int m) noexcept {
 using sfc1D = MyIntPosType;
 
 // ================================================================
-// SECTION 6: AREPO-2 lookup tables (verbatim, machine-verified)
+// SECTION 6: AREPO lookup tables (verbatim, machine-verified)
 // ================================================================
 
 static constexpr uint8_t rottable3[48][8] = {
