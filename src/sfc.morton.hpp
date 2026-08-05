@@ -13,7 +13,7 @@ namespace fasttree {
 #endif
 
 // Define types for 1D and 3D space-filling curve keys
-using sfc1D = std::uint32_t;
+using sfc1D   = std::uint32_t;
 using sfc_key = std::uint64_t;
 
 #ifdef FASTTREE_INTEGER_COORDS
@@ -24,34 +24,35 @@ using dist_t = double;
 
 // Utilities for Morton keys
 static constexpr std::uint64_t MASK_21 = 0x1FFFFFULL;
-static constexpr std::uint64_t M1 = 0x1F00000000FFFFULL;
-static constexpr std::uint64_t M2 = 0x1F0000FF0000FFULL;
-static constexpr std::uint64_t M3 = 0x100F00F00F00F00FULL;
-static constexpr std::uint64_t M4 = 0x10C30C30C30C30C3ULL;
-static constexpr std::uint64_t M5 = 0x1249249249249249ULL;
+static constexpr std::uint64_t M1      = 0x1F00000000FFFFULL;
+static constexpr std::uint64_t M2      = 0x1F0000FF0000FFULL;
+static constexpr std::uint64_t M3      = 0x100F00F00F00F00FULL;
+static constexpr std::uint64_t M4      = 0x10C30C30C30C30C3ULL;
+static constexpr std::uint64_t M5      = 0x1249249249249249ULL;
 
 inline sfc_key spread3_u64(sfc1D x) {
-  sfc_key w = x & MASK_21;
-  w = (w | (w << 32)) & M1;
-  w = (w | (w << 16)) & M2;
-  w = (w | (w << 8)) & M3;
-  w = (w | (w << 4)) & M4;
-  w = (w | (w << 2)) & M5;
-  return w;
+    sfc_key w = x & MASK_21;
+    w         = (w | (w << 32)) & M1;
+    w         = (w | (w << 16)) & M2;
+    w         = (w | (w << 8)) & M3;
+    w         = (w | (w << 4)) & M4;
+    w         = (w | (w << 2)) & M5;
+    return w;
 }
 
 inline sfc_key compact3_u64(sfc_key x) {
-  x &= M5;
-  x = (x | (x >> 2)) & M4;
-  x = (x | (x >> 4)) & M3;
-  x = (x | (x >> 8)) & M2;
-  x = (x | (x >> 16)) & M1;
-  x = (x | (x >> 32)) & MASK_21;
-  return x;
+    x &= M5;
+    x = (x | (x >> 2)) & M4;
+    x = (x | (x >> 4)) & M3;
+    x = (x | (x >> 8)) & M2;
+    x = (x | (x >> 16)) & M1;
+    x = (x | (x >> 32)) & MASK_21;
+    return x;
 }
 
 // template <typename FloatT>
-// inline void sfc_decode(sycl::queue &q, const std::vector<sfc_key> &keys, const BoundingBox<FloatT> &bbox, particles<FloatT> &parts) {
+// inline void sfc_decode(sycl::queue &q, const std::vector<sfc_key> &keys, const
+// BoundingBox<FloatT> &bbox, particles<FloatT> &parts) {
 //   size_t num_particles = keys.size();
 //   parts.pos_x.resize(num_particles);
 //   parts.pos_y.resize(num_particles);
@@ -81,6 +82,6 @@ inline sfc_key compact3_u64(sfc_key x) {
 //   });
 // }
 
-}  // namespace fasttree
+} // namespace fasttree
 
-#endif  // SYCL_FASTTREE_SFC_MORTON_HPP
+#endif // SYCL_FASTTREE_SFC_MORTON_HPP
