@@ -1167,7 +1167,7 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
     knn_query_small_k<32>(q, tree, dev_qx, dev_qy, dev_qz, k, num_queries, dev_results, dev_result_dists);
   } else {
     if (k > _MAX_K_) { throw std::invalid_argument("k exceeds _MAX_K_ template parameter. Instantiate knn_query with larger _MAX_K_."); }
-    knn_query_large_k<128>(q, tree, dev_qx, dev_qy, dev_qz, k, num_queries, dev_results, dev_result_dists);
+    knn_query_large_k<k>(q, tree, dev_qx, dev_qy, dev_qz, k, num_queries, dev_results, dev_result_dists);
   }
 
   free_device_readable(q, dev_qx, qx_alloc);
