@@ -825,34 +825,91 @@ inline void build_tree(sycl::queue &q, TreeSoA &tree, const sfc_key *sorted_keys
 #define MAX_STACK_DEPTH 64
 
 /**
- * @brief Computes the minimum squared distance between a 3D query point and an axis-aligned bounding box.
+ * @brief Computes the minimum squared distance between a 3D query point
+ *        and an axis-aligned bounding box.
+ *
+ * Return type:
+ *   - float/double coordinates → double (squared Euclidean distance)
+ *   - integer coordinates, PERIODIC_BC defined   → uint64_t (shifted integer squared distance)
+ *   - integer coordinates, PERIODIC_BC undefined → uint64_t (shifted integer squared distance)
+ *
+ * The _DIST_SHIFT pre-shift on each axis distance prevents uint64_t overflow
+ * when squaring and summing three axis components.
  */
 template <typename T>
 inline auto node_distance_sq(T px, T py, T pz, T bmin_x, T bmax_x, T bmin_y, T bmax_y, T bmin_z, T bmax_z) {
   if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
+    // ── Floating-point path (unchanged) ───────────────────────
     T dx = sycl::fmax(bmin_x - px, sycl::fmax(T(0.0), px - bmax_x));
     T dy = sycl::fmax(bmin_y - py, sycl::fmax(T(0.0), py - bmax_y));
     T dz = sycl::fmax(bmin_z - pz, sycl::fmax(T(0.0), pz - bmax_z));
-    return dx * dx + dy * dy + dz * dz;
+    return static_cast<double>(dx * dx + dy * dy + dz * dz);
+
   } else {
-    auto diff = [](T val, T bmin, T bmax) -> double {
-      double val_f = int_rep_to_float(val);
-      double bmin_f = int_rep_to_float(bmin);
-      double bmax_f = int_rep_to_float(bmax);
-      if (val_f < bmin_f) return bmin_f - val_f;
-      if (val_f > bmax_f) return val_f - bmax_f;
-      return 0.0;
+    // ── Integer coordinate path ───────────────────────────────
+    // T is MyIntPosType (uint32_t, uint64_t, or uint128_t).
+    // All arithmetic stays in integer space — no float conversion.
+    // Each axis gap is right-shifted by _DIST_SHIFT before squaring
+    // to keep the 3-axis squared sum within uint64_t.
+
+#ifdef PERIODIC_BC
+    // ── Periodic boundary (toroidal) ──────────────────────────
+    // The domain wraps: coordinate 0 and coordinate 2^B are the same point.
+    // Distance from val to the interval [lo, hi] on a torus of period 2^B:
+    //   - If val is inside [lo, hi] (on the torus), distance = 0.
+    //   - Otherwise, distance = min(|val - lo|_periodic, |val - hi|_periodic).
+    auto periodic_axis_dist = [](T val, T lo, T hi) -> uint64_t {
+      constexpr int B = BITS_PER_DIMENSION;
+      constexpr uint64_t MASK = (B < 64) ? ((1ULL << B) - 1ULL) : ~0ULL;
+      constexpr uint64_t HALF = 1ULL << (B - 1);
+      // FULL = 2^B (the torus period); 0 when B==64 signals wrap-around
+      constexpr uint64_t FULL = (B < 64) ? (1ULL << B) : 0ULL;
+
+      // Unsigned modular offset from lo to val: sd_lo >= 0 means val is
+      // at or past lo going forward around the torus.
+      uint64_t d_lo = (get_lo_word(val) - get_lo_word(lo)) & MASK;
+      int64_t sd_lo = (d_lo >= HALF) ? static_cast<int64_t>(d_lo) - static_cast<int64_t>(FULL) : static_cast<int64_t>(d_lo);
+
+      // Unsigned modular offset from val to hi: sd_hi >= 0 means val is
+      // at or before hi going forward around the torus.
+      uint64_t d_hi = (get_lo_word(hi) - get_lo_word(val)) & MASK;
+      int64_t sd_hi = (d_hi >= HALF) ? static_cast<int64_t>(d_hi) - static_cast<int64_t>(FULL) : static_cast<int64_t>(d_hi);
+
+      // val is inside [lo, hi] on the torus iff both offsets are non-negative
+      if (sd_lo >= 0 && sd_hi >= 0) return 0ULL;
+
+      // Nearest endpoint gap (unsigned), shifted before returning
+      uint64_t abs_lo = static_cast<uint64_t>(sd_lo < 0 ? -sd_lo : sd_lo);
+      uint64_t abs_hi = static_cast<uint64_t>(sd_hi < 0 ? -sd_hi : sd_hi);
+      uint64_t gap = (abs_lo < abs_hi) ? abs_lo : abs_hi;
+      return gap >> _DIST_SHIFT;
     };
-    double dx = diff(px, bmin_x, bmax_x);
-    double dy = diff(py, bmin_y, bmax_y);
-    double dz = diff(pz, bmin_z, bmax_z);
-    return dx * dx + dy * dy + dz * dz;
+
+    uint64_t dx = periodic_axis_dist(px, bmin_x, bmax_x);
+    uint64_t dy = periodic_axis_dist(py, bmin_y, bmax_y);
+    uint64_t dz = periodic_axis_dist(pz, bmin_z, bmax_z);
+    return dx * dx + dy * dy + dz * dz;  // uint64_t, no overflow after shift
+
+#else
+    // ── Non-periodic integer distance ─────────────────────────
+    // Standard half-open-box distance: 0 if inside, else gap to nearest face.
+    auto axis_dist = [](T val, T lo, T hi) -> uint64_t {
+      if (val < lo) return get_lo_word(lo - val) >> _DIST_SHIFT;
+      if (val > hi) return get_lo_word(val - hi) >> _DIST_SHIFT;
+      return 0ULL;
+    };
+
+    uint64_t dx = axis_dist(px, bmin_x, bmax_x);
+    uint64_t dy = axis_dist(py, bmin_y, bmax_y);
+    uint64_t dz = axis_dist(pz, bmin_z, bmax_z);
+    return dx * dx + dy * dy + dz * dz;  // uint64_t, no overflow after shift
+#endif
   }
 }
 
 template <int _MAX_K_ = 32>
 void knn_query_small_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_qx, const coord_t *dev_qy, const coord_t *dev_qz, int k,
-                       int num_queries, size_t *dev_results, coord_t *dev_result_dists) {
+                       int num_queries, size_t *dev_results, dist_t *dev_result_dists) {
   static_assert(_MAX_K_ <= 32, "knn_query_small_k: use knn_query_large_k for k > 32");
 
   size_t n = tree.num_leaves;
@@ -869,7 +926,7 @@ void knn_query_small_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_q
      coord_t py = dev_qy[qi];
      coord_t pz = dev_qz[qi];
 
-     RegisterMaxHeap<double, int, _MAX_K_> heap;
+     RegisterMaxHeap<heap_dist_t, int, _MAX_K_> heap;
 
      // ── Traversal stack ──────────────────────────────────
      int stack[MAX_STACK_DEPTH];
@@ -879,7 +936,7 @@ void knn_query_small_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_q
      while (sp > 0) {
        int node = stack[--sp];
 
-       double d2 = node_distance_sq(px, py, pz, p_min_x[node], p_max_x[node], p_min_y[node], p_max_y[node], p_min_z[node], p_max_z[node]);
+       auto d2 = node_distance_sq(px, py, pz, p_min_x[node], p_max_x[node], p_min_y[node], p_max_y[node], p_min_z[node], p_max_z[node]);
 
        // ── Prune: skip node if farther than k-th nearest so far
        if (heap.should_prune(d2, k)) continue;
@@ -903,8 +960,8 @@ void knn_query_small_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_q
          int l = p_left[node];
          int r = p_right[node];
 
-         double ld2 = node_distance_sq(px, py, pz, p_min_x[l], p_max_x[l], p_min_y[l], p_max_y[l], p_min_z[l], p_max_z[l]);
-         double rd2 = node_distance_sq(px, py, pz, p_min_x[r], p_max_x[r], p_min_y[r], p_max_y[r], p_min_z[r], p_max_z[r]);
+         auto ld2 = node_distance_sq(px, py, pz, p_min_x[l], p_max_x[l], p_min_y[l], p_max_y[l], p_min_z[l], p_max_z[l]);
+         auto rd2 = node_distance_sq(px, py, pz, p_min_x[r], p_max_x[r], p_min_y[r], p_max_y[r], p_min_z[r], p_max_z[r]);
 
          if (sp < MAX_STACK_DEPTH - 2) {
            // Push farther child first → closer processed first
@@ -923,21 +980,17 @@ void knn_query_small_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_q
      size_t offset = qi * static_cast<size_t>(k);
 
      // Temporary buffers for sorted extraction
-     double sorted_dist[_MAX_K_];
+     heap_dist_t sorted_dist[_MAX_K_];
      int sorted_idx[_MAX_K_];
      heap.extract_sorted(sorted_dist, sorted_idx, k);
 
      for (int i = 0; i < k; ++i) {
        if (sorted_idx[i] >= 0) {
          dev_results[offset + i] = static_cast<size_t>(sorted_idx[i]);
-#if defined(FASTTREE_INTEGER_COORDS)
-         dev_result_dists[offset + i] = float_to_int_rep(sorted_dist[i]);
-#else
-                    dev_result_dists[offset + i] = static_cast<coord_t>(sorted_dist[i]);
-#endif
+         dev_result_dists[offset + i] = static_cast<dist_t>(sorted_dist[i]);
        } else {
          dev_results[offset + i] = static_cast<size_t>(-1);
-         dev_result_dists[offset + i] = type_identity_max<coord_t>();
+         dev_result_dists[offset + i] = type_identity_max<dist_t>();
        }
      }
    }).wait();
@@ -945,7 +998,7 @@ void knn_query_small_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_q
 
 template <int _MAX_K_ = 128>
 void knn_query_large_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_qx, const coord_t *dev_qy, const coord_t *dev_qz, int k,
-                       int num_queries, size_t *dev_results, coord_t *dev_result_dists) {
+                       int num_queries, size_t *dev_results, dist_t *dev_result_dists) {
   static_assert(_MAX_K_ > 32, "knn_query_large_k: use knn_query_small_k for k <= 32");
 
   constexpr int HEAP_CAP = []() constexpr {
@@ -962,11 +1015,11 @@ void knn_query_large_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_q
   int *p_right = tree.right_child;
   int *p_orig_idx = tree.orig_idx;
 
-  size_t lm_heap_dist = HEAP_CAP * sizeof(double);
+  size_t lm_heap_dist = HEAP_CAP * sizeof(heap_dist_t);
   size_t lm_heap_idx = HEAP_CAP * sizeof(int);
-  size_t lm_stage_dist = KNN_WG_SIZE * sizeof(double);
+  size_t lm_stage_dist = KNN_WG_SIZE * sizeof(heap_dist_t);
   size_t lm_stage_idx = KNN_WG_SIZE * sizeof(int);
-  size_t lm_control = 2 * sizeof(int) + sizeof(double);
+  size_t lm_control = 2 * sizeof(int) + sizeof(heap_dist_t);
   size_t lm_stack = MAX_STACK_DEPTH * sizeof(int);
   size_t lm_total = lm_heap_dist + lm_heap_idx + lm_stage_dist + lm_stage_idx + lm_control + lm_stack;
 
@@ -979,12 +1032,12 @@ void knn_query_large_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_q
   }
 
   q.submit([&](sycl::handler &h) {
-     sycl::local_accessor<double, 1> sh_dist(HEAP_CAP, h);
+     sycl::local_accessor<heap_dist_t, 1> sh_dist(HEAP_CAP, h);
      sycl::local_accessor<int, 1> sh_idx(HEAP_CAP, h);
-     sycl::local_accessor<double, 1> sh_stage_dist(KNN_WG_SIZE, h);
+     sycl::local_accessor<heap_dist_t, 1> sh_stage_dist(KNN_WG_SIZE, h);
      sycl::local_accessor<int, 1> sh_stage_idx(KNN_WG_SIZE, h);
      sycl::local_accessor<int, 1> sh_count(1, h);
-     sycl::local_accessor<double, 1> sh_worst(1, h);
+     sycl::local_accessor<heap_dist_t, 1> sh_worst(1, h);
      sycl::local_accessor<int, 1> sh_stack(MAX_STACK_DEPTH, h);
      sycl::local_accessor<int, 1> sh_sp(1, h);
 
@@ -998,7 +1051,7 @@ void knn_query_large_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_q
                       coord_t py = dev_qy[qi];
                       coord_t pz = dev_qz[qi];
 
-                      SharedMaxHeap<double, int>::init(item, sh_dist, sh_idx, sh_count, sh_worst, HEAP_CAP);
+                      SharedMaxHeap<heap_dist_t, int>::init(item, sh_dist, sh_idx, sh_count, sh_worst, HEAP_CAP);
 
                       if (lid == 0) {
                         sh_sp[0] = 1;
@@ -1014,13 +1067,13 @@ void knn_query_large_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_q
                         node = sycl::group_broadcast(item.get_group(), node, 0);
                         if (node < 0) break;
 
-                        double d2 =
+                        auto d2 =
                             node_distance_sq(px, py, pz, p_min_x[node], p_max_x[node], p_min_y[node], p_max_y[node], p_min_z[node], p_max_z[node]);
 
-                        if (SharedMaxHeap<double, int>::should_prune(d2, sh_worst, sh_count, k)) { continue; }
+                        if (SharedMaxHeap<heap_dist_t, int>::should_prune(d2, sh_worst, sh_count, k)) { continue; }
 
                         if (node >= static_cast<int>(n) - 1 && n > 1) {
-                          double my_d = std::numeric_limits<double>::max();
+                          heap_dist_t my_d = std::numeric_limits<heap_dist_t>::max();
                           int my_i = -1;
 
                           if (lid == 0) {
@@ -1029,25 +1082,25 @@ void knn_query_large_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_q
 #else
                             my_i = node - static_cast<int>(n - 1);
 #endif
-                            my_d = d2;
+                            my_d = static_cast<heap_dist_t>(d2);
                           }
 
-                          SharedMaxHeap<double, int>::batch_insert(item, sh_dist, sh_idx, sh_count, sh_worst, sh_stage_dist, sh_stage_idx, my_d, my_i,
-                                                                   k, HEAP_CAP);
+                          SharedMaxHeap<heap_dist_t, int>::batch_insert(item, sh_dist, sh_idx, sh_count, sh_worst, sh_stage_dist, sh_stage_idx, my_d,
+                                                                        my_i, k, HEAP_CAP);
 
                         } else if (n == 1) {
-                          double my_d = (lid == 0) ? d2 : std::numeric_limits<double>::max();
+                          auto my_d = (lid == 0) ? d2 : std::numeric_limits<heap_dist_t>::max();
                           int my_i = (lid == 0) ? 0 : -1;
-                          SharedMaxHeap<double, int>::batch_insert(item, sh_dist, sh_idx, sh_count, sh_worst, sh_stage_dist, sh_stage_idx, my_d, my_i,
-                                                                   k, HEAP_CAP);
+                          SharedMaxHeap<heap_dist_t, int>::batch_insert(item, sh_dist, sh_idx, sh_count, sh_worst, sh_stage_dist, sh_stage_idx, my_d,
+                                                                        my_i, k, HEAP_CAP);
 
                         } else {
                           if (lid == 0) {
                             int l = p_left[node];
                             int r = p_right[node];
 
-                            double ld2 = node_distance_sq(px, py, pz, p_min_x[l], p_max_x[l], p_min_y[l], p_max_y[l], p_min_z[l], p_max_z[l]);
-                            double rd2 = node_distance_sq(px, py, pz, p_min_x[r], p_max_x[r], p_min_y[r], p_max_y[r], p_min_z[r], p_max_z[r]);
+                            auto ld2 = node_distance_sq(px, py, pz, p_min_x[l], p_max_x[l], p_min_y[l], p_max_y[l], p_min_z[l], p_max_z[l]);
+                            auto rd2 = node_distance_sq(px, py, pz, p_min_x[r], p_max_x[r], p_min_y[r], p_max_y[r], p_min_z[r], p_max_z[r]);
 
                             if (sh_sp[0] < MAX_STACK_DEPTH - 2) {
                               if (ld2 <= rd2) {
@@ -1065,19 +1118,15 @@ void knn_query_large_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_q
 
                       size_t offset = qi * static_cast<size_t>(k);
 
-                      SharedMaxHeap<double, int>::extract_sorted_k(item, sh_dist, sh_idx, sh_count, nullptr, nullptr, k, HEAP_CAP);
+                      SharedMaxHeap<heap_dist_t, int>::extract_sorted_k(item, sh_dist, sh_idx, sh_count, nullptr, nullptr, k, HEAP_CAP);
 
                       for (int i = lid; i < k; i += KNN_WG_SIZE) {
                         if (sh_idx[i] >= 0) {
                           dev_results[offset + i] = static_cast<size_t>(sh_idx[i]);
-#if defined(FASTTREE_INTEGER_COORDS)
-                          dev_result_dists[offset + i] = float_to_int_rep(sh_dist[i]);
-#else
-                        dev_result_dists[offset + i] = static_cast<coord_t>(sh_dist[i]);
-#endif
+                          dev_result_dists[offset + i] = static_cast<dist_t>(sh_dist[i]);
                         } else {
                           dev_results[offset + i] = static_cast<size_t>(-1);
-                          dev_result_dists[offset + i] = type_identity_max<coord_t>();
+                          dev_result_dists[offset + i] = type_identity_max<dist_t>();
                         }
                       }
                     });
@@ -1101,7 +1150,7 @@ void knn_query_large_k(sycl::queue &q, const TreeSoA &tree, const coord_t *dev_q
  */
 template <int _MAX_K_ = 128>
 inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, const coord_t *qy, const coord_t *qz, int k, int num_queries,
-                      size_t *results, coord_t *result_dists) {
+                      size_t *results, dist_t *result_dists) {
   size_t n = tree.num_leaves;
   if (n == 0 || num_queries == 0) return;
 
@@ -1112,7 +1161,7 @@ inline void knn_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, co
   const coord_t *dev_qy = ensure_device_readable(q, qy, num_queries, qy_alloc);
   const coord_t *dev_qz = ensure_device_readable(q, qz, num_queries, qz_alloc);
   size_t *dev_results = ensure_device_writable(q, results, static_cast<size_t>(num_queries) * static_cast<size_t>(k), res_alloc);
-  coord_t *dev_result_dists = ensure_device_writable(q, result_dists, static_cast<size_t>(num_queries) * static_cast<size_t>(k), dist_alloc);
+  dist_t *dev_result_dists = ensure_device_writable(q, result_dists, static_cast<size_t>(num_queries) * static_cast<size_t>(k), dist_alloc);
 
   if (k <= 32) {
     knn_query_small_k<32>(q, tree, dev_qx, dev_qy, dev_qz, k, num_queries, dev_results, dev_result_dists);
@@ -1176,14 +1225,18 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
      size_t qi = idx[0];
      coord_t px = dev_qx[qi], py = dev_qy[qi], pz = dev_qz[qi];
 #if defined(FASTTREE_INTEGER_COORDS)
-     double rm_d = int_rep_to_float(dev_r_min[qi]);
-     double RM_d = int_rep_to_float(dev_r_max[qi]);
+     // r_min/r_max are integer coordinate differences (same space as coords).
+     // Shift before squaring to match _DIST_SHIFT applied inside node_distance_sq.
+     uint64_t rm_i = get_lo_word(dev_r_min[qi]) >> _DIST_SHIFT;
+     uint64_t RM_i = get_lo_word(dev_r_max[qi]) >> _DIST_SHIFT;
+     uint64_t RM2 = RM_i * RM_i;
+     uint64_t rm2 = rm_i * rm_i;
 #else
      double rm_d = static_cast<double>(dev_r_min[qi]);
      double RM_d = static_cast<double>(dev_r_max[qi]);
+     double RM2  = RM_d * RM_d;
+     double rm2  = rm_d * rm_d;
 #endif
-     double RM2 = RM_d * RM_d;
-     double rm2 = rm_d * rm_d;
 
      int stack[MAX_STACK_DEPTH];
      int stack_ptr = 0;
@@ -1266,6 +1319,16 @@ inline void range_query(sycl::queue &q, const TreeSoA &tree, const coord_t *qx, 
  * @param[in] p SoA struct of input particles.
  * @param[in] bbox Optional precomputed bounding box. If nullptr, it will be computed.
  * @param[in,out] tree The output tree structure to build.
+ *
+ * @note PERIODIC_BC only affects node_distance_sq (query time).
+ * The BVH tree itself is built on the NON-WRAPPED coordinate space.
+ * Leaf bounding boxes represent actual particle positions in [0, 2^B).
+ * For queries near the boundary (within r_max of the wrap point),
+ * the traversal will correctly find the closest image of each bounding box
+ * via the toroidal distance metric in node_distance_sq, so no duplicate
+ * tree or particle replication is required.
+ * Limitation: if a single leaf's extent spans more than half the domain
+ * (which cannot happen for point particles), periodic detection breaks.
  */
 inline void build_bvh(sycl::queue &q, const particles<coord_t> &p, TreeSoA &tree, BoundingBox<coord_t> *bbox = nullptr) {
   size_t n = p.pos_x.size();

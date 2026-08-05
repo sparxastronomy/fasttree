@@ -65,6 +65,7 @@ set(COORDS_REPRESENTATION "FLOAT" CACHE STRING "Coordinate representation: FLOAT
 set(COORDS_TYPE "FLOAT" CACHE STRING "Floating point coordinate type: FLOAT or DOUBLE")
 set(POSITIONS_PRECISION "32" CACHE STRING "Integer coordinate precision bits: 32, 64, or 128")
 set(RETURN_ORIG_INDICES False CACHE BOOL "Return original indices instead of sorted indices while querying the tree")
+option(PERIODIC_BC "Enables periodic boundary search in Query")
 
 if(SFC_TYPE STREQUAL "PEANO_HILBERT")
     add_compile_definitions(SFC_TYPE_PEANO_HILBERT)
@@ -114,6 +115,13 @@ if (RETURN_ORIG_INDICES)
     message(STATUS "Returning original indices while querying the tree")
 else()
     message(STATUS "Returning sorted indices while querying the tree")
+endif()
+
+if (PERIODIC_BC)
+    add_compile_definitions(PERIODIC_BC)
+    message(STATUS "Enabling periodic boundary search in Query")
+else()
+    message(STATUS "Disabling periodic boundary search in Query")
 endif()
 
 #

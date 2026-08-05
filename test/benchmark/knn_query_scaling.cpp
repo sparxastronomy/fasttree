@@ -40,7 +40,7 @@ static void BM_KNNQuery_Lazy(benchmark::State &state, std::string path, int k) {
   }
 
   int *results = sycl::malloc_shared<int>(num_queries * k, q);
-  coord_t *result_dists = sycl::malloc_shared<coord_t>(num_queries * k, q);
+  dist_t *result_dists = sycl::malloc_shared<dist_t>(num_queries * k, q);
 
   // Warm up
   knn_query(q, tree, qx, qy, qz, k, num_queries, results, result_dists);

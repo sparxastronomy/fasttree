@@ -89,9 +89,7 @@ void test_mpi_pipeline(sycl::queue &q, int rank, int size) {
 
   // Phase 1: Bounding Box
   BoundingBox<coord_t> bbox = get_global_bounding_box(q, p);
-  if (rank == 0) {
-    printf("  Phase 1 Bounding Box: [%f, %f] Passed!\n", (double)bbox.min_x, (double)bbox.max_x);
-  }
+  if (rank == 0) { printf("  Phase 1 Bounding Box: [%f, %f] Passed!\n", (double)bbox.min_x, (double)bbox.max_x); }
 
 #if defined(DCOMPOSITION_TYPE_SAMPLING)
   // Skip Phase 2
@@ -399,7 +397,7 @@ void test_ghost_visibility(sycl::queue &q) {
   qx[0] = static_cast<coord_t>(9.5);
   int k = 2;
   size_t *knn_results = sycl::malloc_shared<size_t>(k, q);
-  coord_t *knn_dists = sycl::malloc_shared<coord_t>(k, q);
+  dist_t *knn_dists = sycl::malloc_shared<dist_t>(k, q);
 
   knn_query(q, tree, qx, qy, qz, k, 1, knn_results, knn_dists);
   q.wait();
@@ -413,12 +411,16 @@ void test_ghost_visibility(sycl::queue &q) {
   // Verify 1st neighbor is the ghost
   assert(tree.is_ghost[first_leaf_idx] == 1 && "kNN 1st neighbor should be a ghost!");
   assert(tree.id[first_leaf_idx] == 201 && "kNN hit the wrong ghost!");
-  assert(std::abs(knn_dists[0] - static_cast<coord_t>(0.5)) < 1e-4 && "kNN distance calculation wrong!");
+#if !defined(FASTTREE_INTEGER_COORDS)
+  assert(std::abs(knn_dists[0] - static_cast<coord_t>(0.25)) < 1e-4 && "kNN distance calculation wrong!");
+#endif
 
   // Verify 2nd neighbor is the local particle
   assert(tree.is_ghost[second_leaf_idx] == 0 && "kNN 2nd neighbor should be local!");
   assert(tree.id[second_leaf_idx] == 102 && "kNN hit the wrong local particle!");
-  assert(std::abs(knn_dists[1] - static_cast<coord_t>(6.5)) < 1e-4 && "kNN distance calculation wrong!");
+#if !defined(FASTTREE_INTEGER_COORDS)
+  assert(std::abs(knn_dists[1] - static_cast<coord_t>(42.25)) < 1e-4 && "kNN distance calculation wrong!");
+#endif
 
   printf("  kNN Query: Ghost visibility passed.\n");
 

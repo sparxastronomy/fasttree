@@ -16,6 +16,12 @@ namespace fasttree {
 using sfc1D = std::uint32_t;
 using sfc_key = std::uint64_t;
 
+#ifdef FASTTREE_INTEGER_COORDS
+using dist_t = std::uint64_t;
+#else
+using dist_t = double;
+#endif
+
 // Utilities for Morton keys
 static constexpr std::uint64_t MASK_21 = 0x1FFFFFULL;
 static constexpr std::uint64_t M1 = 0x1F00000000FFFFULL;

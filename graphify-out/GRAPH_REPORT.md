@@ -1,16 +1,16 @@
-# Graph Report - fasttree  (2026-08-04)
+# Graph Report - fasttree  (2026-08-05)
 
 ## Corpus Check
-- 41 files · ~129,329 words
+- 41 files · ~131,587 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 297 nodes · 583 edges · 27 communities (14 shown, 13 thin omitted)
-- Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 80 edges (avg confidence: 0.8)
+- 305 nodes · 598 edges · 29 communities (16 shown, 13 thin omitted)
+- Extraction: 87% EXTRACTED · 13% INFERRED · 0% AMBIGUOUS · INFERRED: 78 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7a2e261a`
+- Built from commit: `f690b4b6`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,6 +19,7 @@
 - HLBVH Tree Construction
 - Morton Encoding & Key Sorting
 - Domain Decomposition & MPI Halos
+- BoundingBox
 - Particle SoA & Field Storage
 - Bounding Box & Spatial Bounds
 - IEEE 754 Floating-Point Traits
@@ -40,6 +41,7 @@
 - Intra-Voxel Local Memory Sort
 - SYCL & oneDPL Backend Setup
 - Testing Infrastructure Guidelines
+- main
 - FastTree Core Overview
 
 ## God Nodes (most connected - your core abstractions)
@@ -63,8 +65,8 @@
   test/benchmark/gpu_sort_scaling.cpp → src/hlbvh.hpp
 - `BM_MortonEncode_Lazy()` --calls--> `sfc_encode()`  [INFERRED]
   test/benchmark/sfc_encoding_scaling.cpp → src/hlbvh.hpp
-- `main()` --calls--> `build_tree()`  [INFERRED]
-  test/test_bb.cpp → src/hlbvh.hpp
+- `main()` --calls--> `sfc_encode()`  [INFERRED]
+  test/main.cpp → src/hlbvh.hpp
 
 ## Import Cycles
 - None detected.
@@ -75,23 +77,27 @@
 - **Tree Construction Pipeline Scaling Benchmarks** — docs_benchmark_scaling_morton_encode, docs_benchmark_scaling_radix_sort, docs_benchmark_scaling_tree_build [INFERRED 0.85]
 - **Spatial Traversal & Search Scaling Benchmarks** — docs_benchmark_scaling_chart, docs_benchmark_scaling_knn_query, docs_benchmark_scaling_range_query [INFERRED 0.85]
 
-## Communities (27 total, 13 thin omitted)
+## Communities (29 total, 13 thin omitted)
 
 ### Community 0 - "Utilities & Benchmark Helpers"
 Cohesion: 0.06
-Nodes (47): vector, get_peak_rss(), string, vector, load_hdf5_data(), ParticleData, count, masses (+39 more)
+Nodes (44): vector, get_peak_rss(), string, vector, load_hdf5_data(), ParticleData, count, masses (+36 more)
 
 ### Community 1 - "HLBVH Tree Construction"
-Cohesion: 0.09
-Nodes (50): build_bvh(), build_tree(), compute_bbox(), copy_back_and_free(), encode_to_sfc1d(), ensure_device_readable(), ensure_device_writable(), free_device_readable() (+42 more)
+Cohesion: 0.10
+Nodes (45): build_bvh(), build_tree(), compute_bbox(), copy_back_and_free(), ensure_device_readable(), ensure_device_writable(), free_device_readable(), get_common_prefix_length() (+37 more)
 
 ### Community 2 - "Morton Encoding & Key Sorting"
 Cohesion: 0.10
-Nodes (29): MyIntPosType, PosType, sort_key_t, compact3_u64(), sfc1D, spread3_u64(), convert_to_sfc1d(), convert_to_sfc1d_impl() (+21 more)
+Nodes (30): MyIntPosType, PosType, sort_key_t, compact3_u64(), sfc1D, spread3_u64(), convert_to_sfc1d(), convert_to_sfc1d_impl() (+22 more)
 
 ### Community 3 - "Domain Decomposition & MPI Halos"
-Cohesion: 0.08
-Nodes (35): exchange_halos(), generate_splitters(), get_deterministic_splitters(), get_global_bounding_box(), get_global_histogram(), FloatT, MPI_Datatype, queue (+27 more)
+Cohesion: 0.10
+Nodes (32): exchange_halos(), generate_splitters(), get_deterministic_splitters(), get_global_bounding_box(), get_global_histogram(), FloatT, MPI_Datatype, queue (+24 more)
+
+### Community 4 - "BoundingBox"
+Cohesion: 0.20
+Nodes (10): BoundingBox, max_x, max_y, max_z, min_x, min_y, min_z, encode_to_sfc1d() (+2 more)
 
 ### Community 5 - "Particle SoA & Field Storage"
 Cohesion: 0.16
@@ -129,6 +135,10 @@ Nodes (6): Benchmark Scaling Chart, KNNQuery Scaling Benchmark, MortonEncode Sca
 Cohesion: 0.60
 Nodes (3): check_tool(), profile_gpu.sh script, usage()
 
+### Community 27 - "main"
+Cohesion: 0.42
+Nodes (8): coord_t, dist_t, int_dist_sq_to_phys(), int_pos_to_phys(), main(), periodic_dist(), phys_pos_to_int(), phys_radius_to_int()
+
 ## Knowledge Gaps
 - **82 isolated node(s):** `mpi_type_traits`, `pos_x`, `pos_y`, `pos_z`, `id` (+77 more)
   These have ≤1 connection - possible missing edges or undocumented components.
@@ -137,8 +147,10 @@ Nodes (3): check_tool(), profile_gpu.sh script, usage()
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `build_bvh()` connect `HLBVH Tree Construction` to `Utilities & Benchmark Helpers`, `Morton Encoding & Key Sorting`, `Domain Decomposition & MPI Halos`?**
-  _High betweenness centrality (0.067) - this node is a cross-community bridge._
+- **Why does `build_bvh()` connect `HLBVH Tree Construction` to `Utilities & Benchmark Helpers`, `main`, `Morton Encoding & Key Sorting`, `Domain Decomposition & MPI Halos`?**
+  _High betweenness centrality (0.068) - this node is a cross-community bridge._
+- **Why does `sfc_encode()` connect `HLBVH Tree Construction` to `Utilities & Benchmark Helpers`, `Morton Encoding & Key Sorting`, `Domain Decomposition & MPI Halos`, `BoundingBox`, `main`?**
+  _High betweenness centrality (0.066) - this node is a cross-community bridge._
 - **Are the 10 inferred relationships involving `build_bvh()` (e.g. with `to_sort_key()` and `main()`) actually correct?**
   _`build_bvh()` has 10 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 8 inferred relationships involving `sfc_encode()` (e.g. with `get_deterministic_splitters()` and `get_global_histogram()`) actually correct?**
@@ -146,8 +158,6 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `mpi_type_traits`, `pos_x`, `pos_y` to the rest of the system?**
   _82 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Utilities & Benchmark Helpers` be split into smaller, more focused modules?**
-  _Cohesion score 0.06077694235588972 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06429070580013976 - nodes in this community are weakly interconnected._
 - **Should `HLBVH Tree Construction` be split into smaller, more focused modules?**
-  _Cohesion score 0.08709273182957393 - nodes in this community are weakly interconnected._
-- **Should `Morton Encoding & Key Sorting` be split into smaller, more focused modules?**
-  _Cohesion score 0.09682539682539683 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09647058823529411 - nodes in this community are weakly interconnected._

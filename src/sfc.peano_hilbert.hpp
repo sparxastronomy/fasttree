@@ -159,6 +159,16 @@ using MyIntPosType = uint128_t;
 #endif
 #endif
 
+// Integer distance type and overflow-prevention shift
+#ifdef FASTTREE_INTEGER_COORDS
+using dist_t = uint64_t;
+constexpr int _DIST_SHIFT = (BITS_PER_DIMENSION > 31) ? (BITS_PER_DIMENSION - 31) : 0;
+#else
+// In float/double mode dist_t is not used for integer distances
+using dist_t = double;
+constexpr int _DIST_SHIFT = 0;
+#endif
+
 static_assert(BITS_PER_DIMENSION >= 1, "BITS_PER_DIMENSION must be at least 1");
 static_assert(BITS_PER_DIMENSION <= MAX_BITS_PER_DIM,
               "BITS_PER_DIMENSION exceeds coordinate type width — "
@@ -364,8 +374,8 @@ inline uint128_t convert_to_sfc1d_impl(double d, uint128_t * /*tag*/) noexcept {
   constexpr int shift = 52 - used_bits;
   uint64_t trimmed = mantissa >> shift;
   uint128_t result;
-  result.hi = trimmed << (64 - used_bits);
-  result.lo = 0;
+  result.lo = trimmed << (64 - used_bits);
+  result.hi = 0;
   return result;
 }
 
@@ -431,7 +441,7 @@ inline double int_rep_to_float(MyIntPosType int_val) noexcept {
   uint64_t bits = (1023ULL << 52) | mantissa;
   return sycl::bit_cast<double>(bits) - 1.0;
 #else
-  uint64_t mantissa = int_val.hi >> (64 - 52);
+  uint64_t mantissa = int_val.lo >> (64 - 52);
   uint64_t bits = (1023ULL << 52) | mantissa;
   return sycl::bit_cast<double>(bits) - 1.0;
 #endif

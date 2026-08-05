@@ -3,6 +3,7 @@
 **Target release version:** v.1.2.0 (Planned)
 
 ## Completed Tasks
+- [x] Release v1.2.0: Periodic Boundary & Multi-Precision Bug Fixes (2026-08-05): Guarded periodic kNN and range query tests with FASTTREE_INTEGER_COORDS to align with coordinate torus logic. Fixed RM2/rm2 redefinition compiler errors in range query. Migrated kNN query API output distances from coord_t to dist_t to prevent distance truncation in 32-bit integer builds. Fixed uint128_t coordinate mapping from hi to lo word to resolve SFC encoding and distance evaluation errors in 128-bit integer builds.
 - [x] Release v1.2.0: MaxHeap Migration & Unified KNN Query Dispatch (2026-08-04): Created `src/maxheap.hpp` containing `RegisterMaxHeap` ($k \le 32$, register-resident) and `SharedMaxHeap` ($k > 32$, shared-memory with parallel bitonic sorting). Refactored `knn_query` in `src/hlbvh.hpp` to dispatch based on $k$, returning squared distance $d^2$ directly. Validated across `build_cpu`, `build_int32`, `build_int64`, and `build_int128` target configurations.
 - [x] Release v1.2.0: Caller-Managed Distance Scaling (2026-08-04): Removed internal `/ 3.0` division in `knn_query` to eliminate non-exact binary floating-point division round-off error, leaving distance scaling to caller code. Updated `docs/API_REFERENCE.md` and `test/main.cpp`.
 - [x] Release v1.2.0: API Reference Documentation Update for MaxHeap & Distance Squared Normalization (2026-08-04): Updated Section 6 of `docs/API_REFERENCE.md` to document `RegisterMaxHeap`, `SharedMaxHeap`, squared distance return format, and integer coordinate 1/3.0 normalization factor decoding formulas.
@@ -181,6 +182,29 @@
     - 64-bit (`POSITIONS_IN_64BIT`, 126 bits): Top bits live in `k.is` (bits 0..62 of `k.is`). Shift: `k.is >> 43`.
     - 128-bit (`POSITIONS_IN_128BIT`, 192 bits): Top bits live in `k.is.lo` (bits 0..63 of `k.is.lo`). Shift: `k.is.lo >> 44`.
   - **Outcome:** `extract_bucket_id` accurately extracts coarse histogram bucket IDs across all coordinate representation modes.
+
+- **RM2 and rm2 Redefinition Error (2026-08-05):**
+  - **Date:** 2026-08-05
+  - **Description:** Redefinition of variables `RM2` and `rm2` after the `#endif` block in `range_query` in `src/hlbvh.hpp`.
+  - **Reason:** Accidental duplication of assignment logic outside the `#if`/`#else` conditional preprocessor block.
+  - **Outcome:** C++ compiler error: "redefinition of 'RM2'" / "redefinition of 'rm2'".
+  - **Next Steps:** Removed the duplicate assignments after the `#endif`.
+
+- **kNN Output Distance Truncation in 32-bit Integer Coordinates (2026-08-05):**
+  - **Date:** 2026-08-05
+  - **Description:** kNN query returned incorrect squared distances that were too small when using 32-bit integer coordinates.
+  - **Reason:** `result_dists` was of type `coord_t*` (`uint32_t*`), but squared distances in coordinate space require 43 bits and overflowed `uint32_t::max()`.
+  - **Outcome:** kNN test verification failed with distance check mismatches.
+  - **Next Steps:** Changed `result_dists` type in `knn_query` to `dist_t*` (which is `uint64_t` in integer mode and `double` in float mode), and updated all test allocations.
+
+- **uint128_t Coordinate Type Conversion and Zero-Distance Evaluation Bugs (2026-08-05):**
+  - **Date:** 2026-08-05
+  - **Description:** Build errors when casting `uint128_t` directly to `uint64_t`, followed by incorrect zero-distance evaluations and all-0 SFC keys in 128-bit mode.
+  - **Reason:**
+    1. `uint128_t` has no implicit conversion operator to `uint64_t`.
+    2. Quantization stored 128-bit coordinates in `result.hi`, but `sfc_encode3D` and `get_lo_word(lo - val)` read from `result.lo`, causing all bits to evaluate to `0`.
+  - **Outcome:** Compiler errors followed by 100% false range query matches and `d2 = 0` nearest neighbor results.
+  - **Next Steps:** Replaced `static_cast<uint64_t>` with `get_lo_word()` in `hlbvh.hpp`. Modified `convert_to_sfc1d_impl` and `int_rep_to_float` for `uint128_t` to store and read coordinate bits from the `lo` word instead of `hi`.
 
 
 

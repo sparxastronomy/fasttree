@@ -33,7 +33,8 @@ namespace fasttree {
 template <typename DistT, typename IdxT, int MAX_K>
 struct RegisterMaxHeap {
   static_assert(MAX_K > 0 && MAX_K <= 32, "RegisterMaxHeap: MAX_K must be in [1,32].");
-  static_assert(std::is_floating_point_v<DistT>, "RegisterMaxHeap: DistT must be float or double.");
+  static_assert(std::is_floating_point_v<DistT> || std::is_integral_v<DistT>,
+                "RegisterMaxHeap: DistT must be float, double, or an unsigned integer type.");
   static_assert(std::is_integral_v<IdxT>, "RegisterMaxHeap: IdxT must be an integer type.");
 
   DistT dist[MAX_K];  ///< Squared distances array (max-heap ordered).
@@ -252,7 +253,8 @@ inline void local_bitonic_sort(sycl::nd_item<1> &item, const sycl::local_accesso
  */
 template <typename DistT, typename IdxT>
 struct SharedMaxHeap {
-  static_assert(std::is_floating_point_v<DistT>, "SharedMaxHeap: DistT must be float or double.");
+  static_assert(std::is_floating_point_v<DistT> || std::is_integral_v<DistT>,
+                "SharedMaxHeap: DistT must be float, double, or an unsigned integer type.");
   static_assert(std::is_integral_v<IdxT>, "SharedMaxHeap: IdxT must be an integer type.");
 
   static constexpr DistT DIST_MAX = std::numeric_limits<DistT>::max();
@@ -368,12 +370,22 @@ struct SharedMaxHeap {
 
 // ================================================================
 // SECTION 3: Type aliases
+//
+// In integer coordinate mode, distances are computed and stored as
+// uint64_t (squared integer distances, pre-shifted).
+// In float/double coordinate mode, distances are double.
 // ================================================================
 
-template <int MAX_K>
-using SmallKHeap = RegisterMaxHeap<float, int, MAX_K>;
+#ifdef FASTTREE_INTEGER_COORDS
+using heap_dist_t = uint64_t;
+#else
+using heap_dist_t = double;
+#endif
 
-using LargeKHeap = SharedMaxHeap<float, int>;
+template <int MAX_K>
+using SmallKHeap = RegisterMaxHeap<heap_dist_t, int, MAX_K>;
+
+using LargeKHeap = SharedMaxHeap<heap_dist_t, int>;
 
 }  // namespace fasttree
 
