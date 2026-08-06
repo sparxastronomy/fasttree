@@ -1348,7 +1348,7 @@ void knn_query_large_k(
  * @param[out] results Output buffer for nearest neighbor indices. Size: num_queries * k.
  * @param[out] result_dists Output buffer for neighbor squared distances. Size: num_queries * k.
  */
-template <int _MAX_K_ = 128>
+template <int _MAX_K_ = 256>
 inline void knn_query(
     sycl::queue   &q,
     const TreeSoA &tree,
@@ -1386,7 +1386,7 @@ inline void knn_query(
                 "k exceeds _MAX_K_ template parameter. Instantiate knn_query with larger _MAX_K_."
             );
         }
-        knn_query_large_k<k>(
+        knn_query_large_k<_MAX_K_>(
             q, tree, dev_qx, dev_qy, dev_qz, k, num_queries, dev_results, dev_result_dists
         );
     }
@@ -1575,8 +1575,10 @@ inline void range_query(
  *
  * @param[in] q SYCL queue.
  * @param[in] p SoA struct of input particles.
- * @param[in] bbox Optional precomputed bounding box. If nullptr, it will be computed.
  * @param[in,out] tree The output tree structure to build.
+ * @param[in] bbox Optional precomputed bounding box. If nullptr, it will be computed.
+ * @param[in] key Optional precomputed space-filling curve keys. If nullptr, it will be
+ * computed.
  *
  * @note PERIODIC_BC only affects node_distance_sq (query time).
  * The BVH tree itself is built on the NON-WRAPPED coordinate space.
@@ -1589,7 +1591,11 @@ inline void range_query(
  * (which cannot happen for point particles), periodic detection breaks.
  */
 inline void build_bvh(
-    sycl::queue &q, const particles<coord_t> &p, TreeSoA &tree, BoundingBox<coord_t> *bbox = nullptr
+    sycl::queue              &q,
+    const particles<coord_t> &p,
+    TreeSoA                  &tree,
+    BoundingBox<coord_t>     *bbox = nullptr,
+    sfc_key                  *key  = nullptr
 ) {
     size_t n = p.pos_x.size();
     if (n == 0) return;
@@ -1613,12 +1619,13 @@ inline void build_bvh(
         bbox       = &local_bbox;
     }
 
-    // 2. Allocate USM memory for keys and indices
-    sfc_key *d_smk     = sycl::malloc_shared<sfc_key>(n, q);
-    size_t  *d_indices = sycl::malloc_shared<size_t>(n, q);
+    // 2. Allocate and initialize SFC key array on device
+    bool     key_owner = (key == nullptr);
+    sfc_key *d_smk     = key_owner ? sycl::malloc_shared<sfc_key>(n, q) : key;
+    if (key_owner) { sfc_encode(q, dev_pos_x, dev_pos_y, dev_pos_z, n, d_smk, *bbox); }
 
-    // 3. SFC Encoding and Index Initialization
-    sfc_encode(q, dev_pos_x, dev_pos_y, dev_pos_z, n, d_smk, *bbox);
+    // 3. Allocate and initialize index array [0, 1, ..., n-1]
+    size_t *d_indices = sycl::malloc_shared<size_t>(n, q);
     q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) { d_indices[idx] = idx[0]; });
     q.wait();
 
@@ -1708,7 +1715,7 @@ inline void build_bvh(
     free_device_readable(q, dev_p_id, id_alloc);
     free_device_readable(q, dev_p_ghost, ghost_alloc);
 
-    sycl::free(d_smk, q);
+    if (key_owner) { sycl::free(d_smk, q); }
     sycl::free(d_indices, q);
 }
 

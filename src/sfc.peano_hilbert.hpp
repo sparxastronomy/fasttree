@@ -143,17 +143,20 @@ inline uint64_t get_lo_word(const uint128_t &w) noexcept {
 // ================================================================
 
 #if defined(POSITIONS_IN_32BIT)
-using MyIntPosType = uint32_t;
+using MyIntPosType       = uint32_t;
+using MyIntPosTypeSigned = int32_t;
 #define BITS_FOR_POSITIONS 32
 #define MAX_BITS_PER_DIM 32
 
 #elif defined(POSITIONS_IN_64BIT)
-using MyIntPosType = uint64_t;
+using MyIntPosType       = uint64_t;
+using MyIntPosTypeSigned = int64_t;
 #define BITS_FOR_POSITIONS 64
 #define MAX_BITS_PER_DIM 64
 
 #elif defined(POSITIONS_IN_128BIT)
-using MyIntPosType = uint128_t;
+using MyIntPosType       = uint128_t;
+using MyIntPosTypeSigned = int64_t;
 #define BITS_FOR_POSITIONS 128
 #define MAX_BITS_PER_DIM 128
 #endif
@@ -165,10 +168,17 @@ using MyIntPosType = uint128_t;
 #ifndef BITS_PER_DIMENSION
 #if defined(POSITIONS_IN_32BIT)
 #define BITS_PER_DIMENSION 21 // 3x21=63 fits uint64_t sort key
+#define SHIFT_BITS 11         // 32-21=11 bits of headroom for integer distance shift
+constexpr double NORM = 1.0 / static_cast<double>(1ULL << BITS_PER_DIMENSION);
 #elif defined(POSITIONS_IN_64BIT)
 #define BITS_PER_DIMENSION 42 // 3x42=126 fits 128-bit key
+#define SHIFT_BITS 22         // 64-42=22 bits of headroom for integer distance shift
+constexpr double NORM = 1.0 / static_cast<double>(1ULL << BITS_PER_DIMENSION);
 #elif defined(POSITIONS_IN_128BIT)
 #define BITS_PER_DIMENSION 64 // 3x64=192 needs {hs,is,ls}
+#define SHIFT_BITS 64         // 128-64=64 bits of headroom for integer distance shift
+// 1ULL << 64 is a no-op
+constexpr double NORM = 1.0 / (static_cast<double>(1ULL << 32) * static_cast<double>(1ULL << 32));
 #endif
 #endif
 
@@ -188,7 +198,12 @@ static_assert(
     "BITS_PER_DIMENSION exceeds coordinate type width — "
     "increase position precision (POSITIONS_IN_64BIT or POSITIONS_IN_128BIT)"
 );
-static_assert(BITS_PER_DIMENSION <= 128, "BITS_PER_DIMENSION > 128 not supported");
+static_assert(
+    BITS_PER_DIMENSION <= 64,
+    "`node_distance_sq` integer path assumes coordinate gap fits in uint64_t. "
+    "BITS_PER_DIMENSION > 64 with POSITIONS_IN_128BIT is not supported. "
+    "42 bits/dim covers exascale galaxy formation; 64 bits covers the next decade."
+);
 
 // ================================================================
 // SECTION 4: Key type
@@ -507,6 +522,26 @@ inline double int_rep_to_float(MyIntPosType int_val) noexcept {
     uint64_t bits     = (1023ULL << 52) | mantissa;
     return sycl::bit_cast<double>(bits) - 1.0;
 #endif
+}
+
+/**
+ * Extract shortest periodic distance between to integer representaion of coordinates.
+ * @param[in] a First integer coordinate representation.
+ * @param[in] b Second integer coordinate representation.
+ */
+inline MyIntPosTypeSigned shortest_periodic_distance(MyIntPosType a, MyIntPosType b) noexcept {
+    return static_cast<MyIntPosTypeSigned>((a - b) << SHIFT_BITS) >> SHIFT_BITS;
+}
+
+/**
+ * @brief Computes the shortest physical periodic distance between two integer coordinates, in
+ * noramlized [0,1) units.
+ * @param[in] a First integer coordinate.
+ * @param[in] b Second integer coordinate.
+ */
+inline double phy_periodic_distance(MyIntPosType a, MyIntPosType b) noexcept {
+    MyIntPosTypeSigned dist = shortest_periodic_distance(a, b);
+    return static_cast<double>(dist) * NORM;
 }
 
 /**
