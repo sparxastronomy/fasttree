@@ -76,6 +76,7 @@ core*
 *.txt
 !CMakeLists.txt
 !docs/benchmark_gpu.txt
+docs/benchmark_plots/
 
 # Visual Studio Code
 .vscode/

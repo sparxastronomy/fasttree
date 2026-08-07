@@ -15,9 +15,8 @@ static void BM_TreeBuild_Lazy(benchmark::State &state, std::string path) {
   if (!load_hdf5_data(path, data)) return;
 
   particles<coord_t> p;
-  p.pos_x.assign(data.pos_x.begin(), data.pos_x.end());
-  p.pos_y.assign(data.pos_y.begin(), data.pos_y.end());
-  p.pos_z.assign(data.pos_z.begin(), data.pos_z.end());
+  double box_min = 0.0, box_size = 1.0;
+  fill_particle_coords(data, p, box_min, box_size);
   size_t n = p.pos_x.size();
 
   // Warm up kernel

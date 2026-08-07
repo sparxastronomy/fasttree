@@ -3,6 +3,7 @@ project(fasttree_benchmarks)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+string(APPEND CMAKE_CXX_FLAGS " -Wno-c2y-extensions")
 
 # --- Google Benchmark Integration ---
 set(HAVE_STD_REGEX ON CACHE BOOL "Force HAVE_STD_REGEX to true to bypass icpx try_compile bug" FORCE)
@@ -19,6 +20,8 @@ set(BENCHMARK_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_DOWNLOAD_DEPENDENCIES OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_WERROR OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_FORCE_WERROR OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(benchmark)
 # ------------------------------------
 
@@ -27,8 +30,10 @@ if(NOT COMMAND add_sycl_to_target)
     macro(add_sycl_to_target)
     endmacro()
 endif()
-find_package(MPI REQUIRED)
-find_package(HDF5 COMPONENTS C HL REQUIRED)
+find_package(MPI REQUIRED COMPONENTS CXX)
+include_directories(${MPI_CXX_INCLUDE_DIRS})
+
+find_package(HDF5 COMPONENTS CXX HL REQUIRED)
 
 include_directories(../../src)
 include_directories(${HDF5_INCLUDE_DIRS})

@@ -15,24 +15,20 @@ static void BM_MortonEncode_Lazy(benchmark::State &state, std::string path) {
   if (!load_hdf5_data(path, data)) return;
 
   size_t n = data.pos_x.size();
+  particles<coord_t> p;
+  double box_min = 0.0, box_size = 1.0;
+  fill_particle_coords(data, p, box_min, box_size);
+
   coord_t *d_x = sycl::malloc_shared<coord_t>(n, q);
   coord_t *d_y = sycl::malloc_shared<coord_t>(n, q);
   coord_t *d_z = sycl::malloc_shared<coord_t>(n, q);
   sfc_key *d_keys = sycl::malloc_shared<sfc_key>(n, q);
 
-  std::copy(data.pos_x.begin(), data.pos_x.end(), d_x);
-  std::copy(data.pos_y.begin(), data.pos_y.end(), d_y);
-  std::copy(data.pos_z.begin(), data.pos_z.end(), d_z);
+  std::copy(p.pos_x.begin(), p.pos_x.end(), d_x);
+  std::copy(p.pos_y.begin(), p.pos_y.end(), d_y);
+  std::copy(p.pos_z.begin(), p.pos_z.end(), d_z);
 
-  BoundingBox<coord_t> bbox = {d_x[0], d_x[0], d_y[0], d_y[0], d_z[0], d_z[0]};
-  for (size_t i = 1; i < n; ++i) {
-    bbox.min_x = std::min(bbox.min_x, d_x[i]);
-    bbox.max_x = std::max(bbox.max_x, d_x[i]);
-    bbox.min_y = std::min(bbox.min_y, d_y[i]);
-    bbox.max_y = std::max(bbox.max_y, d_y[i]);
-    bbox.min_z = std::min(bbox.min_z, d_z[i]);
-    bbox.max_z = std::max(bbox.max_z, d_z[i]);
-  }
+  BoundingBox<coord_t> bbox = compute_bbox(q, d_x, d_y, d_z, n);
 
   // Warm up JIT
   sfc_encode(q, d_x, d_y, d_z, n, d_keys, bbox);

@@ -10,16 +10,15 @@
 using namespace fasttree;
 using namespace fasttree::bench_utils;
 
-static void BM_RangeQuery_Lazy(benchmark::State &state, std::string path, coord_t radius) {
+static void BM_RangeQuery_Lazy(benchmark::State &state, std::string path, double phys_radius) {
     sycl::queue  q;
     ParticleData data;
     if (!load_hdf5_data(path, data)) return;
 
     size_t             n = data.count;
     particles<coord_t> p;
-    p.pos_x.assign(data.pos_x.begin(), data.pos_x.end());
-    p.pos_y.assign(data.pos_y.begin(), data.pos_y.end());
-    p.pos_z.assign(data.pos_z.begin(), data.pos_z.end());
+    double box_min = 0.0, box_size = 1.0;
+    fill_particle_coords(data, p, box_min, box_size);
 
     TreeSoA tree(q, n);
     build_bvh(q, p, tree);
@@ -37,13 +36,15 @@ static void BM_RangeQuery_Lazy(benchmark::State &state, std::string path, coord_
 
     std::mt19937                          gen(42);
     std::uniform_int_distribution<size_t> dis_idx(0, n - 1);
+    coord_t r_max_val = scale_distance_to_coord(phys_radius, box_size);
+
     for (int i = 0; i < num_queries; ++i) {
         size_t p_idx = dis_idx(gen);
         qx[i]        = p.pos_x[p_idx];
         qy[i]        = p.pos_y[p_idx];
         qz[i]        = p.pos_z[p_idx];
-        r_min[i]     = static_cast<coord_t>(0.0);
-        r_max[i]     = radius;
+        r_min[i]     = static_cast<coord_t>(0);
+        r_max[i]     = r_max_val;
     }
 
     // Warm up
@@ -100,14 +101,7 @@ int main(int argc, char **argv) {
     std::ifstream config("config.txt");
     if (!config.is_open()) return 1;
 
-    std::vector<coord_t> radii = {
-        static_cast<coord_t>(0.01),
-        static_cast<coord_t>(0.1),
-        static_cast<coord_t>(1.0),
-        static_cast<coord_t>(10.0),
-        static_cast<coord_t>(100.0),
-        static_cast<coord_t>(200.0)
-    };
+    std::vector<double> radii = {0.01, 0.1, 1.0, 10.0, 100.0, 200.0};
 
     std::string line;
     while (std::getline(config, line)) {
@@ -116,7 +110,7 @@ int main(int argc, char **argv) {
         std::string       count_str, file_path;
         ss >> count_str >> file_path;
 
-        for (coord_t radius : radii) {
+        for (double radius : radii) {
             std::string b_name = "RangeQuery/" + count_str + "/R=" + std::to_string(radius);
             benchmark::RegisterBenchmark(b_name.c_str(), [file_path, radius](benchmark::State &st) {
                 BM_RangeQuery_Lazy(st, file_path, radius);

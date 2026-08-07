@@ -16,9 +16,8 @@ static void BM_GPUSort_Lazy(benchmark::State &state, std::string path) {
 
     size_t             n = data.count;
     particles<coord_t> p;
-    p.pos_x.assign(data.pos_x.begin(), data.pos_x.end());
-    p.pos_y.assign(data.pos_y.begin(), data.pos_y.end());
-    p.pos_z.assign(data.pos_z.begin(), data.pos_z.end());
+    double box_min = 0.0, box_size = 1.0;
+    fill_particle_coords(data, p, box_min, box_size);
 
     BoundingBox<coord_t> bbox = {
         p.pos_x[0], p.pos_x[0], p.pos_y[0], p.pos_y[0], p.pos_z[0], p.pos_z[0]
@@ -32,7 +31,7 @@ static void BM_GPUSort_Lazy(benchmark::State &state, std::string path) {
         bbox.max_z = std::max(bbox.max_z, p.pos_z[i]);
     }
 
-    uint64_t *d_smk     = sycl::malloc_shared<uint64_t>(n, q);
+    sfc_key *d_smk      = sycl::malloc_shared<sfc_key>(n, q);
     size_t   *d_indices = sycl::malloc_shared<size_t>(n, q);
     sfc_encode(q, p, d_smk, bbox);
     q.wait();
@@ -45,28 +44,56 @@ static void BM_GPUSort_Lazy(benchmark::State &state, std::string path) {
 
     auto policy = oneapi::dpl::execution::make_device_policy(q);
 
+#if (3 * BITS_PER_DIMENSION) <= 64
+    uint64_t *d_sort_keys = sycl::malloc_shared<uint64_t>(n, q);
+    q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
+        size_t i = idx[0];
+        d_sort_keys[i] = to_sort_key(d_smk[i]);
+    }).wait();
+
+    // Warm up
+    q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) { d_indices[idx] = idx[0]; }).wait();
+    {
+        auto zip_begin = oneapi::dpl::make_zip_iterator(d_sort_keys, d_smk, d_indices);
+        auto zip_end   = zip_begin + n;
+        oneapi::dpl::sort(policy, zip_begin, zip_end, [](auto a, auto b) {
+            return oneapi::dpl::get<0>(a) < oneapi::dpl::get<0>(b);
+        });
+        q.wait();
+    }
+
+    for (auto _ : state) {
+        q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) { d_indices[idx] = idx[0]; }).wait();
+        auto zip_begin = oneapi::dpl::make_zip_iterator(d_sort_keys, d_smk, d_indices);
+        auto zip_end   = zip_begin + n;
+        oneapi::dpl::sort(policy, zip_begin, zip_end, [](auto a, auto b) {
+            return oneapi::dpl::get<0>(a) < oneapi::dpl::get<0>(b);
+        });
+        q.wait();
+    }
+    sycl::free(d_sort_keys, q);
+#else
     // Warm up
     q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) { d_indices[idx] = idx[0]; }).wait();
     {
         auto zip_begin = oneapi::dpl::make_zip_iterator(d_smk, d_indices);
         auto zip_end   = zip_begin + n;
         oneapi::dpl::sort(policy, zip_begin, zip_end, [](auto a, auto b) {
-            return std::get<0>(a) < std::get<0>(b);
+            return oneapi::dpl::get<0>(a) < oneapi::dpl::get<0>(b);
         });
         q.wait();
     }
 
     for (auto _ : state) {
-        // Re-initialize indices to simulate unsorted state, but keys remain sorted from warmup
         q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) { d_indices[idx] = idx[0]; }).wait();
-
         auto zip_begin = oneapi::dpl::make_zip_iterator(d_smk, d_indices);
         auto zip_end   = zip_begin + n;
         oneapi::dpl::sort(policy, zip_begin, zip_end, [](auto a, auto b) {
-            return std::get<0>(a) < std::get<0>(b);
+            return oneapi::dpl::get<0>(a) < oneapi::dpl::get<0>(b);
         });
         q.wait();
     }
+#endif
 
     state.SetItemsProcessed(state.iterations() * n);
     state.counters["PeakRSS_MB"] = (double)get_peak_rss() / 1024.0;

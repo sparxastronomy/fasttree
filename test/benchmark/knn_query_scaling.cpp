@@ -17,9 +17,8 @@ static void BM_KNNQuery_Lazy(benchmark::State &state, std::string path, int k) {
 
     size_t             n = data.count;
     particles<coord_t> p;
-    p.pos_x.assign(data.pos_x.begin(), data.pos_x.end());
-    p.pos_y.assign(data.pos_y.begin(), data.pos_y.end());
-    p.pos_z.assign(data.pos_z.begin(), data.pos_z.end());
+    double box_min = 0.0, box_size = 1.0;
+    fill_particle_coords(data, p, box_min, box_size);
 
     TreeSoA tree(q, n);
     build_bvh(q, p, tree);
@@ -39,7 +38,7 @@ static void BM_KNNQuery_Lazy(benchmark::State &state, std::string path, int k) {
         qz[i]        = p.pos_z[p_idx];
     }
 
-    int    *results      = sycl::malloc_shared<int>(num_queries * k, q);
+    size_t *results      = sycl::malloc_shared<size_t>(num_queries * k, q);
     dist_t *result_dists = sycl::malloc_shared<dist_t>(num_queries * k, q);
 
     // Warm up
