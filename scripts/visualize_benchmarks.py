@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 # Detect if running in stlite/Pyodide
@@ -26,16 +27,32 @@ IS_PYODIDE = "pyodide" in sys.modules or "stlite" in sys.modules
 def get_latest_release(repo_path):
     try:
         if IS_PYODIDE:
-            return "See GitHub"
+            return ("v.1.1.0", f"https://github.com/{repo_path}/releases/tag/v.1.1.0")
         else:
             import requests
 
-            url = f"https://api.github.com/repos/{repo_path}/releases/"
-            response = requests.get(url)
-            response.raise_for_status()
-            return response.json()[0].get("tag_name", "Unknown Version")
+            # Query tags API first so latest tag like v.1.1.0 is returned even if not drafted as formal release
+            tags_url = f"https://api.github.com/repos/{repo_path}/tags"
+            resp = requests.get(tags_url, timeout=5)
+            if resp.status_code == 200 and resp.json():
+                tag_name = resp.json()[0].get("name", "v.1.1.0")
+                return (
+                    tag_name,
+                    f"https://github.com/{repo_path}/releases/tag/{tag_name}",
+                )
+
+            rel_url = f"https://api.github.com/repos/{repo_path}/releases/"
+            resp = requests.get(rel_url, timeout=5)
+            if resp.status_code == 200 and resp.json():
+                tag_name = resp.json()[0].get("tag_name", "v.1.1.0")
+                return (
+                    tag_name,
+                    f"https://github.com/{repo_path}/releases/tag/{tag_name}",
+                )
+
+            return ("v.1.1.0", f"https://github.com/{repo_path}/tags")
     except Exception:
-        return "Latest (API Fetch Failed)"
+        return ("v.1.1.0", f"https://github.com/{repo_path}/tags")
 
 
 @st.cache_data
@@ -261,12 +278,14 @@ st.markdown(
 )
 
 repo_path = "sparxastronomy/fasttree"
-latest_release = get_latest_release(repo_path)
+latest_tag, latest_tag_url = get_latest_release(repo_path)
 st.markdown(
     f"""
     <div style='text-align: center; margin-bottom: 15px;'>
     <b>Repository:</b> <a href='https://github.com/{repo_path}'>{repo_path}</a> &nbsp;|&nbsp; 
-    <b>Latest Release:</b> <code>{latest_release}</code>
+    <b>Latest Release / Tag:</b> <a href='{latest_tag_url}'><code>{latest_tag}</code></a> &nbsp;|&nbsp;
+    <a href='https://github.com/{repo_path}/tags'>All Tags</a> &nbsp;|&nbsp;
+    <a href='https://github.com/{repo_path}/releases'>Releases</a>
     </div>
     """,
     unsafe_allow_html=True,
@@ -353,8 +372,10 @@ if st.session_state.current_page == "Single Node Scaling":
         & (df_all["Test"].isin(selected_tests))
     ].copy()
 
-    # Sub-config filter for RangeQuery/KNNQuery
-    needs_param_filter = any(t in ["RangeQuery", "KNNQuery"] for t in selected_tests)
+    # Sub-config filter for RangeQuery/KNNQuery/SelfKNNQuery
+    needs_param_filter = any(
+        t in ["RangeQuery", "KNNQuery", "SelfKNNQuery"] for t in selected_tests
+    )
     if needs_param_filter:
         valid_params = sorted(
             filtered_df[filtered_df["Params"] != "None"]["Params"].unique()
@@ -388,100 +409,296 @@ if st.session_state.current_page == "Single Node Scaling":
                 ].copy()
 
     if not filtered_df.empty:
-        # Create a unique series label to group lines cleanly
-        filtered_df["Series"] = filtered_df.apply(
-            lambda r: (
-                f"{r['Configuration']}"
-                + (f" | {r['Test']}" if len(selected_tests) > 1 else "")
-                + (
-                    f" [{r['Params']}]"
-                    if r["Params"] != "None" and needs_param_filter
-                    else ""
+        # Hardware Mode Selector before Execution Time Scaling
+        st.subheader("Hardware View Mode", divider="red")
+        available_devices = sorted(filtered_df["Device"].unique())
+        default_dev_idx = 0
+        if "Both" in available_devices or len(available_devices) > 1:
+            device_options = ["CPU", "GPU", "Both"]
+            # Keep only options present in data or Both if multiple exist
+            device_view = st.radio(
+                "Select Hardware Mode:", device_options, horizontal=True, index=0
+            )
+        else:
+            device_view = available_devices[0]
+
+        if device_view != "Both":
+            plot_df = filtered_df[filtered_df["Device"] == device_view].copy()
+        else:
+            plot_df = filtered_df.copy()
+
+        if not plot_df.empty:
+            # Create a unique series label to group lines cleanly
+            plot_df["Series"] = plot_df.apply(
+                lambda r: (
+                    f"{r['Configuration']}"
+                    + (f" ({r['Device']})" if device_view == "Both" else "")
+                    + (f" | {r['Test']}" if len(selected_tests) > 1 else "")
+                    + (
+                        f" [{r['Params']}]"
+                        if r["Params"] != "None" and needs_param_filter
+                        else ""
+                    )
+                ),
+                axis=1,
+            )
+
+            st.subheader("Execution Time Scaling (Log Scale)", divider="red")
+
+            line_dash_arg = (
+                "Device"
+                if device_view == "Both"
+                else (
+                    "Params"
+                    if needs_param_filter and param_choice == "All Parameters"
+                    else None
                 )
-            ),
-            axis=1,
-        )
+            )
+            dash_map = (
+                {"GPU": "solid", "CPU": "dash"} if device_view == "Both" else None
+            )
 
-        st.subheader("Execution Time Scaling (Log Scale)", divider="red")
+            fig_time = px.line(
+                plot_df.sort_values("Particles_Num"),
+                x="Particles_Str",
+                y="Time_ms",
+                color="Series",
+                line_group="Series",
+                line_dash=line_dash_arg,
+                line_dash_map=dash_map,
+                symbol="Test" if len(selected_tests) > 1 else None,
+                log_y=True,
+                markers=True,
+                title=f"Execution Time Scaling | Hardware: {device_view} | Tests: {', '.join(selected_tests)}",
+                labels=labels_dict,
+                color_discrete_sequence=px.colors.qualitative.Bold,
+            )
+            # Increase line thickness and marker size for maximum clarity
+            fig_time.update_traces(line=dict(width=3.5), marker=dict(size=8))
 
-        fig_time = px.line(
-            filtered_df.sort_values("Particles_Num"),
-            x="Particles_Str",
-            y="Time_ms",
-            color="Series",
-            line_group="Series",
-            symbol="Test" if len(selected_tests) > 1 else None,
-            log_y=True,
-            markers=True,
-            title=f"Execution Time Scaling | Tests: {', '.join(selected_tests)}",
-            labels=labels_dict,
-            color_discrete_sequence=px.colors.qualitative.Bold,
-        )
-        fig_time.update_layout(
-            height=600,
-            legend=legend_dict,
-            font=dict(size=13),
-        )
-        st.plotly_chart(fig_time, width="stretch")
+            # Multi-Model Theoretical Scaling Curve Fitting
+            show_fits = st.sidebar.checkbox("Show Theoretical Fit Curves", value=True)
+            if show_fits:
+                import numpy as np
 
-        st.markdown("---")
-        st.subheader("Memory Usage Scaling (Peak RSS MB)", divider="red")
+                fit_model_choice = st.sidebar.selectbox(
+                    "Scaling Fit Model",
+                    [
+                        "Auto-Detect Best Fit (R²)",
+                        "O(N) [Linear + Overhead: c0 + c1*N]",
+                        "O(N log N) [Tree Sorting/Build: c0 + c1*N*log2(N)]",
+                        "O(N^α) [Power Law: a * N^α]",
+                    ],
+                )
 
-        # Deduplicate memory dataframe per configuration and particle count to prevent bar overlap
-        mem_df = (
-            filtered_df
-            .groupby(
-                ["Configuration", "Test", "Particles_Str", "Particles_Num"],
-                as_index=False,
-            )["PeakRSS_MB"]
-            .mean()
-            .sort_values("Particles_Num")
-        )
+                for s_name, s_df in plot_df.groupby("Series"):
+                    s_clean = s_df.dropna(
+                        subset=["Particles_Num", "Time_ms"]
+                    ).sort_values("Particles_Num")
+                    if len(s_clean) >= 2:
+                        x_vals = s_clean["Particles_Num"].values.astype(float)
+                        y_vals = s_clean["Time_ms"].values.astype(float)
 
-        fig_mem = px.bar(
-            mem_df,
-            x="Particles_Str",
-            y="PeakRSS_MB",
-            color="Configuration",
-            barmode="group",
-            facet_col="Test" if len(selected_tests) > 1 else None,
-            log_y=True,
-            title="Peak Memory Scaling Across Datasets",
-            labels=labels_dict,
-            color_discrete_sequence=px.colors.qualitative.Bold,
-        )
-        fig_mem.update_layout(
-            height=500,
-            legend=legend_dict,
-            font=dict(size=13),
-        )
-        st.plotly_chart(fig_mem, width="stretch")
+                        dev_type = (
+                            s_df["Device"].iloc[0]
+                            if "Device" in s_df.columns
+                            else "CPU"
+                        )
+                        fit_color = (
+                            "rgba(110, 110, 110, 0.75)"
+                            if dev_type == "CPU"
+                            else "rgba(60, 60, 60, 0.75)"
+                        )
+                        dash_fit = "dashdot" if dev_type == "CPU" else "dot"
 
-        st.markdown("---")
-        st.subheader("Raw Benchmark Data", divider="gray")
-        sort_cols = [
-            c
-            for c in ["Test", "Configuration", "Particles_Num"]
-            if c in filtered_df.columns
-        ]
-        sorted_df = filtered_df.sort_values(sort_cols) if sort_cols else filtered_df
-        raw_cols = [
-            c
-            for c in [
-                "Configuration",
-                "Test",
-                "Particles_Str",
-                "Params",
-                "Time_ms",
-                "PeakRSS_MB",
-                "Throughput_M_s",
+                        # Candidate 1: Linear + Overhead (T = c0 + c1 * N)
+                        A_lin = np.vstack([np.ones_like(x_vals), x_vals]).T
+                        coeffs_lin, _, _, _ = np.linalg.lstsq(A_lin, y_vals, rcond=None)
+                        c0_lin, c1_lin = (
+                            max(0.0, coeffs_lin[0]),
+                            max(0.0, coeffs_lin[1]),
+                        )
+                        y_fit_lin = c0_lin + c1_lin * x_vals
+
+                        # Candidate 2: N log N + Overhead (T = c0 + c1 * N * log2(N))
+                        n_logn = x_vals * np.log2(np.maximum(x_vals, 1.0))
+                        A_nlogn = np.vstack([np.ones_like(x_vals), n_logn]).T
+                        coeffs_nlogn, _, _, _ = np.linalg.lstsq(
+                            A_nlogn, y_vals, rcond=None
+                        )
+                        c0_nlogn, c1_nlogn = (
+                            max(0.0, coeffs_nlogn[0]),
+                            max(0.0, coeffs_nlogn[1]),
+                        )
+                        y_fit_nlogn = c0_nlogn + c1_nlogn * n_logn
+
+                        # Candidate 3: Power Law (T = a * N^alpha)
+                        log_x = np.log10(x_vals)
+                        log_y = np.log10(y_vals)
+                        slope_alpha, intercept_c = np.polyfit(log_x, log_y, 1)
+                        y_fit_pow = (10**intercept_c) * (x_vals**slope_alpha)
+
+                        # Helper to compute R^2
+                        y_mean = np.mean(y_vals)
+                        ss_tot = np.sum((y_vals - y_mean) ** 2)
+
+                        def calc_r2(y_fit):
+                            if ss_tot == 0:
+                                return 1.0
+                            ss_res = np.sum((y_vals - y_fit) ** 2)
+                            return max(0.0, 1.0 - (ss_res / ss_tot))
+
+                        r2_lin = calc_r2(y_fit_lin)
+                        r2_nlogn = calc_r2(y_fit_nlogn)
+                        r2_pow = calc_r2(y_fit_pow)
+
+                        # Select Model
+                        if fit_model_choice == "O(N) [Linear + Overhead: c0 + c1*N]":
+                            best_y, best_label, best_r2 = (
+                                y_fit_lin,
+                                f"Fit {s_name} [O(N) c0={c0_lin:.3f}ms]",
+                                r2_lin,
+                            )
+                        elif (
+                            fit_model_choice
+                            == "O(N log N) [Tree Sorting/Build: c0 + c1*N*log2(N)]"
+                        ):
+                            best_y, best_label, best_r2 = (
+                                y_fit_nlogn,
+                                f"Fit {s_name} [O(N log N)]",
+                                r2_nlogn,
+                            )
+                        elif fit_model_choice == "O(N^α) [Power Law: a * N^α]":
+                            best_y, best_label, best_r2 = (
+                                y_fit_pow,
+                                f"Fit {s_name} [O(N^{slope_alpha:.2f})]",
+                                r2_pow,
+                            )
+                        else:
+                            # Auto-Detect Best Fit
+                            candidates = [
+                                (
+                                    r2_lin,
+                                    y_fit_lin,
+                                    f"Fit {s_name} [O(N) c0={c0_lin:.2f}ms]",
+                                ),
+                                (r2_nlogn, y_fit_nlogn, f"Fit {s_name} [O(N log N)]"),
+                                (
+                                    r2_pow,
+                                    y_fit_pow,
+                                    f"Fit {s_name} [O(N^{slope_alpha:.2f})]",
+                                ),
+                            ]
+                            candidates.sort(key=lambda item: item[0], reverse=True)
+                            best_r2, best_y, best_label = candidates[0]
+
+                        best_label += f" R²={best_r2:.3f}"
+
+                        fig_time.add_trace(
+                            go.Scatter(
+                                x=s_clean["Particles_Str"],
+                                y=best_y,
+                                mode="lines",
+                                name=best_label,
+                                line=dict(color=fit_color, width=2, dash=dash_fit),
+                                hoverinfo="text",
+                                hovertext=f"Scaling Model: {best_label}",
+                            )
+                        )
+
+            fig_time.update_layout(
+                height=650,
+                legend=legend_dict,
+                font=dict(size=13),
+            )
+            st.plotly_chart(fig_time, width="stretch")
+
+            st.markdown("---")
+            st.subheader("Memory Usage Scaling (Peak RSS MB)", divider="red")
+
+            # Deduplicate memory dataframe per configuration, device, and particle count
+            mem_df = (
+                plot_df
+                .groupby(
+                    [
+                        "Configuration",
+                        "Device",
+                        "Test",
+                        "Particles_Str",
+                        "Particles_Num",
+                    ],
+                    as_index=False,
+                )["PeakRSS_MB"]
+                .mean()
+                .sort_values("Particles_Num")
+            )
+
+            pattern_arg = "Device" if device_view == "Both" else None
+            pattern_map = {"GPU": "/", "CPU": ""} if device_view == "Both" else None
+
+            fig_mem = px.bar(
+                mem_df,
+                x="Particles_Str",
+                y="PeakRSS_MB",
+                color="Configuration",
+                pattern_shape=pattern_arg,
+                pattern_shape_map=pattern_map,
+                barmode="group",
+                facet_col="Test" if len(selected_tests) > 1 else None,
+                log_y=True,
+                title=f"Peak Memory Scaling Across Datasets ({device_view})",
+                labels=labels_dict,
+                color_discrete_sequence=px.colors.qualitative.Bold,
+            )
+            fig_mem.update_layout(
+                height=500,
+                legend=legend_dict,
+                font=dict(size=13),
+            )
+            st.plotly_chart(fig_mem, width="stretch")
+
+            st.markdown("---")
+            st.subheader("Raw Benchmark Data", divider="gray")
+            sort_cols = [
+                c
+                for c in ["Test", "Configuration", "Particles_Num"]
+                if c in plot_df.columns
             ]
-            if c in sorted_df.columns
-        ]
-        st.dataframe(
-            sorted_df[raw_cols],
-            width="stretch",
-        )
+            sorted_df = plot_df.sort_values(sort_cols) if sort_cols else plot_df
+            raw_cols = [
+                c
+                for c in [
+                    "Device",
+                    "Configuration",
+                    "Test",
+                    "Particles_Str",
+                    "Params",
+                    "Time_ms",
+                    "PeakRSS_MB",
+                    "Throughput_M_s",
+                ]
+                if c in sorted_df.columns
+            ]
+
+            cpu_raw = sorted_df[sorted_df["Device"] == "CPU"][raw_cols]
+            gpu_raw = sorted_df[sorted_df["Device"] == "GPU"][raw_cols]
+
+            tab_cpu, tab_gpu = st.tabs([
+                "CPU Benchmark Results",
+                "GPU Benchmark Results",
+            ])
+            with tab_cpu:
+                if not cpu_raw.empty:
+                    st.dataframe(cpu_raw, width="stretch")
+                else:
+                    st.info("No CPU raw benchmark data available for this selection.")
+            with tab_gpu:
+                if not gpu_raw.empty:
+                    st.dataframe(gpu_raw, width="stretch")
+                else:
+                    st.info("No GPU raw benchmark data available for this selection.")
+        else:
+            st.warning("No data matches the selected hardware mode.")
     else:
         st.warning("No data matches the selected filters.")
 
@@ -496,7 +713,7 @@ elif st.session_state.current_page == "Multi-Precision Comparison":
         divider="red",
     )
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns([2, 1, 2])
     with col1:
         sel_test = st.selectbox(
             "Select Test to Compare", sorted(df_all["Test"].unique())
@@ -506,18 +723,50 @@ elif st.session_state.current_page == "Multi-Precision Comparison":
 
     comp_df = df_all[
         (df_all["Test"] == sel_test) & (df_all["Periodic_BC"] == sel_periodic)
-    ]
+    ].copy()
+
+    # Explicitly enforce category ordering: double -> int32 -> int64
+    comp_df["Precision"] = pd.Categorical(
+        comp_df["Precision"], categories=["double", "int32", "int64"], ordered=True
+    )
+    comp_df = comp_df.sort_values(["Precision", "Particles_Num"])
+
+    # Parameter filter for RangeQuery / KNNQuery / SelfKNNQuery on Page 2
+    if sel_test in ["RangeQuery", "KNNQuery", "SelfKNNQuery"]:
+        valid_params_p2 = sorted(
+            comp_df[comp_df["Params"] != "None"]["Params"].unique()
+        )
+        if valid_params_p2:
+            default_p2_idx = 0
+            for idx, p in enumerate(valid_params_p2):
+                if "k=16" in p or "1.000000" in p:
+                    default_p2_idx = idx
+                    break
+            with col3:
+                sel_param_p2 = st.selectbox(
+                    "Select Parameter (R / k)", valid_params_p2, index=default_p2_idx
+                )
+            comp_df = comp_df[
+                (comp_df["Params"] == sel_param_p2) | (comp_df["Params"] == "None")
+            ].copy()
 
     if not comp_df.empty:
         fig_comp = px.bar(
-            comp_df.sort_values("Particles_Num"),
+            comp_df,
             x="Particles_Str",
             y="Time_ms",
             color="Precision",
             barmode="group",
-            title=f"Execution Time Comparison for {sel_test} (Periodic BC: {sel_periodic})",
+            log_y=True,
+            category_orders={"Precision": ["double", "int32", "int64"]},
+            facet_col="Device" if comp_df["Device"].nunique() > 1 else None,
+            title=f"Execution Time Comparison for {sel_test} (Periodic BC: {sel_periodic}) [Log Scale]",
             labels=labels_dict,
-            color_discrete_sequence=px.colors.qualitative.Set1,
+            color_discrete_map={
+                "double": "#1f77b4",
+                "int32": "#2ca02c",
+                "int64": "#ff7f0e",
+            },
         )
         fig_comp.update_layout(height=500, legend=legend_dict)
         st.plotly_chart(fig_comp, width="stretch")
@@ -528,7 +777,7 @@ elif st.session_state.current_page == "Multi-Precision Comparison":
             divider="gray",
         )
         pivot_df = comp_df.pivot_table(
-            index=["Particles_Str", "Params"],
+            index=["Device", "Particles_Str", "Params"],
             columns="Precision",
             values="Time_ms",
             aggfunc="mean",

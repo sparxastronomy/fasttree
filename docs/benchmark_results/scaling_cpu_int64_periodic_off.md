@@ -184,4 +184,59 @@ KNNQuery/10M/k=32          404 us          402 us         1733 PeakRSS_MB=1.8682
 KNNQuery/10M/k=64         3152 us         3142 us          222 PeakRSS_MB=1.86792k
 KNNQuery/10M/k=128        3833 us         3827 us          183 PeakRSS_MB=1.86813k
 
+--- Executing ./self_knn_query_scaling.exe ---
+2026-08-08T21:13:21+02:00
+Running ./self_knn_query_scaling.exe
+Run on (72 X 2400 MHz CPU s)
+CPU Caches:
+  L1 Data 48 KiB (x72)
+  L1 Instruction 32 KiB (x72)
+  L2 Unified 1280 KiB (x72)
+  L3 Unified 55296 KiB (x2)
+Load Average: 0.74, 0.23, 0.08
+***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and will incur extra overhead.
+----------------------------------------------------------------------------------
+Benchmark                        Time             CPU   Iterations UserCounters...
+----------------------------------------------------------------------------------
+SelfKNNQuery/1K/k=1            219 us          178 us         3903 PeakRSS_MB=189.969 items_per_second=5.60757M/s
+SelfKNNQuery/1K/k=2            228 us          186 us         3780 PeakRSS_MB=188.824 items_per_second=5.36487M/s
+SelfKNNQuery/1K/k=4            242 us          197 us         3543 PeakRSS_MB=188.254 items_per_second=5.08767M/s
+SelfKNNQuery/1K/k=8            262 us          217 us         3211 PeakRSS_MB=186.527 items_per_second=4.61146M/s
+SelfKNNQuery/1K/k=16           303 us          259 us         2691 PeakRSS_MB=184.738 items_per_second=3.85556M/s
+SelfKNNQuery/1K/k=32           386 us          350 us         1984 PeakRSS_MB=182.07 items_per_second=2.85631M/s
+SelfKNNQuery/1K/k=64          2223 us         2203 us          317 PeakRSS_MB=177.746 items_per_second=453.886k/s
+SelfKNNQuery/1K/k=128         2619 us         2597 us          268 PeakRSS_MB=171.004 items_per_second=385.093k/s
+SelfKNNQuery/10K/k=1           910 us          873 us          796 PeakRSS_MB=177.438 items_per_second=11.4485M/s
+SelfKNNQuery/10K/k=2          1272 us         1234 us          570 PeakRSS_MB=177.051 items_per_second=8.1023M/s
+SelfKNNQuery/10K/k=4          1543 us         1515 us          461 PeakRSS_MB=178.133 items_per_second=6.60106M/s
+SelfKNNQuery/10K/k=8          2087 us         2055 us          340 PeakRSS_MB=175.789 items_per_second=4.86645M/s
+SelfKNNQuery/10K/k=16         3228 us         3032 us          232 PeakRSS_MB=181.199 items_per_second=3.29808M/s
+SelfKNNQuery/10K/k=32         5303 us         4764 us          147 PeakRSS_MB=181.664 items_per_second=2.09892M/s
+SelfKNNQuery/10K/k=64        22427 us        22382 us           31 PeakRSS_MB=187.723 items_per_second=446.791k/s
+SelfKNNQuery/10K/k=128       27956 us        27892 us           25 PeakRSS_MB=197.703 items_per_second=358.527k/s
+SelfKNNQuery/100K/k=1         6375 us         6255 us          112 PeakRSS_MB=191.77 items_per_second=15.9862M/s
+SelfKNNQuery/100K/k=2         9625 us         9225 us           77 PeakRSS_MB=193.211 items_per_second=10.8406M/s
+SelfKNNQuery/100K/k=4        12741 us        12008 us           58 PeakRSS_MB=196.293 items_per_second=8.3279M/s
+SelfKNNQuery/100K/k=8        17937 us        16550 us           42 PeakRSS_MB=202.941 items_per_second=6.04243M/s
+SelfKNNQuery/100K/k=16       28048 us        25044 us           28 PeakRSS_MB=215.602 items_per_second=3.99292M/s
+SelfKNNQuery/100K/k=32       48408 us        42964 us           16 PeakRSS_MB=238.516 items_per_second=2.32754M/s
+SelfKNNQuery/100K/k=64      229613 us       229451 us            3 PeakRSS_MB=290.57 items_per_second=435.822k/s
+SelfKNNQuery/100K/k=128     285420 us       285181 us            2 PeakRSS_MB=397.719 items_per_second=350.654k/s
+SelfKNNQuery/1M/k=1          57609 us        56713 us           12 PeakRSS_MB=357.809 items_per_second=17.6325M/s
+SelfKNNQuery/1M/k=2          92274 us        90527 us            8 PeakRSS_MB=369.945 items_per_second=11.0465M/s
+SelfKNNQuery/1M/k=4         122882 us       120243 us            6 PeakRSS_MB=402.176 items_per_second=8.3165M/s
+SelfKNNQuery/1M/k=8         175950 us       172521 us            4 PeakRSS_MB=460.887 items_per_second=5.79641M/s
+SelfKNNQuery/1M/k=16        273409 us       267410 us            3 PeakRSS_MB=583.656 items_per_second=3.73958M/s
+SelfKNNQuery/1M/k=32        473388 us       459339 us            2 PeakRSS_MB=831.359 items_per_second=2.17704M/s
+SelfKNNQuery/1M/k=64       2489266 us      2488376 us            1 PeakRSS_MB=1.32632k items_per_second=401.868k/s
+SelfKNNQuery/1M/k=128      3078234 us      3077344 us            1 PeakRSS_MB=2.30535k items_per_second=324.956k/s
+SelfKNNQuery/10M/k=1        648059 us       640867 us            1 PeakRSS_MB=2.02094k items_per_second=15.6039M/s
+SelfKNNQuery/10M/k=2       1111830 us      1101325 us            1 PeakRSS_MB=2.17314k items_per_second=9.07997M/s
+SelfKNNQuery/10M/k=4       1492379 us      1461846 us            1 PeakRSS_MB=2.47832k items_per_second=6.84066M/s
+SelfKNNQuery/10M/k=8       2075094 us      2052838 us            1 PeakRSS_MB=3.0892k items_per_second=4.8713M/s
+SelfKNNQuery/10M/k=16      3177457 us      3140519 us            1 PeakRSS_MB=4.30817k items_per_second=3.18419M/s
+SelfKNNQuery/10M/k=32      5312788 us      5309265 us            1 PeakRSS_MB=6.75078k items_per_second=1.8835M/s
+SelfKNNQuery/10M/k=64     28038371 us     28007438 us            1 PeakRSS_MB=11.6324k items_per_second=357.048k/s
+SelfKNNQuery/10M/k=128    34111489 us     34098030 us            1 PeakRSS_MB=21.3982k items_per_second=293.272k/s
+
 ```
