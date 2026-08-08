@@ -130,6 +130,26 @@ endif()
 find_package(MPI REQUIRED COMPONENTS CXX)
 include_directories(${MPI_CXX_INCLUDE_DIRS})
 
+# Include compiler headers if available (e.g. custom DPC++/LLVM install with CL/cl.h)
+get_filename_component(COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+set(COMPILER_INC_DIR "${COMPILER_DIR}/../include")
+if(EXISTS "${COMPILER_INC_DIR}")
+    include_directories(SYSTEM "${COMPILER_INC_DIR}")
+endif()
+
+# Locate OpenCL headers (CL/cl.h) for custom SYCL/LLVM compilers
+find_path(OPENCL_INCLUDE_DIR NAMES CL/cl.h HINTS
+    "${COMPILER_INC_DIR}"
+    /vera/u/system/soft/SLE_15/packages/x86_64/intel_oneapi/2026.0/compiler/2026.0/include
+    /mpcdf/soft/SLE_15/packages/x86_64/intel_oneapi/2026.0/compiler/2026.0/include
+    /usr/include
+    /usr/local/include
+)
+if(OPENCL_INCLUDE_DIR)
+    message(STATUS "Found OpenCL headers at ${OPENCL_INCLUDE_DIR}")
+    include_directories(SYSTEM "${OPENCL_INCLUDE_DIR}")
+endif()
+
 # Include oneDPL headers since the custom DPC++ compiler might not bundle them
 include_directories(/u/bipra/ptmp/library/oneDPL/include)
 

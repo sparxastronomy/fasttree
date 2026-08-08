@@ -8,8 +8,6 @@ CMAKE_BIN="/mpcdf/soft/SLE_15/packages/x86_64/cmake/4.2/bin/cmake"
 OUTPUT_DIR="$ROOT_DIR/docs/benchmark_results"
 mkdir -p "$OUTPUT_DIR"
 
-export OMP_NUM_THREADS=72
-
 BENCHMARK_EXES=(
     "sfc_encoding_scaling.exe"
     "gpu_sort_scaling.exe"
@@ -20,28 +18,37 @@ BENCHMARK_EXES=(
     "self_knn_query_scaling.exe"
 )
 
-# Configuration tuples: (BUILD_DIR, MODE_NAME, EXTRA_CMAKE_FLAGS)
+# Configuration tuples for GPU runs: (BUILD_DIR, MODE_NAME, EXTRA_CMAKE_FLAGS)
 CONFIGS=(
-    "build_cpu|cpu_double|COORDS_REPRESENTATION=FLOAT|COORDS_TYPE=DOUBLE|POSITIONS_PRECISION=32"
-    "build_int32|cpu_int32|COORDS_REPRESENTATION=INTEGER|COORDS_TYPE=FLOAT|POSITIONS_PRECISION=32"
-    "build_int64|cpu_int64|COORDS_REPRESENTATION=INTEGER|COORDS_TYPE=FLOAT|POSITIONS_PRECISION=64"
+    "build_gpu|gpu_double|COORDS_REPRESENTATION=FLOAT|COORDS_TYPE=DOUBLE|POSITIONS_PRECISION=32"
+    "build_int32|gpu_int32|COORDS_REPRESENTATION=INTEGER|COORDS_TYPE=FLOAT|POSITIONS_PRECISION=32"
+    "build_int64|gpu_int64|COORDS_REPRESENTATION=INTEGER|COORDS_TYPE=FLOAT|POSITIONS_PRECISION=64"
 )
 
 PERIODIC_MODES=("OFF" "ON")
+
+GPU_CXX="${GPU_CXX:-/vera/ptmp/gc/bipra/softwares/illvm/build/install/bin/clang++}"
+if [ ! -x "$GPU_CXX" ]; then
+    GPU_CXX="clang++"
+fi
 
 for config in "${CONFIGS[@]}"; do
     IFS="|" read -r build_dir mode_name coords_rep coords_type pos_prec <<< "$config"
 
     for periodic in "${PERIODIC_MODES[@]}"; do
         echo "=========================================================================="
-        echo "Running Benchmark Config: Mode=$mode_name, Periodic=$periodic"
+        echo "Running GPU Benchmark Config: Mode=$mode_name, Periodic=$periodic"
         echo "Build Dir: $ROOT_DIR/$build_dir"
+        echo "Compiler: $GPU_CXX"
         echo "=========================================================================="
 
         mkdir -p "$ROOT_DIR/$build_dir"
         cd "$ROOT_DIR/$build_dir"
 
         "$CMAKE_BIN" -DCMAKE_BUILD_TYPE=Release \
+                     -DCMAKE_CXX_COMPILER="$GPU_CXX" \
+                     -DMPI_CXX_COMPILER=mpiicpx \
+                     -DTARGET_GPU=nvidia \
                      -DSFC_TYPE=PEANO_HILBERT \
                      -D"$coords_rep" \
                      -D"$coords_type" \
@@ -58,6 +65,8 @@ for config in "${CONFIGS[@]}"; do
         RESULT_FILE="$OUTPUT_DIR/scaling_${mode_name}_periodic_${periodic,,}.md"
         echo "# Scaling Benchmark Results: $mode_name (Periodic BC: $periodic)" > "$RESULT_FILE"
         echo "Date: $(date)" >> "$RESULT_FILE"
+        echo "Device: GPU" >> "$RESULT_FILE"
+        echo "Target GPU: nvidia" >> "$RESULT_FILE"
         echo "SFC Curve: Peano-Hilbert" >> "$RESULT_FILE"
         echo "Periodic BC: $periodic" >> "$RESULT_FILE"
         echo "Build Directory: $build_dir" >> "$RESULT_FILE"
@@ -77,6 +86,6 @@ for config in "${CONFIGS[@]}"; do
 done
 
 echo "=========================================================================="
-echo "ALL CPU SCALING BENCHMARKS COMPLETED!"
+echo "ALL GPU SCALING BENCHMARKS COMPLETED!"
 echo "Results saved in $OUTPUT_DIR"
 echo "=========================================================================="

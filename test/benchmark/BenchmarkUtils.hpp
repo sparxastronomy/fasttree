@@ -49,6 +49,36 @@ inline size_t get_peak_rss() {
     return 0;
 }
 
+// Queries available device/system memory in bytes.
+// Supports environment variable override FASTTREE_MAX_MEM_GB (e.g. FASTTREE_MAX_MEM_GB=32).
+inline size_t get_available_device_memory(sycl::queue &q) {
+    const char *env_mem = std::getenv("FASTTREE_MAX_MEM_GB");
+    if (env_mem) {
+        double mem_gb = std::atof(env_mem);
+        if (mem_gb > 0.0) {
+            return static_cast<size_t>(mem_gb * 1024.0 * 1024.0 * 1024.0);
+        }
+    }
+
+    auto dev = q.get_device();
+    size_t total_mem = dev.get_info<sycl::info::device::global_mem_size>();
+    
+    // Default to a safe 75% budget of total device memory
+    return static_cast<size_t>(total_mem * 0.75);
+}
+
+// Computes dynamic optimal batch size for kNN self-querying based on available memory
+inline size_t compute_optimal_knn_batch_size(sycl::queue &q, size_t total_queries, int k) {
+    size_t avail_bytes = get_available_device_memory(q);
+    size_t bytes_per_query = static_cast<size_t>(k) * (sizeof(size_t) + sizeof(dist_t));
+    if (bytes_per_query == 0) return total_queries;
+
+    size_t max_batch = avail_bytes / bytes_per_query;
+    if (max_batch == 0) max_batch = 1000;
+
+    return std::min(total_queries, max_batch);
+}
+
 struct ParticleData {
     std::vector<float> pos_x, pos_y, pos_z;
     std::vector<float> vel_x, vel_y, vel_z;

@@ -35,6 +35,25 @@ include_directories(${MPI_CXX_INCLUDE_DIRS})
 
 find_package(HDF5 COMPONENTS CXX HL REQUIRED)
 
+get_filename_component(COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+set(COMPILER_INC_DIR "${COMPILER_DIR}/../include")
+if(EXISTS "${COMPILER_INC_DIR}")
+    include_directories(SYSTEM "${COMPILER_INC_DIR}")
+endif()
+
+# Locate OpenCL headers (CL/cl.h) for custom SYCL/LLVM compilers
+find_path(OPENCL_INCLUDE_DIR NAMES CL/cl.h HINTS
+    "${COMPILER_INC_DIR}"
+    /vera/u/system/soft/SLE_15/packages/x86_64/intel_oneapi/2026.0/compiler/2026.0/include
+    /mpcdf/soft/SLE_15/packages/x86_64/intel_oneapi/2026.0/compiler/2026.0/include
+    /usr/include
+    /usr/local/include
+)
+if(OPENCL_INCLUDE_DIR)
+    message(STATUS "Found OpenCL headers at ${OPENCL_INCLUDE_DIR}")
+    include_directories(SYSTEM "${OPENCL_INCLUDE_DIR}")
+endif()
+
 include_directories(../../src)
 include_directories(${HDF5_INCLUDE_DIRS})
 include_directories(${MPI_CXX_INCLUDE_DIRS})
@@ -46,6 +65,7 @@ set(BENCHMARK_APPS
     rebuild_scaling
     range_query_scaling
     knn_query_scaling
+    self_knn_query_scaling
     domain_decomposition_scaling
 )
 
