@@ -373,15 +373,16 @@ inline void sfc_encode(
     sfc_key      *dev_keys  = ensure_device_writable(q, keys, num_particles, keys_alloc);
 
 #if defined(FASTTREE_INTEGER_COORDS)
+    constexpr uint64_t sfc_mask = (1ULL << BITS_PER_DIMENSION) - 1ULL;
     q.parallel_for(sycl::range<1>(num_particles), [=](sycl::id<1> idx) {
          size_t i  = idx[0];
-         sfc1D  ix = static_cast<sfc1D>(dev_pos_x[i]);
-         sfc1D  iy = static_cast<sfc1D>(dev_pos_y[i]);
-         sfc1D  iz = static_cast<sfc1D>(dev_pos_z[i]);
+         sfc1D  ix = static_cast<sfc1D>(dev_pos_x[i] & sfc_mask);
+         sfc1D  iy = static_cast<sfc1D>(dev_pos_y[i] & sfc_mask);
+         sfc1D  iz = static_cast<sfc1D>(dev_pos_z[i] & sfc_mask);
 #if defined(SFC_TYPE_PEANO_HILBERT)
          dev_keys[i] = sfc_encode3D(ix, iy, iz);
 #elif defined(SFC_TYPE_MORTON)
-     dev_keys[i] = spread3_u64(ix) | (spread3_u64(iy) << 1) | (spread3_u64(iz) << 2);
+         dev_keys[i] = spread3_u64(ix) | (spread3_u64(iy) << 1) | (spread3_u64(iz) << 2);
 #endif
      }).wait();
 #else
@@ -945,31 +946,16 @@ node_distance_sq(T px, T py, T pz, T bmin_x, T bmax_x, T bmin_y, T bmax_y, T bmi
         //   - If val is inside [lo, hi] (on the torus), distance = 0.
         //   - Otherwise, distance = min(|val - lo|_periodic, |val - hi|_periodic).
         auto periodic_axis_dist = [](T val, T lo, T hi) -> uint64_t {
-            constexpr int      B    = BITS_PER_DIMENSION;
-            constexpr uint64_t MASK = (B < 64) ? ((1ULL << B) - 1ULL) : ~0ULL;
-            constexpr uint64_t HALF = 1ULL << (B - 1);
-            // FULL = 2^B (the torus period); 0 when B==64 signals wrap-around
-            constexpr uint64_t FULL = (B < 64) ? (1ULL << B) : 0ULL;
-
-            // Unsigned modular offset from lo to val: sd_lo >= 0 means val is
-            // at or past lo going forward around the torus.
-            uint64_t d_lo = (get_lo_word(val) - get_lo_word(lo)) & MASK;
-            int64_t sd_lo = (d_lo >= HALF) ? static_cast<int64_t>(d_lo) - static_cast<int64_t>(FULL)
-                                           : static_cast<int64_t>(d_lo);
-
-            // Unsigned modular offset from val to hi: sd_hi >= 0 means val is
-            // at or before hi going forward around the torus.
-            uint64_t d_hi = (get_lo_word(hi) - get_lo_word(val)) & MASK;
-            int64_t sd_hi = (d_hi >= HALF) ? static_cast<int64_t>(d_hi) - static_cast<int64_t>(FULL)
-                                           : static_cast<int64_t>(d_hi);
-
-            // val is inside [lo, hi] on the torus iff both offsets are non-negative
-            if (sd_lo >= 0 && sd_hi >= 0) return 0ULL;
-
-            // Nearest endpoint gap (unsigned), shifted before returning
-            uint64_t abs_lo = static_cast<uint64_t>(sd_lo < 0 ? -sd_lo : sd_lo);
-            uint64_t abs_hi = static_cast<uint64_t>(sd_hi < 0 ? -sd_hi : sd_hi);
-            uint64_t gap    = (abs_lo < abs_hi) ? abs_lo : abs_hi;
+            if constexpr (sizeof(T) >= 8) {
+                constexpr T mask = (T(1) << BITS_PER_DIMENSION) - T(1);
+                val &= mask;
+            }
+            if (val >= lo && val <= hi) return 0ULL;
+            MyIntPosTypeSigned d_lo   = shortest_periodic_distance(val, lo);
+            MyIntPosTypeSigned d_hi   = shortest_periodic_distance(val, hi);
+            uint64_t           abs_lo = static_cast<uint64_t>(d_lo < 0 ? -d_lo : d_lo);
+            uint64_t           abs_hi = static_cast<uint64_t>(d_hi < 0 ? -d_hi : d_hi);
+            uint64_t           gap    = (abs_lo < abs_hi) ? abs_lo : abs_hi;
             return gap >> _DIST_SHIFT;
         };
 
@@ -1376,19 +1362,26 @@ inline void knn_query(
         q, result_dists, static_cast<size_t>(num_queries) * static_cast<size_t>(k), dist_alloc
     );
 
-    if (k <= 32) {
+    if constexpr (_MAX_K_ <= 32) {
         knn_query_small_k<32>(
             q, tree, dev_qx, dev_qy, dev_qz, k, num_queries, dev_results, dev_result_dists
         );
     } else {
-        if (k > _MAX_K_) {
-            throw std::invalid_argument(
-                "k exceeds _MAX_K_ template parameter. Instantiate knn_query with larger _MAX_K_."
+        if (k <= 32) {
+            knn_query_small_k<32>(
+                q, tree, dev_qx, dev_qy, dev_qz, k, num_queries, dev_results, dev_result_dists
+            );
+        } else {
+            if (k > _MAX_K_) {
+                throw std::invalid_argument(
+                    "k exceeds _MAX_K_ template parameter. Instantiate knn_query with larger "
+                    "_MAX_K_."
+                );
+            }
+            knn_query_large_k<_MAX_K_>(
+                q, tree, dev_qx, dev_qy, dev_qz, k, num_queries, dev_results, dev_result_dists
             );
         }
-        knn_query_large_k<_MAX_K_>(
-            q, tree, dev_qx, dev_qy, dev_qz, k, num_queries, dev_results, dev_result_dists
-        );
     }
 
     free_device_readable(q, dev_qx, qx_alloc);

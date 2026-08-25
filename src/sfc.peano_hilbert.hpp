@@ -530,7 +530,11 @@ inline double int_rep_to_float(MyIntPosType int_val) noexcept {
  * @param[in] b Second integer coordinate representation.
  */
 inline MyIntPosTypeSigned shortest_periodic_distance(MyIntPosType a, MyIntPosType b) noexcept {
+#if defined(POSITIONS_IN_32BIT) || defined(POSITIONS_IN_64BIT)
     return static_cast<MyIntPosTypeSigned>((a - b) << SHIFT_BITS) >> SHIFT_BITS;
+#elif defined(POSITIONS_IN_128BIT)
+    return static_cast<MyIntPosTypeSigned>((a - b).lo << SHIFT_BITS) >> SHIFT_BITS;
+#endif
 }
 
 /**
