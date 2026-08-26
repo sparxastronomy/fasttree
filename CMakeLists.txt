@@ -17,7 +17,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 #
 if((NOT CMAKE_CXX_COMPILER) OR (NOT MPI_CXX_COMPILER))
     find_program(CMAKE_CXX_COMPILER NAMES icpx acpp g++)
-    find_program(MPI_CXX_COMPILER NAMES mpicxx mpiicpc)
+    find_program(MPI_CXX_COMPILER NAMES mpicxx mpiicpc mpiicpx)
 endif()
 
 
@@ -287,6 +287,30 @@ target_link_libraries(test_domain_decomposition.exe PRIVATE ${MPI_CXX_LIBRARIES}
 if(GPU_SYCL_FLAGS)
     target_compile_options(test_domain_decomposition.exe PRIVATE ${GPU_SYCL_FLAGS})
     target_link_options(test_domain_decomposition.exe PRIVATE ${GPU_SYCL_FLAGS})
+endif()
+
+# Self-kNN Test Executable
+add_executable(test_self_knn.exe test/test_self_knn.cpp)
+target_compile_features(test_self_knn.exe PRIVATE cxx_std_23)
+target_include_directories(test_self_knn.exe PRIVATE src test/benchmark)
+target_compile_options(test_self_knn.exe PRIVATE -O3)
+add_sycl_to_target(TARGET test_self_knn.exe SOURCES test/test_self_knn.cpp)
+target_link_libraries(test_self_knn.exe PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
+if(GPU_SYCL_FLAGS)
+    target_compile_options(test_self_knn.exe PRIVATE ${GPU_SYCL_FLAGS})
+    target_link_options(test_self_knn.exe PRIVATE ${GPU_SYCL_FLAGS})
+endif()
+
+# Query Test Executable
+add_executable(test_query.exe test/test_query.cpp)
+target_compile_features(test_query.exe PRIVATE cxx_std_23)
+target_include_directories(test_query.exe PRIVATE src)
+target_compile_options(test_query.exe PRIVATE -O3)
+add_sycl_to_target(TARGET test_query.exe SOURCES test/test_query.cpp)
+target_link_libraries(test_query.exe PRIVATE ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
+if(GPU_SYCL_FLAGS)
+    target_compile_options(test_query.exe PRIVATE ${GPU_SYCL_FLAGS})
+    target_link_options(test_query.exe PRIVATE ${GPU_SYCL_FLAGS})
 endif()
 
 option(BENCHMARK "Enable benchmarks" OFF)

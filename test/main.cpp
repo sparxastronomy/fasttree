@@ -1,4 +1,4 @@
-#include "../src/hlbvh.hpp"
+#include "hlbvh.hpp"
 #include <sycl/sycl.hpp>
 #include <algorithm>
 #include <cmath>
