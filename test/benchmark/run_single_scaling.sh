@@ -106,6 +106,6 @@ for config in "${CONFIGS[@]}"; do
 done
 
 echo "=========================================================================="
-echo "ALL SELF-KNN SCALING BENCHMARKS COMPLETED!"
+echo "SINGLE SCALING BENCHMARKS COMPLETED !"
 echo "Results saved in $OUTPUT_DIR"
 echo "=========================================================================="

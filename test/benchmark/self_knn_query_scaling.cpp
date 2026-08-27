@@ -30,7 +30,7 @@ static void BM_SelfKNNQuery(benchmark::State &state, std::string path, int k) {
 
     size_t             n = data.count;
     particles<coord_t> p;
-    double box_min = 0.0, box_size = 1.0;
+    double             box_min = 0.0, box_size = 1.0;
     fill_particle_coords(data, p, box_min, box_size);
 
     TreeSoA tree(q, n);
@@ -38,9 +38,9 @@ static void BM_SelfKNNQuery(benchmark::State &state, std::string path, int k) {
     q.wait();
 
     // Dynamically calculate optimal batch size based on available system/GPU memory.
-    // If available memory > required memory (e.g. 40GB A100 or 250GB CPU), executes in a SINGLE pass!
-    // Environment variable FASTTREE_MAX_MEM_GB can override available memory budget.
-    size_t chunk_size = compute_optimal_knn_batch_size(q, n, k);
+    // If available memory > required memory (e.g. 40GB A100 or 250GB CPU), executes in a SINGLE
+    // pass! Environment variable FASTTREE_MAX_MEM_GB can override available memory budget.
+    size_t chunk_size    = compute_optimal_knn_batch_size(q, n, k);
     size_t alloc_queries = chunk_size;
 
     size_t *results      = sycl::malloc_shared<size_t>(alloc_queries * k, q);
@@ -54,33 +54,54 @@ static void BM_SelfKNNQuery(benchmark::State &state, std::string path, int k) {
         return;
     }
 
-    // Warm-up pass over all n particles in optimal batches
-    for (size_t offset = 0; offset < n; offset += chunk_size) {
-        size_t batch_size = std::min(chunk_size, n - offset);
-        knn_query(q, tree, 
-                  p.pos_x.data() + offset, 
-                  p.pos_y.data() + offset, 
-                  p.pos_z.data() + offset, 
-                  k, batch_size, results, result_dists);
+    if (chunk_size >= n) {
+        // Warm-up pass
+        self_knn_query(q, tree, k, results, result_dists, false);
         q.wait();
-    }
 
-    for (auto _ : state) {
-        for (size_t offset = 0; offset < n; offset += chunk_size) {
-            size_t batch_size = std::min(chunk_size, n - offset);
-            knn_query(q, tree, 
-                      p.pos_x.data() + offset, 
-                      p.pos_y.data() + offset, 
-                      p.pos_z.data() + offset, 
-                      k, batch_size, results, result_dists);
+        for (auto _ : state) {
+            self_knn_query(q, tree, k, results, result_dists, false);
             q.wait();
         }
+    } else {
+        std::vector<int> chunk_leaf_ids(chunk_size);
+        int             *d_leaf_ids = sycl::malloc_device<int>(chunk_size, q);
+        // Warm-up pass
+        for (size_t offset = 0; offset < n; offset += chunk_size) {
+            size_t batch_size = std::min(chunk_size, n - offset);
+            for (size_t i = 0; i < batch_size; ++i)
+                chunk_leaf_ids[i] = static_cast<int>(offset + i);
+            q.memcpy(d_leaf_ids, chunk_leaf_ids.data(), batch_size * sizeof(int)).wait();
+            self_knn_query_subset(
+                q, tree, d_leaf_ids, static_cast<int>(batch_size), k, results, result_dists, false
+            );
+            q.wait();
+        }
+        for (auto _ : state) {
+            for (size_t offset = 0; offset < n; offset += chunk_size) {
+                size_t batch_size = std::min(chunk_size, n - offset);
+                for (size_t i = 0; i < batch_size; ++i)
+                    chunk_leaf_ids[i] = static_cast<int>(offset + i);
+                q.memcpy(d_leaf_ids, chunk_leaf_ids.data(), batch_size * sizeof(int)).wait();
+                self_knn_query_subset(
+                    q,
+                    tree,
+                    d_leaf_ids,
+                    static_cast<int>(batch_size),
+                    k,
+                    results,
+                    result_dists,
+                    false
+                );
+                q.wait();
+            }
+        }
+        sycl::free(d_leaf_ids, q);
     }
 
     state.counters["PeakRSS_MB"] = (double)get_peak_rss() / 1024.0;
-    state.counters["items_per_second"] = benchmark::Counter(
-        double(n * state.iterations()), benchmark::Counter::kIsRate
-    );
+    state.counters["items_per_second"] =
+        benchmark::Counter(double(n * state.iterations()), benchmark::Counter::kIsRate);
 
     sycl::free(results, q);
     sycl::free(result_dists, q);
