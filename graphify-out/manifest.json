@@ -5,14 +5,14 @@
     "semantic_hash": ""
   },
   "src/domain_decomposition.hpp": {
-    "mtime": 1785923915.1721857,
-    "ast_hash": "0fcf3aa62e25ff4e761c8d23773e332c",
-    "semantic_hash": "0fcf3aa62e25ff4e761c8d23773e332c"
+    "mtime": 1787861316.940818,
+    "ast_hash": "cd898715651332ad9e3a12c78b7e1797",
+    "semantic_hash": ""
   },
   "src/hlbvh.hpp": {
-    "mtime": 1787838962.234737,
-    "ast_hash": "864cdc67ae334eac45bff580194c2a54",
-    "semantic_hash": "864cdc67ae334eac45bff580194c2a54"
+    "mtime": 1787860979.22879,
+    "ast_hash": "e5ee83a85b0e4cafa100718f1b8b5a43",
+    "semantic_hash": ""
   },
   "src/sfc.morton.hpp": {
     "mtime": 1785956694.5147848,
@@ -85,9 +85,9 @@
     "semantic_hash": "30460078326b525067100910ca92f41c"
   },
   "test/main.cpp": {
-    "mtime": 1787724136.548965,
-    "ast_hash": "f190dfc0d1d38c9f83a3e0ce9bc77f6d",
-    "semantic_hash": "f190dfc0d1d38c9f83a3e0ce9bc77f6d"
+    "mtime": 1787860501.08735,
+    "ast_hash": "2988c0dfabce7575af78d61ddf60aa61",
+    "semantic_hash": ""
   },
   "test/test_bb.cpp": {
     "mtime": 1785956794.819348,
@@ -100,9 +100,9 @@
     "semantic_hash": "bfb0eb7ae44b5435a2ece17a9b705217"
   },
   "test/test_domain_decomposition.cpp": {
-    "mtime": 1785956797.367381,
-    "ast_hash": "ca7106826d2eb3001fafef7b708a1b07",
-    "semantic_hash": "ca7106826d2eb3001fafef7b708a1b07"
+    "mtime": 1787861502.650853,
+    "ast_hash": "ebf7b1f67c5f6db61dc505ec363825c1",
+    "semantic_hash": ""
   },
   "test/test_mpi.cpp": {
     "mtime": 1785956798.810724,
@@ -150,8 +150,8 @@
     "semantic_hash": "aff3b1efec7cb13e2e06762bfc895f01"
   },
   "PROGRESS.md": {
-    "mtime": 1787816419.482869,
-    "ast_hash": "fa4e0d05624b7cd73e6dd2e621ec0e96",
+    "mtime": 1787861421.752808,
+    "ast_hash": "04cb8dd3b9c2a6ffa4d628fd2c77e27d",
     "semantic_hash": ""
   },
   "README.md": {
@@ -285,9 +285,9 @@
     "semantic_hash": "e2bf41973101780c6b28159eab68af1b"
   },
   "test/test_self_knn.cpp": {
-    "mtime": 1787819327.122558,
-    "ast_hash": "0b26e24db88edabd047c8998a6c078df",
-    "semantic_hash": "0b26e24db88edabd047c8998a6c078df"
+    "mtime": 1787860509.333936,
+    "ast_hash": "06f4ade163de8c8dbb82e7bda7b9ab8f",
+    "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_gpu_double_periodic_off.md": {
     "mtime": 1786216085.388026,

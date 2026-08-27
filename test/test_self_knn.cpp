@@ -57,8 +57,8 @@ static double int_pos_to_phys(coord_t pos, double box_min, double box_size) {
 }
 
 // Compute squared distance between two 3D points using fasttree's exact metric
-static dist_t compute_point_dist_sq(coord_t x1, coord_t y1, coord_t z1,
-                                    coord_t x2, coord_t y2, coord_t z2) {
+static dist_t
+compute_point_dist_sq(coord_t x1, coord_t y1, coord_t z1, coord_t x2, coord_t y2, coord_t z2) {
     return static_cast<dist_t>(node_distance_sq(x1, y1, z1, x2, x2, y2, y2, z2, z2));
 }
 
@@ -66,45 +66,43 @@ static dist_t compute_point_dist_sq(coord_t x1, coord_t y1, coord_t z1,
 // Brute Force Reference Calculation (Host O(N^2))
 // ================================================================
 struct BFNeighbor {
-    dist_t dist_sq;
-    size_t target_idx; // leaf rank or orig_idx
+    dist_t  dist_sq;
+    size_t  target_idx; // leaf rank or orig_idx
     coord_t x, y, z;
-    bool is_tied;
+    bool    is_tied;
 };
 
 static std::vector<std::vector<BFNeighbor>> compute_host_brute_force_knn(
-    const TreeSoA &tree,
-    size_t num_leaves,
+    const TreeSoA          &tree,
+    size_t                  num_leaves,
     const std::vector<int> &query_leaf_ranks,
-    int k,
-    bool exclude_self
+    int                     k,
+    bool                    exclude_self
 ) {
-    size_t num_queries = query_leaf_ranks.size();
+    size_t                               num_queries = query_leaf_ranks.size();
     std::vector<std::vector<BFNeighbor>> all_neighbors(num_queries);
 
-    size_t num_internal = tree.num_internal;
-    const coord_t *leaf_x = tree.min_x + num_internal;
-    const coord_t *leaf_y = tree.min_y + num_internal;
-    const coord_t *leaf_z = tree.min_z + num_internal;
-    const int *orig_idx   = tree.orig_idx;
+    size_t         num_internal = tree.num_internal;
+    const coord_t *leaf_x       = tree.min_x + num_internal;
+    const coord_t *leaf_y       = tree.min_y + num_internal;
+    const coord_t *leaf_z       = tree.min_z + num_internal;
+    const int     *orig_idx     = tree.orig_idx;
 
     for (size_t q = 0; q < num_queries; ++q) {
-        int q_leaf = query_leaf_ranks[q];
-        coord_t qx = leaf_x[q_leaf];
-        coord_t qy = leaf_y[q_leaf];
-        coord_t qz = leaf_z[q_leaf];
+        int     q_leaf = query_leaf_ranks[q];
+        coord_t qx     = leaf_x[q_leaf];
+        coord_t qy     = leaf_y[q_leaf];
+        coord_t qz     = leaf_z[q_leaf];
 
         std::vector<BFNeighbor> candidates;
         candidates.reserve(num_leaves);
 
         for (size_t j = 0; j < num_leaves; ++j) {
-            if (exclude_self && static_cast<int>(j) == q_leaf) {
-                continue;
-            }
+            if (exclude_self && static_cast<int>(j) == q_leaf) { continue; }
             coord_t tx = leaf_x[j];
             coord_t ty = leaf_y[j];
             coord_t tz = leaf_z[j];
-            dist_t d2 = compute_point_dist_sq(qx, qy, qz, tx, ty, tz);
+            dist_t  d2 = compute_point_dist_sq(qx, qy, qz, tx, ty, tz);
 
 #ifdef RETURN_ORIG_INDICES
             size_t ret_idx = static_cast<size_t>(orig_idx[j + num_internal]);
@@ -114,18 +112,20 @@ static std::vector<std::vector<BFNeighbor>> compute_host_brute_force_knn(
             candidates.push_back({d2, ret_idx, tx, ty, tz, false});
         }
 
-        std::sort(candidates.begin(), candidates.end(),
-                  [](const BFNeighbor &a, const BFNeighbor &b) {
-                      if (a.dist_sq != b.dist_sq) return a.dist_sq < b.dist_sq;
-                      return a.target_idx < b.target_idx;
-                  });
+        std::sort(
+            candidates.begin(), candidates.end(), [](const BFNeighbor &a, const BFNeighbor &b) {
+                if (a.dist_sq != b.dist_sq) return a.dist_sq < b.dist_sq;
+                return a.target_idx < b.target_idx;
+            }
+        );
 
         // Robust tie-detection using full sorted candidates before truncation
         for (size_t i = 0; i < candidates.size(); ++i) {
             bool tied = false;
 #if defined(FASTTREE_INTEGER_COORDS)
             if (i > 0 && candidates[i].dist_sq == candidates[i - 1].dist_sq) tied = true;
-            if (i + 1 < candidates.size() && candidates[i].dist_sq == candidates[i + 1].dist_sq) tied = true;
+            if (i + 1 < candidates.size() && candidates[i].dist_sq == candidates[i + 1].dist_sq)
+                tied = true;
 #else
             double d2 = int_dist_sq_to_phys(candidates[i].dist_sq, 100.0);
             if (i > 0) {
@@ -140,9 +140,7 @@ static std::vector<std::vector<BFNeighbor>> compute_host_brute_force_knn(
             candidates[i].is_tied = tied;
         }
 
-        if (candidates.size() > static_cast<size_t>(k)) {
-            candidates.resize(k);
-        }
+        if (candidates.size() > static_cast<size_t>(k)) { candidates.resize(k); }
         all_neighbors[q] = std::move(candidates);
     }
     return all_neighbors;
@@ -153,20 +151,20 @@ static std::vector<std::vector<BFNeighbor>> compute_host_brute_force_knn(
 // Checks both distances AND indices (with tie-handling & duplicate checks)
 // ================================================================
 static bool verify_results(
-    const std::string &test_name,
-    const std::vector<size_t> &gpu_results,
-    const std::vector<dist_t> &gpu_dists,
+    const std::string                          &test_name,
+    const std::vector<size_t>                  &gpu_results,
+    const std::vector<dist_t>                  &gpu_dists,
     const std::vector<std::vector<BFNeighbor>> &bf_expected,
-    int k,
-    size_t num_queries,
-    double box_size
+    int                                         k,
+    size_t                                      num_queries,
+    double                                      box_size
 ) {
-    bool passed = true;
+    bool   passed         = true;
     size_t mismatch_count = 0;
 
     for (size_t q = 0; q < num_queries; ++q) {
-        const auto &expected = bf_expected[q];
-        size_t exp_count = expected.size();
+        const auto &expected  = bf_expected[q];
+        size_t      exp_count = expected.size();
 
         // 1. Check for duplicate indices within a single query result
         std::vector<size_t> seen(gpu_results.begin() + q * k, gpu_results.begin() + q * k + k);
@@ -175,7 +173,8 @@ static bool verify_results(
         if (std::adjacent_find(seen.begin(), seen.end()) != seen.end()) {
             if (mismatch_count < 5) {
                 std::cerr << "  [DUPLICATE INDEX ERROR] " << test_name << " Query " << q
-                          << " returned duplicate particle indices within its top-" << k << " results!\n";
+                          << " returned duplicate particle indices within its top-" << k
+                          << " results!\n";
             }
             mismatch_count++;
             passed = false;
@@ -183,9 +182,9 @@ static bool verify_results(
 
         // 2. Check each returned rank's distance and index
         for (int i = 0; i < k; ++i) {
-            size_t offset = q * k + i;
+            size_t offset  = q * k + i;
             size_t gpu_idx = gpu_results[offset];
-            dist_t gpu_d = gpu_dists[offset];
+            dist_t gpu_d   = gpu_dists[offset];
 
             if (i < static_cast<int>(exp_count)) {
                 dist_t exp_d = expected[i].dist_sq;
@@ -194,9 +193,10 @@ static bool verify_results(
                 // In integer coords, squared distances must match exactly
                 if (gpu_d != exp_d) {
                     if (mismatch_count < 5) {
-                        std::cerr << "  [DISTANCE MISMATCH] " << test_name << " Query " << q << " Rank " << i
-                                  << " | GPU dist=" << gpu_d << " Exp dist=" << exp_d
-                                  << " (GPU idx=" << gpu_idx << " Exp idx=" << expected[i].target_idx << ")\n";
+                        std::cerr << "  [DISTANCE MISMATCH] " << test_name << " Query " << q
+                                  << " Rank " << i << " | GPU dist=" << gpu_d
+                                  << " Exp dist=" << exp_d << " (GPU idx=" << gpu_idx
+                                  << " Exp idx=" << expected[i].target_idx << ")\n";
                     }
                     mismatch_count++;
                     passed = false;
@@ -205,9 +205,10 @@ static bool verify_results(
                 // Index match check: when not tied with any particle, index must match exactly
                 if (!expected[i].is_tied && gpu_idx != expected[i].target_idx) {
                     if (mismatch_count < 5) {
-                        std::cerr << "  [INDEX MISMATCH] " << test_name << " Query " << q << " Rank " << i
-                                  << " | GPU idx=" << gpu_idx << " Exp idx=" << expected[i].target_idx
-                                  << " (dist=" << gpu_d << ")\n";
+                        std::cerr << "  [INDEX MISMATCH] " << test_name << " Query " << q
+                                  << " Rank " << i << " | GPU idx=" << gpu_idx
+                                  << " Exp idx=" << expected[i].target_idx << " (dist=" << gpu_d
+                                  << ")\n";
                     }
                     mismatch_count++;
                     passed = false;
@@ -215,13 +216,14 @@ static bool verify_results(
 #else
                 double gpu_d2 = int_dist_sq_to_phys(gpu_d, box_size);
                 double exp_d2 = int_dist_sq_to_phys(exp_d, box_size);
-                double tol = 1e-4 * std::max(exp_d2, 1.0) + 1e-9;
+                double tol    = 1e-4 * std::max(exp_d2, 1.0) + 1e-9;
 
                 if (std::abs(gpu_d2 - exp_d2) > tol) {
                     if (mismatch_count < 5) {
-                        std::cerr << "  [DISTANCE MISMATCH] " << test_name << " Query " << q << " Rank " << i
-                                  << " | GPU d2=" << gpu_d2 << " Exp d2=" << exp_d2
-                                  << " (GPU idx=" << gpu_idx << " Exp idx=" << expected[i].target_idx << ")\n";
+                        std::cerr << "  [DISTANCE MISMATCH] " << test_name << " Query " << q
+                                  << " Rank " << i << " | GPU d2=" << gpu_d2 << " Exp d2=" << exp_d2
+                                  << " (GPU idx=" << gpu_idx
+                                  << " Exp idx=" << expected[i].target_idx << ")\n";
                     }
                     mismatch_count++;
                     passed = false;
@@ -230,9 +232,10 @@ static bool verify_results(
                 // Index match check (float tolerance for ties)
                 if (!expected[i].is_tied && gpu_idx != expected[i].target_idx) {
                     if (mismatch_count < 5) {
-                        std::cerr << "  [INDEX MISMATCH] " << test_name << " Query " << q << " Rank " << i
-                                  << " | GPU idx=" << gpu_idx << " Exp idx=" << expected[i].target_idx
-                                  << " (d2=" << gpu_d2 << ")\n";
+                        std::cerr << "  [INDEX MISMATCH] " << test_name << " Query " << q
+                                  << " Rank " << i << " | GPU idx=" << gpu_idx
+                                  << " Exp idx=" << expected[i].target_idx << " (d2=" << gpu_d2
+                                  << ")\n";
                     }
                     mismatch_count++;
                     passed = false;
@@ -242,8 +245,9 @@ static bool verify_results(
                 // Sentinels when available particles < k
                 if (gpu_idx != static_cast<size_t>(-1)) {
                     if (mismatch_count < 5) {
-                        std::cerr << "  [SENTINEL MISMATCH] " << test_name << " Query " << q << " Rank " << i
-                                  << " expected sentinel IDX_NONE, got " << gpu_idx << "\n";
+                        std::cerr << "  [SENTINEL MISMATCH] " << test_name << " Query " << q
+                                  << " Rank " << i << " expected sentinel IDX_NONE, got " << gpu_idx
+                                  << "\n";
                     }
                     mismatch_count++;
                     passed = false;
@@ -255,7 +259,8 @@ static bool verify_results(
     if (!passed) {
         std::cerr << "  FAILED: " << test_name << " (" << mismatch_count << " mismatches)\n";
     } else {
-        std::cout << "  PASSED: " << test_name << " (all " << num_queries << " queries match brute-force indices & distances)\n";
+        std::cout << "  PASSED: " << test_name << " (all " << num_queries
+                  << " queries match brute-force indices & distances)\n";
     }
     return passed;
 }
@@ -263,18 +268,19 @@ static bool verify_results(
 // ================================================================
 // Synthetic Particle Generators
 // ================================================================
-static particles<coord_t> generate_uniform_particles(size_t n, double box_min, double box_size, unsigned int seed = 42) {
+static particles<coord_t>
+generate_uniform_particles(size_t n, double box_min, double box_size, unsigned int seed = 42) {
     particles<coord_t> p;
     p.pos_x.resize(n);
     p.pos_y.resize(n);
     p.pos_z.resize(n);
     p.id.resize(n);
 
-    std::mt19937 gen(seed);
+    std::mt19937                           gen(seed);
     std::uniform_real_distribution<double> dis(box_min, box_min + box_size);
 
     for (size_t i = 0; i < n; ++i) {
-        p.id[i] = static_cast<uint32_t>(i);
+        p.id[i]    = static_cast<uint32_t>(i);
         p.pos_x[i] = phys_pos_to_int(dis(gen), box_min, box_size);
         p.pos_y[i] = phys_pos_to_int(dis(gen), box_min, box_size);
         p.pos_z[i] = phys_pos_to_int(dis(gen), box_min, box_size);
@@ -282,27 +288,34 @@ static particles<coord_t> generate_uniform_particles(size_t n, double box_min, d
     return p;
 }
 
-static particles<coord_t> generate_clustered_particles(size_t n, double box_min, double box_size, unsigned int seed = 12345) {
+static particles<coord_t>
+generate_clustered_particles(size_t n, double box_min, double box_size, unsigned int seed = 12345) {
     particles<coord_t> p;
     p.pos_x.resize(n);
     p.pos_y.resize(n);
     p.pos_z.resize(n);
     p.id.resize(n);
 
-    std::mt19937 gen(seed);
-    std::normal_distribution<double> cluster1(box_min + 0.25 * box_size, 0.04 * box_size);
-    std::normal_distribution<double> cluster2(box_min + 0.75 * box_size, 0.04 * box_size);
+    std::mt19937                           gen(seed);
+    std::normal_distribution<double>       cluster1(box_min + 0.25 * box_size, 0.04 * box_size);
+    std::normal_distribution<double>       cluster2(box_min + 0.75 * box_size, 0.04 * box_size);
     std::uniform_real_distribution<double> uniform_dis(box_min, box_min + box_size);
 
     for (size_t i = 0; i < n; ++i) {
         p.id[i] = static_cast<uint32_t>(i);
         double fx, fy, fz;
         if (i < n * 0.45) {
-            fx = cluster1(gen); fy = cluster1(gen); fz = cluster1(gen);
+            fx = cluster1(gen);
+            fy = cluster1(gen);
+            fz = cluster1(gen);
         } else if (i < n * 0.85) {
-            fx = cluster2(gen); fy = cluster2(gen); fz = cluster2(gen);
+            fx = cluster2(gen);
+            fy = cluster2(gen);
+            fz = cluster2(gen);
         } else {
-            fx = uniform_dis(gen); fy = uniform_dis(gen); fz = uniform_dis(gen);
+            fx = uniform_dis(gen);
+            fy = uniform_dis(gen);
+            fz = uniform_dis(gen);
         }
         // Clamp to box bounds
         fx = std::clamp(fx, box_min + 1e-4, box_min + box_size - 1e-4);
@@ -316,14 +329,15 @@ static particles<coord_t> generate_clustered_particles(size_t n, double box_min,
     return p;
 }
 
-static particles<coord_t> generate_degenerate_particles(size_t n, double box_min, double box_size, unsigned int seed = 999) {
+static particles<coord_t>
+generate_degenerate_particles(size_t n, double box_min, double box_size, unsigned int seed = 999) {
     particles<coord_t> p;
     p.pos_x.resize(n);
     p.pos_y.resize(n);
     p.pos_z.resize(n);
     p.id.resize(n);
 
-    std::mt19937 gen(seed);
+    std::mt19937                           gen(seed);
     std::uniform_real_distribution<double> dis(box_min + 0.1 * box_size, box_min + 0.9 * box_size);
 
     // Create several co-located groups (duplicate coordinates)
@@ -338,9 +352,13 @@ static particles<coord_t> generate_degenerate_particles(size_t n, double box_min
         if (i < n * 0.6) {
             // Pick one of the duplicate centers
             auto [cx, cy, cz] = duplicate_centers[i % duplicate_centers.size()];
-            fx = cx; fy = cy; fz = cz;
+            fx                = cx;
+            fy                = cy;
+            fz                = cz;
         } else {
-            fx = dis(gen); fy = dis(gen); fz = dis(gen);
+            fx = dis(gen);
+            fy = dis(gen);
+            fz = dis(gen);
         }
         p.pos_x[i] = phys_pos_to_int(fx, box_min, box_size);
         p.pos_y[i] = phys_pos_to_int(fy, box_min, box_size);
@@ -362,40 +380,44 @@ static bool test_isolated_heaps(sycl::queue &q) {
 
     // 1. Isolated LocalMaxHeap Unit Test
     {
-        constexpr int WARP = 32;
-        constexpr int CAP  = 64;
+        constexpr int WARP   = 32;
+        constexpr int CAP    = 64;
         constexpr int TEST_K = 48;
 
-        int *d_out_idx = sycl::malloc_shared<int>(WARP * CAP, q);
+        int         *d_out_idx  = sycl::malloc_shared<int>(WARP * CAP, q);
         heap_dist_t *d_out_dist = sycl::malloc_shared<heap_dist_t>(WARP * CAP, q);
 
         q.submit([&](sycl::handler &h) {
-            sycl::local_accessor<heap_dist_t, 1> sh_dist(WARP * CAP, h);
-            sycl::local_accessor<int, 1>         sh_idx(WARP * CAP, h);
+             sycl::local_accessor<heap_dist_t, 1> sh_dist(WARP * CAP, h);
+             sycl::local_accessor<int, 1>         sh_idx(WARP * CAP, h);
 
-            h.parallel_for(sycl::nd_range<1>(WARP, WARP), [=](sycl::nd_item<1> item) {
-                int lane = static_cast<int>(item.get_local_id(0));
-                LocalMaxHeap<heap_dist_t, int>::init(lane, sh_dist, sh_idx, CAP);
-                int count = 0;
+             h.parallel_for(sycl::nd_range<1>(WARP, WARP), [=](sycl::nd_item<1> item) {
+                 int lane = static_cast<int>(item.get_local_id(0));
+                 LocalMaxHeap<heap_dist_t, int>::init(lane, sh_dist, sh_idx, CAP);
+                 int count = 0;
 
-                // Push 100 pseudo-random numbers per lane (including duplicates)
-                for (int val = 100; val >= 1; --val) {
-                    heap_dist_t d = static_cast<heap_dist_t>((val * 17 + lane * 13) % 73);
-                    int idx = val;
-                    if (!LocalMaxHeap<heap_dist_t, int>::should_prune(lane, d, sh_dist, count, TEST_K, CAP)) {
-                        LocalMaxHeap<heap_dist_t, int>::push(lane, d, idx, count, sh_dist, sh_idx, TEST_K, CAP);
-                    }
-                }
+                 // Push 100 pseudo-random numbers per lane (including duplicates)
+                 for (int val = 100; val >= 1; --val) {
+                     heap_dist_t d   = static_cast<heap_dist_t>((val * 17 + lane * 13) % 73);
+                     int         idx = val;
+                     if (!LocalMaxHeap<heap_dist_t, int>::should_prune(
+                             lane, d, sh_dist, count, TEST_K, CAP
+                         )) {
+                         LocalMaxHeap<heap_dist_t, int>::push(
+                             lane, d, idx, count, sh_dist, sh_idx, TEST_K, CAP
+                         );
+                     }
+                 }
 
-                LocalMaxHeap<heap_dist_t, int>::sort_in_place(lane, count, sh_dist, sh_idx, CAP);
+                 LocalMaxHeap<heap_dist_t, int>::sort_in_place(lane, count, sh_dist, sh_idx, CAP);
 
-                int base = lane * CAP;
-                for (int i = 0; i < CAP; ++i) {
-                    d_out_dist[base + i] = sh_dist[base + i];
-                    d_out_idx[base + i]  = sh_idx[base + i];
-                }
-            });
-        }).wait();
+                 int base = lane * CAP;
+                 for (int i = 0; i < CAP; ++i) {
+                     d_out_dist[base + i] = sh_dist[base + i];
+                     d_out_idx[base + i]  = sh_idx[base + i];
+                 }
+             });
+         }).wait();
 
         // Host verification for LocalMaxHeap
         bool local_heap_ok = true;
@@ -430,60 +452,87 @@ static bool test_isolated_heaps(sycl::queue &q) {
 
     // 2. Isolated SortedMergeHeap Unit Test
     {
-        constexpr int WARP = 32;
-        constexpr int CAP  = 64;
+        constexpr int WARP   = 32;
+        constexpr int CAP    = 64;
         constexpr int TEST_K = 48;
 
-        int *d_out_idx = sycl::malloc_shared<int>(CAP, q);
+        int         *d_out_idx  = sycl::malloc_shared<int>(CAP, q);
         heap_dist_t *d_out_dist = sycl::malloc_shared<heap_dist_t>(CAP, q);
 
         q.submit([&](sycl::handler &h) {
-            sycl::local_accessor<heap_dist_t, 1> sh_dist(CAP, h);
-            sycl::local_accessor<int, 1>         sh_idx(CAP, h);
-            sycl::local_accessor<heap_dist_t, 1> sh_stage_dist(WARP, h);
-            sycl::local_accessor<int, 1>         sh_stage_idx(WARP, h);
-            sycl::local_accessor<int, 1>         sh_count(1, h);
+             sycl::local_accessor<heap_dist_t, 1> sh_dist(CAP, h);
+             sycl::local_accessor<int, 1>         sh_idx(CAP, h);
+             sycl::local_accessor<heap_dist_t, 1> sh_stage_dist(WARP, h);
+             sycl::local_accessor<int, 1>         sh_stage_idx(WARP, h);
+             sycl::local_accessor<int, 1>         sh_count(1, h);
 
-            h.parallel_for(sycl::nd_range<1>(WARP, WARP), [=](sycl::nd_item<1> item) {
-                int lid = static_cast<int>(item.get_local_id(0));
-                SortedMergeHeap<heap_dist_t, int>::init(item, sh_dist, sh_idx, sh_count, CAP);
+             h.parallel_for(sycl::nd_range<1>(WARP, WARP), [=](sycl::nd_item<1> item) {
+                 int lid = static_cast<int>(item.get_local_id(0));
+                 SortedMergeHeap<heap_dist_t, int>::init(item, sh_dist, sh_idx, sh_count, CAP);
 
-                // Round 1: Lane lid pushes (31 - lid) * 10
-                heap_dist_t d1 = static_cast<heap_dist_t>((31 - lid) * 10);
-                int idx1 = lid;
-                SortedMergeHeap<heap_dist_t, int>::merge_batch(
-                    item, sh_dist, sh_idx, sh_count, sh_stage_dist, sh_stage_idx, d1, idx1, TEST_K, CAP
-                );
+                 // Round 1: Lane lid pushes (31 - lid) * 10
+                 heap_dist_t d1   = static_cast<heap_dist_t>((31 - lid) * 10);
+                 int         idx1 = lid;
+                 SortedMergeHeap<heap_dist_t, int>::merge_batch(
+                     item,
+                     sh_dist,
+                     sh_idx,
+                     sh_count,
+                     sh_stage_dist,
+                     sh_stage_idx,
+                     d1,
+                     idx1,
+                     TEST_K,
+                     CAP
+                 );
 
-                // Round 2: Lane lid pushes (lid % 4) * 5 (duplicate values, some smaller than round 1)
-                heap_dist_t d2 = static_cast<heap_dist_t>((lid % 4) * 5);
-                int idx2 = 100 + lid;
-                SortedMergeHeap<heap_dist_t, int>::merge_batch(
-                    item, sh_dist, sh_idx, sh_count, sh_stage_dist, sh_stage_idx, d2, idx2, TEST_K, CAP
-                );
+                 // Round 2: Lane lid pushes (lid % 4) * 5 (duplicate values, some smaller than
+                 // round 1)
+                 heap_dist_t d2   = static_cast<heap_dist_t>((lid % 4) * 5);
+                 int         idx2 = 100 + lid;
+                 SortedMergeHeap<heap_dist_t, int>::merge_batch(
+                     item,
+                     sh_dist,
+                     sh_idx,
+                     sh_count,
+                     sh_stage_dist,
+                     sh_stage_idx,
+                     d2,
+                     idx2,
+                     TEST_K,
+                     CAP
+                 );
 
-                // Round 3: Half lanes inactive (IDX_NONE)
-                heap_dist_t d3 = (lid < 16) ? static_cast<heap_dist_t>(lid + 1) : SortedMergeHeap<heap_dist_t, int>::DIST_MAX;
-                int idx3 = (lid < 16) ? (200 + lid) : SortedMergeHeap<heap_dist_t, int>::IDX_NONE;
-                SortedMergeHeap<heap_dist_t, int>::merge_batch(
-                    item, sh_dist, sh_idx, sh_count, sh_stage_dist, sh_stage_idx, d3, idx3, TEST_K, CAP
-                );
+                 // Round 3: Half lanes inactive (IDX_NONE)
+                 heap_dist_t d3 = (lid < 16) ? static_cast<heap_dist_t>(lid + 1)
+                                             : SortedMergeHeap<heap_dist_t, int>::DIST_MAX;
+                 int idx3 = (lid < 16) ? (200 + lid) : SortedMergeHeap<heap_dist_t, int>::IDX_NONE;
+                 SortedMergeHeap<heap_dist_t, int>::merge_batch(
+                     item,
+                     sh_dist,
+                     sh_idx,
+                     sh_count,
+                     sh_stage_dist,
+                     sh_stage_idx,
+                     d3,
+                     idx3,
+                     TEST_K,
+                     CAP
+                 );
 
-                for (int i = lid; i < CAP; i += WARP) {
-                    d_out_dist[i] = sh_dist[i];
-                    d_out_idx[i]  = sh_idx[i];
-                }
-            });
-        }).wait();
+                 for (int i = lid; i < CAP; i += WARP) {
+                     d_out_dist[i] = sh_dist[i];
+                     d_out_idx[i]  = sh_idx[i];
+                 }
+             });
+         }).wait();
 
         // Host verification for SortedMergeHeap
         std::vector<std::pair<heap_dist_t, int>> expected;
         for (int lid = 0; lid < WARP; ++lid) {
             expected.push_back({static_cast<heap_dist_t>((31 - lid) * 10), lid});
             expected.push_back({static_cast<heap_dist_t>((lid % 4) * 5), 100 + lid});
-            if (lid < 16) {
-                expected.push_back({static_cast<heap_dist_t>(lid + 1), 200 + lid});
-            }
+            if (lid < 16) { expected.push_back({static_cast<heap_dist_t>(lid + 1), 200 + lid}); }
         }
         std::sort(expected.begin(), expected.end());
         if (expected.size() > TEST_K) expected.resize(TEST_K);
@@ -492,13 +541,14 @@ static bool test_isolated_heaps(sycl::queue &q) {
         for (int i = 0; i < TEST_K; ++i) {
             if (d_out_dist[i] != expected[i].first) {
                 sorted_merge_ok = false;
-                std::cerr << "  [MISMATCH SortedMergeHeap] Rank " << i << ": got dist=" << d_out_dist[i]
-                          << " exp=" << expected[i].first << "\n";
+                std::cerr << "  [MISMATCH SortedMergeHeap] Rank " << i
+                          << ": got dist=" << d_out_dist[i] << " exp=" << expected[i].first << "\n";
             }
         }
 
         if (sorted_merge_ok) {
-            std::cout << "  PASSED: Isolated SortedMergeHeap test (warp-wide merge_batch across 3 rounds)\n";
+            std::cout << "  PASSED: Isolated SortedMergeHeap test (warp-wide merge_batch across 3 "
+                         "rounds)\n";
         } else {
             std::cerr << "  FAILED: Isolated SortedMergeHeap test\n";
             all_ok = false;
@@ -515,11 +565,11 @@ static bool test_isolated_heaps(sycl::queue &q) {
 // Test Runner: Self-kNN and Subsets across k values
 // ================================================================
 static bool test_self_knn_dataset(
-    sycl::queue &q,
+    sycl::queue              &q,
     const particles<coord_t> &p,
-    const std::string &dist_name,
-    const std::vector<int> &k_list,
-    double box_size
+    const std::string        &dist_name,
+    const std::vector<int>   &k_list,
+    double                    box_size
 ) {
     size_t n = p.pos_x.size();
     std::cout << "\n=================================================================\n";
@@ -539,8 +589,8 @@ static bool test_self_knn_dataset(
 
             std::vector<size_t> results(n * k);
             std::vector<dist_t> result_dists(n * k);
-            size_t *d_res   = sycl::malloc_device<size_t>(n * k, q);
-            dist_t *d_dists = sycl::malloc_device<dist_t>(n * k, q);
+            size_t             *d_res   = sycl::malloc_device<size_t>(n * k, q);
+            dist_t             *d_dists = sycl::malloc_device<dist_t>(n * k, q);
 
             self_knn_query(q, tree, k, d_res, d_dists, exclude_self);
             q.wait();
@@ -551,7 +601,8 @@ static bool test_self_knn_dataset(
             std::vector<int> all_leaf_ranks(n);
             std::iota(all_leaf_ranks.begin(), all_leaf_ranks.end(), 0);
 
-            auto bf_expected = compute_host_brute_force_knn(tree, n, all_leaf_ranks, k, exclude_self);
+            auto bf_expected =
+                compute_host_brute_force_knn(tree, n, all_leaf_ranks, k, exclude_self);
             bool ok = verify_results(label, results, result_dists, bf_expected, k, n, box_size);
             if (!ok) all_ok = false;
 
@@ -559,7 +610,8 @@ static bool test_self_knn_dataset(
             sycl::free(d_dists, q);
         }
 
-        // Test self_knn_query_subset on a hand-picked subset of leaf_ids (both exclude_self=true and false)
+        // Test self_knn_query_subset on a hand-picked subset of leaf_ids (both exclude_self=true
+        // and false)
         if (n > 4) {
             std::vector<int> subset_leaf_ids;
             for (size_t i = 0; i < n; i += std::max<size_t>(1, n / 17)) {
@@ -570,10 +622,12 @@ static bool test_self_knn_dataset(
             subset_leaf_ids.push_back(static_cast<int>(n - 1));
             subset_leaf_ids.push_back(static_cast<int>(n / 2));
             std::sort(subset_leaf_ids.begin(), subset_leaf_ids.end());
-            subset_leaf_ids.erase(std::unique(subset_leaf_ids.begin(), subset_leaf_ids.end()), subset_leaf_ids.end());
+            subset_leaf_ids.erase(
+                std::unique(subset_leaf_ids.begin(), subset_leaf_ids.end()), subset_leaf_ids.end()
+            );
 
             size_t num_subset = subset_leaf_ids.size();
-            int    *d_leaf_ids = sycl::malloc_device<int>(num_subset, q);
+            int   *d_leaf_ids = sycl::malloc_device<int>(num_subset, q);
             q.memcpy(d_leaf_ids, subset_leaf_ids.data(), num_subset * sizeof(int)).wait();
 
             for (bool exclude_self : {true, false}) {
@@ -583,17 +637,36 @@ static bool test_self_knn_dataset(
 
                 std::vector<size_t> sub_results(num_subset * k);
                 std::vector<dist_t> sub_result_dists(num_subset * k);
-                size_t *d_sub_res   = sycl::malloc_device<size_t>(num_subset * k, q);
-                dist_t *d_sub_dists = sycl::malloc_device<dist_t>(num_subset * k, q);
+                size_t             *d_sub_res   = sycl::malloc_device<size_t>(num_subset * k, q);
+                dist_t             *d_sub_dists = sycl::malloc_device<dist_t>(num_subset * k, q);
 
-                self_knn_query_subset(q, tree, d_leaf_ids, static_cast<int>(num_subset), k, d_sub_res, d_sub_dists, exclude_self);
+                self_knn_query_subset(
+                    q,
+                    tree,
+                    d_leaf_ids,
+                    static_cast<int>(num_subset),
+                    k,
+                    d_sub_res,
+                    d_sub_dists,
+                    exclude_self
+                );
                 q.wait();
 
                 q.memcpy(sub_results.data(), d_sub_res, num_subset * k * sizeof(size_t)).wait();
-                q.memcpy(sub_result_dists.data(), d_sub_dists, num_subset * k * sizeof(dist_t)).wait();
+                q.memcpy(sub_result_dists.data(), d_sub_dists, num_subset * k * sizeof(dist_t))
+                    .wait();
 
-                auto bf_sub_expected = compute_host_brute_force_knn(tree, n, subset_leaf_ids, k, exclude_self);
-                bool ok = verify_results(sub_label, sub_results, sub_result_dists, bf_sub_expected, k, num_subset, box_size);
+                auto bf_sub_expected =
+                    compute_host_brute_force_knn(tree, n, subset_leaf_ids, k, exclude_self);
+                bool ok = verify_results(
+                    sub_label,
+                    sub_results,
+                    sub_result_dists,
+                    bf_sub_expected,
+                    k,
+                    num_subset,
+                    box_size
+                );
                 if (!ok) all_ok = false;
 
                 sycl::free(d_sub_res, q);
@@ -613,28 +686,29 @@ static bool test_self_knn_dataset(
 // Interleaves physically separated clusters across warp lanes to maximize divergence
 // ================================================================
 static bool test_adversarial_interleaved_subsets(
-    sycl::queue &q,
+    sycl::queue              &q,
     const particles<coord_t> &p,
-    const std::vector<int> &k_list,
-    double box_min,
-    double box_size
+    const std::vector<int>   &k_list,
+    double                    box_min,
+    double                    box_size
 ) {
     size_t n = p.pos_x.size();
     std::cout << "\n=================================================================\n";
-    std::cout << "Testing Adversarial Interleaved Subsets (Max-Divergence across Warp Lanes) (N = " << n << ")\n";
+    std::cout << "Testing Adversarial Interleaved Subsets (Max-Divergence across Warp Lanes) (N = "
+              << n << ")\n";
     std::cout << "=================================================================\n";
 
     TreeSoA tree(q, n);
     build_bvh(q, p, tree);
     q.wait();
 
-    bool all_ok = true;
-    size_t num_internal = tree.num_internal;
-    const coord_t *leaf_x = tree.min_x + num_internal;
+    bool           all_ok       = true;
+    size_t         num_internal = tree.num_internal;
+    const coord_t *leaf_x       = tree.min_x + num_internal;
 
     // Identify actual leaf ranks belonging to Cluster 1 (left side) and Cluster 2 (right side)
     std::vector<int> cluster1_leaves, cluster2_leaves;
-    coord_t mid_x = phys_pos_to_int(box_min + 0.5 * box_size, box_min, box_size);
+    coord_t          mid_x = phys_pos_to_int(box_min + 0.5 * box_size, box_min, box_size);
 
     for (size_t i = 0; i < n; ++i) {
         if (leaf_x[i] < mid_x) {
@@ -666,22 +740,35 @@ static bool test_adversarial_interleaved_subsets(
 
     for (int k : k_list) {
         for (bool exclude_self : {true, false}) {
-            std::string label = "Interleaved Cluster1/2 (Warp Divergence) | k=" + std::to_string(k) +
-                                " | exclude_self=" + (exclude_self ? "true" : "false");
+            std::string label =
+                "Interleaved Cluster1/2 (Warp Divergence) | k=" + std::to_string(k) +
+                " | exclude_self=" + (exclude_self ? "true" : "false");
 
             std::vector<size_t> results(num_interleaved * k);
             std::vector<dist_t> result_dists(num_interleaved * k);
-            size_t *d_res   = sycl::malloc_device<size_t>(num_interleaved * k, q);
-            dist_t *d_dists = sycl::malloc_device<dist_t>(num_interleaved * k, q);
+            size_t             *d_res   = sycl::malloc_device<size_t>(num_interleaved * k, q);
+            dist_t             *d_dists = sycl::malloc_device<dist_t>(num_interleaved * k, q);
 
-            self_knn_query_subset(q, tree, d_leaf_ids, static_cast<int>(num_interleaved), k, d_res, d_dists, exclude_self);
+            self_knn_query_subset(
+                q,
+                tree,
+                d_leaf_ids,
+                static_cast<int>(num_interleaved),
+                k,
+                d_res,
+                d_dists,
+                exclude_self
+            );
             q.wait();
 
             q.memcpy(results.data(), d_res, num_interleaved * k * sizeof(size_t)).wait();
             q.memcpy(result_dists.data(), d_dists, num_interleaved * k * sizeof(dist_t)).wait();
 
-            auto bf_expected = compute_host_brute_force_knn(tree, n, interleaved_ids, k, exclude_self);
-            bool ok = verify_results(label, results, result_dists, bf_expected, k, num_interleaved, box_size);
+            auto bf_expected =
+                compute_host_brute_force_knn(tree, n, interleaved_ids, k, exclude_self);
+            bool ok = verify_results(
+                label, results, result_dists, bf_expected, k, num_interleaved, box_size
+            );
             if (!ok) all_ok = false;
 
             sycl::free(d_res, q);
@@ -698,10 +785,7 @@ static bool test_adversarial_interleaved_subsets(
 // Test Runner: Old knn_query / knn_query_large_k Regression Check
 // ================================================================
 static bool test_knn_query_regression(
-    sycl::queue &q,
-    const particles<coord_t> &p,
-    const std::vector<int> &k_list,
-    double box_size
+    sycl::queue &q, const particles<coord_t> &p, const std::vector<int> &k_list, double box_size
 ) {
     size_t n = p.pos_x.size();
     std::cout << "\n=================================================================\n";
@@ -715,7 +799,7 @@ static bool test_knn_query_regression(
     bool all_ok = true;
 
     // Pick query points across the box
-    size_t num_q = std::min<size_t>(n, 32);
+    size_t               num_q = std::min<size_t>(n, 32);
     std::vector<coord_t> qx(num_q), qy(num_q), qz(num_q);
     for (size_t i = 0; i < num_q; ++i) {
         qx[i] = p.pos_x[i * (n / num_q)];
@@ -731,11 +815,11 @@ static bool test_knn_query_regression(
     q.memcpy(d_qz, qz.data(), num_q * sizeof(coord_t)).wait();
 
     for (int k : k_list) {
-        std::string label = "knn_query regression | k=" + std::to_string(k);
+        std::string         label = "knn_query regression | k=" + std::to_string(k);
         std::vector<size_t> results(num_q * k);
         std::vector<dist_t> result_dists(num_q * k);
-        size_t *d_res   = sycl::malloc_device<size_t>(num_q * k, q);
-        dist_t *d_dists = sycl::malloc_device<dist_t>(num_q * k, q);
+        size_t             *d_res   = sycl::malloc_device<size_t>(num_q * k, q);
+        dist_t             *d_dists = sycl::malloc_device<dist_t>(num_q * k, q);
 
         knn_query(q, tree, d_qx, d_qy, d_qz, k, static_cast<int>(num_q), d_res, d_dists);
         q.wait();
@@ -745,17 +829,18 @@ static bool test_knn_query_regression(
 
         // Host brute-force for arbitrary query points
         std::vector<std::vector<BFNeighbor>> bf_expected(num_q);
-        size_t num_internal = tree.num_internal;
-        const coord_t *leaf_x = tree.min_x + num_internal;
-        const coord_t *leaf_y = tree.min_y + num_internal;
-        const coord_t *leaf_z = tree.min_z + num_internal;
-        const int *orig_idx   = tree.orig_idx;
+        size_t                               num_internal = tree.num_internal;
+        const coord_t                       *leaf_x       = tree.min_x + num_internal;
+        const coord_t                       *leaf_y       = tree.min_y + num_internal;
+        const coord_t                       *leaf_z       = tree.min_z + num_internal;
+        const int                           *orig_idx     = tree.orig_idx;
 
         for (size_t qi = 0; qi < num_q; ++qi) {
             std::vector<BFNeighbor> cand;
             cand.reserve(n);
             for (size_t j = 0; j < n; ++j) {
-                dist_t d2 = compute_point_dist_sq(qx[qi], qy[qi], qz[qi], leaf_x[j], leaf_y[j], leaf_z[j]);
+                dist_t d2 =
+                    compute_point_dist_sq(qx[qi], qy[qi], qz[qi], leaf_x[j], leaf_y[j], leaf_z[j]);
 #ifdef RETURN_ORIG_INDICES
                 size_t ret_idx = static_cast<size_t>(orig_idx[j + num_internal]);
 #else
@@ -811,8 +896,8 @@ static bool test_edge_cases(sycl::queue &q, double box_min, double box_size) {
             for (bool excl : {false, true}) {
                 std::vector<size_t> res(k);
                 std::vector<dist_t> dists(k);
-                size_t *d_r = sycl::malloc_device<size_t>(k, q);
-                dist_t *d_d = sycl::malloc_device<dist_t>(k, q);
+                size_t             *d_r = sycl::malloc_device<size_t>(k, q);
+                dist_t             *d_d = sycl::malloc_device<dist_t>(k, q);
 
                 self_knn_query(q, tree1, k, d_r, d_d, excl);
                 q.wait();
@@ -820,8 +905,9 @@ static bool test_edge_cases(sycl::queue &q, double box_min, double box_size) {
                 q.memcpy(res.data(), d_r, k * sizeof(size_t)).wait();
                 q.memcpy(dists.data(), d_d, k * sizeof(dist_t)).wait();
 
-                auto bf_exp = compute_host_brute_force_knn(tree1, 1, {0}, k, excl);
-                std::string label = "n=1 tree | k=" + std::to_string(k) + " | excl=" + (excl ? "true" : "false");
+                auto        bf_exp = compute_host_brute_force_knn(tree1, 1, {0}, k, excl);
+                std::string label =
+                    "n=1 tree | k=" + std::to_string(k) + " | excl=" + (excl ? "true" : "false");
                 bool ok = verify_results(label, res, dists, bf_exp, k, 1, box_size);
                 if (!ok) all_ok = false;
 
@@ -835,13 +921,19 @@ static bool test_edge_cases(sycl::queue &q, double box_min, double box_size) {
     // Edge Case 2: n = 2 particle tree
     {
         particles<coord_t> p2;
-        p2.pos_x = {phys_pos_to_int(box_min + 0.2 * box_size, box_min, box_size),
-                    phys_pos_to_int(box_min + 0.8 * box_size, box_min, box_size)};
-        p2.pos_y = {phys_pos_to_int(box_min + 0.2 * box_size, box_min, box_size),
-                    phys_pos_to_int(box_min + 0.8 * box_size, box_min, box_size)};
-        p2.pos_z = {phys_pos_to_int(box_min + 0.2 * box_size, box_min, box_size),
-                    phys_pos_to_int(box_min + 0.8 * box_size, box_min, box_size)};
-        p2.id    = {0, 1};
+        p2.pos_x = {
+            phys_pos_to_int(box_min + 0.2 * box_size, box_min, box_size),
+            phys_pos_to_int(box_min + 0.8 * box_size, box_min, box_size)
+        };
+        p2.pos_y = {
+            phys_pos_to_int(box_min + 0.2 * box_size, box_min, box_size),
+            phys_pos_to_int(box_min + 0.8 * box_size, box_min, box_size)
+        };
+        p2.pos_z = {
+            phys_pos_to_int(box_min + 0.2 * box_size, box_min, box_size),
+            phys_pos_to_int(box_min + 0.8 * box_size, box_min, box_size)
+        };
+        p2.id = {0, 1};
 
         TreeSoA tree2(q, 2);
         build_bvh(q, p2, tree2);
@@ -851,8 +943,8 @@ static bool test_edge_cases(sycl::queue &q, double box_min, double box_size) {
             for (bool excl : {false, true}) {
                 std::vector<size_t> res(2 * k);
                 std::vector<dist_t> dists(2 * k);
-                size_t *d_r = sycl::malloc_device<size_t>(2 * k, q);
-                dist_t *d_d = sycl::malloc_device<dist_t>(2 * k, q);
+                size_t             *d_r = sycl::malloc_device<size_t>(2 * k, q);
+                dist_t             *d_d = sycl::malloc_device<dist_t>(2 * k, q);
 
                 self_knn_query(q, tree2, k, d_r, d_d, excl);
                 q.wait();
@@ -860,8 +952,9 @@ static bool test_edge_cases(sycl::queue &q, double box_min, double box_size) {
                 q.memcpy(res.data(), d_r, 2 * k * sizeof(size_t)).wait();
                 q.memcpy(dists.data(), d_d, 2 * k * sizeof(dist_t)).wait();
 
-                auto bf_exp = compute_host_brute_force_knn(tree2, 2, {0, 1}, k, excl);
-                std::string label = "n=2 tree | k=" + std::to_string(k) + " | excl=" + (excl ? "true" : "false");
+                auto        bf_exp = compute_host_brute_force_knn(tree2, 2, {0, 1}, k, excl);
+                std::string label =
+                    "n=2 tree | k=" + std::to_string(k) + " | excl=" + (excl ? "true" : "false");
                 bool ok = verify_results(label, res, dists, bf_exp, k, 2, box_size);
                 if (!ok) all_ok = false;
 
@@ -874,7 +967,7 @@ static bool test_edge_cases(sycl::queue &q, double box_min, double box_size) {
 
     // Edge Case 3: Non-warp multiples (num_queries % 32 != 0)
     for (size_t test_n : {7, 31, 33, 63, 65, 99}) {
-        auto pn = generate_uniform_particles(test_n, box_min, box_size, 777);
+        auto    pn = generate_uniform_particles(test_n, box_min, box_size, 777);
         TreeSoA treen(q, test_n);
         build_bvh(q, pn, treen);
         q.wait();
@@ -882,8 +975,8 @@ static bool test_edge_cases(sycl::queue &q, double box_min, double box_size) {
         for (int k : {4, 32, 33, 64}) {
             std::vector<size_t> res(test_n * k);
             std::vector<dist_t> dists(test_n * k);
-            size_t *d_r = sycl::malloc_device<size_t>(test_n * k, q);
-            dist_t *d_d = sycl::malloc_device<dist_t>(test_n * k, q);
+            size_t             *d_r = sycl::malloc_device<size_t>(test_n * k, q);
+            dist_t             *d_d = sycl::malloc_device<dist_t>(test_n * k, q);
 
             self_knn_query(q, treen, k, d_r, d_d, true);
             q.wait();
@@ -895,7 +988,8 @@ static bool test_edge_cases(sycl::queue &q, double box_min, double box_size) {
             std::iota(all_ranks.begin(), all_ranks.end(), 0);
             auto bf_exp = compute_host_brute_force_knn(treen, test_n, all_ranks, k, true);
 
-            std::string label = "Non-warp-multiple n=" + std::to_string(test_n) + " | k=" + std::to_string(k);
+            std::string label =
+                "Non-warp-multiple n=" + std::to_string(test_n) + " | k=" + std::to_string(k);
             bool ok = verify_results(label, res, dists, bf_exp, k, test_n, box_size);
             if (!ok) all_ok = false;
 
@@ -912,13 +1006,14 @@ static bool test_edge_cases(sycl::queue &q, double box_min, double box_size) {
 // Main Test Entry Point
 // ================================================================
 int main(int argc, char **argv) {
-    sycl::queue q;
+    sycl::queue q{sycl::property::queue::in_order{}};
     std::cout << "=================================================================\n";
     std::cout << "FastTree Self-kNN & SortedMergeHeap Release 1.2.0-beta Test Suite\n";
     std::cout << "Device: " << q.get_device().get_info<sycl::info::device::name>() << "\n";
     auto sg_widths = q.get_device().get_info<sycl::info::device::sub_group_sizes>();
     std::cout << "Supported Sub-Group Sizes: [ ";
-    for (auto w : sg_widths) std::cout << w << " ";
+    for (auto w : sg_widths)
+        std::cout << w << " ";
     std::cout << "] (Active Native Width: " << get_native_sub_group_width(q) << ")\n";
 #if defined(FASTTREE_INTEGER_COORDS)
     std::cout << "Coordinate Mode: INTEGER (BITS_PER_DIMENSION = " << BITS_PER_DIMENSION << ")\n";
@@ -939,17 +1034,13 @@ int main(int argc, char **argv) {
     bool all_passed = true;
 
     // 0. Isolated Unit Tests for Heaps (LocalMaxHeap, SortedMergeHeap)
-    if (!test_isolated_heaps(q)) {
-        all_passed = false;
-    }
+    if (!test_isolated_heaps(q)) { all_passed = false; }
 
     // k-boundary test set hitting both small k (RegisterMaxHeap) and large k (LocalMaxHeap)
     std::vector<int> k_test_set = {16, 32, 33, 64, 128, 256};
 
     // 1. Edge cases: n=1, n=2, partial warps
-    if (!test_edge_cases(q, box_min, box_size)) {
-        all_passed = false;
-    }
+    if (!test_edge_cases(q, box_min, box_size)) { all_passed = false; }
 
     // 2. Uniform random distribution (N = 1000)
     {
@@ -965,7 +1056,9 @@ int main(int argc, char **argv) {
     // 3. Clustered cosmological density distribution (N = 1000)
     {
         auto p_clust = generate_clustered_particles(1000, box_min, box_size, 12345);
-        if (!test_self_knn_dataset(q, p_clust, "Cosmological Clustered (N=1000)", k_test_set, box_size)) {
+        if (!test_self_knn_dataset(
+                q, p_clust, "Cosmological Clustered (N=1000)", k_test_set, box_size
+            )) {
             all_passed = false;
         }
         // Adversarial interleaved subset test (interleaving cluster 1 and 2 within the same warp)
@@ -977,17 +1070,21 @@ int main(int argc, char **argv) {
     // 4. Degenerate / duplicate points (N = 1000)
     {
         auto p_degen = generate_degenerate_particles(1000, box_min, box_size, 999);
-        if (!test_self_knn_dataset(q, p_degen, "Degenerate / Duplicate Points (N=1000)", k_test_set, box_size)) {
+        if (!test_self_knn_dataset(
+                q, p_degen, "Degenerate / Duplicate Points (N=1000)", k_test_set, box_size
+            )) {
             all_passed = false;
         }
     }
 
     // 5. Larger N = 10k dataset test
     {
-        size_t n_large = 10000;
-        auto p_large = generate_clustered_particles(n_large, box_min, box_size, 54321);
+        size_t           n_large = 10000;
+        auto             p_large = generate_clustered_particles(n_large, box_min, box_size, 54321);
         std::vector<int> k_large_set = {32, 33, 64, 128};
-        if (!test_self_knn_dataset(q, p_large, "Cosmological Clustered (N=10000)", k_large_set, box_size)) {
+        if (!test_self_knn_dataset(
+                q, p_large, "Cosmological Clustered (N=10000)", k_large_set, box_size
+            )) {
             all_passed = false;
         }
         if (!test_adversarial_interleaved_subsets(q, p_large, k_large_set, box_min, box_size)) {

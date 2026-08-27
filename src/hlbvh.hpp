@@ -773,7 +773,7 @@ inline void build_tree(
     }
 
     // Initialize parents to -1
-    q.fill(p_parent, -1, 2 * n - 1).wait();
+    q.fill(p_parent, -1, 2 * n - 1);
 
     // 1. Construct internal nodes (Karras 2012)
     auto delta = [=](int i, int j) {
@@ -786,48 +786,48 @@ inline void build_tree(
     };
 
     q.parallel_for(sycl::range<1>(n - 1), [=](sycl::id<1> idx) {
-         int i = idx[0];
+        int i = idx[0];
 
-         // Determine direction of the range (+1 or -1)
-         int d = sgn(delta(i, i + 1) - delta(i, i - 1));
+        // Determine direction of the range (+1 or -1)
+        int d = sgn(delta(i, i + 1) - delta(i, i - 1));
 
-         // Compute upper bound for the length of the range
-         int delta_min = delta(i, i - d);
-         int l_max     = 2;
-         while (delta(i, i + l_max * d) > delta_min) {
-             l_max *= 2;
-         }
+        // Compute upper bound for the length of the range
+        int delta_min = delta(i, i - d);
+        int l_max     = 2;
+        while (delta(i, i + l_max * d) > delta_min) {
+            l_max *= 2;
+        }
 
-         // Find the other end using binary search
-         int l = 0;
-         for (int t = l_max / 2; t >= 1; t /= 2) {
-             if (delta(i, i + (l + t) * d) > delta_min) { l += t; }
-         }
-         int j = i + l * d;
+        // Find the other end using binary search
+        int l = 0;
+        for (int t = l_max / 2; t >= 1; t /= 2) {
+            if (delta(i, i + (l + t) * d) > delta_min) { l += t; }
+        }
+        int j = i + l * d;
 
-         // Find the split point using binary search
-         int delta_node = delta(i, j);
-         int s          = 0;
-         int t_split    = 1;
-         while (t_split <= l) {
-             t_split *= 2;
-         }
-         t_split /= 2;
+        // Find the split point using binary search
+        int delta_node = delta(i, j);
+        int s          = 0;
+        int t_split    = 1;
+        while (t_split <= l) {
+            t_split *= 2;
+        }
+        t_split /= 2;
 
-         for (int t = t_split; t >= 1; t /= 2) {
-             if (s + t < l && delta(i, i + (s + t) * d) > delta_node) { s += t; }
-         }
-         int split = i + s * d + std::min(d, 0);
+        for (int t = t_split; t >= 1; t /= 2) {
+            if (s + t < l && delta(i, i + (s + t) * d) > delta_node) { s += t; }
+        }
+        int split = i + s * d + std::min(d, 0);
 
-         // Select children
-         int left_idx  = (std::min(i, j) == split) ? (split + n - 1) : split;
-         int right_idx = (std::max(i, j) == split + 1) ? (split + 1 + n - 1) : (split + 1);
+        // Select children
+        int left_idx  = (std::min(i, j) == split) ? (split + n - 1) : split;
+        int right_idx = (std::max(i, j) == split + 1) ? (split + 1 + n - 1) : (split + 1);
 
-         p_left_child[i]     = left_idx;
-         p_right_child[i]    = right_idx;
-         p_parent[left_idx]  = i;
-         p_parent[right_idx] = i;
-     }).wait();
+        p_left_child[i]     = left_idx;
+        p_right_child[i]    = right_idx;
+        p_parent[left_idx]  = i;
+        p_parent[right_idx] = i;
+    });
 
     // 2. Initialize leaf bounding boxes
     if (dev_x && dev_y && dev_z) {
@@ -835,18 +835,18 @@ inline void build_tree(
         int8_t   *p_ghost    = tree.is_ghost;
         int      *p_orig_idx = tree.orig_idx;
         q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
-             int i             = idx[0];
-             int leaf_idx      = i + n - 1;
-             p_min_x[leaf_idx] = dev_x[i];
-             p_max_x[leaf_idx] = dev_x[i];
-             p_min_y[leaf_idx] = dev_y[i];
-             p_max_y[leaf_idx] = dev_y[i];
-             p_min_z[leaf_idx] = dev_z[i];
-             p_max_z[leaf_idx] = dev_z[i];
-             if (p_id && dev_id) { p_id[leaf_idx] = dev_id[i]; }
-             if (p_ghost && dev_ghost) { p_ghost[leaf_idx] = dev_ghost[i]; }
-             if (p_orig_idx && dev_orig_idx) { p_orig_idx[leaf_idx] = dev_orig_idx[i]; }
-         }).wait();
+            int i             = idx[0];
+            int leaf_idx      = i + n - 1;
+            p_min_x[leaf_idx] = dev_x[i];
+            p_max_x[leaf_idx] = dev_x[i];
+            p_min_y[leaf_idx] = dev_y[i];
+            p_max_y[leaf_idx] = dev_y[i];
+            p_min_z[leaf_idx] = dev_z[i];
+            p_max_z[leaf_idx] = dev_z[i];
+            if (p_id && dev_id) { p_id[leaf_idx] = dev_id[i]; }
+            if (p_ghost && dev_ghost) { p_ghost[leaf_idx] = dev_ghost[i]; }
+            if (p_orig_idx && dev_orig_idx) { p_orig_idx[leaf_idx] = dev_orig_idx[i]; }
+        });
     }
 
     // 3. Compute internal bounding boxes (bottom-up)
@@ -863,7 +863,7 @@ inline void build_tree(
         if (dev_orig_idx) free_device_readable(q, dev_orig_idx, orig_alloc);
         return;
     }
-    q.fill(counters, 0, n - 1).wait();
+    q.fill(counters, 0, n - 1);
 
     q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
          int curr = idx[0] + n - 1; // Start from leaf
@@ -1445,133 +1445,133 @@ void self_knn_query_grouped_small_k(
     int num_groups = (num_queries + WARP - 1) / WARP;
 
     q.submit([&](sycl::handler &h) {
-         h.parallel_for(
-             sycl::nd_range<1>(num_groups * WARP, WARP),
-             [=](sycl::nd_item<1> item) [[sycl::reqd_sub_group_size(WARP)]] {
-                 sycl::sub_group sg     = item.get_sub_group();
-                 int             lane   = static_cast<int>(sg.get_local_id()[0]);
-                 int             group  = static_cast<int>(item.get_group(0));
-                 int             q_slot = group * WARP + lane;
+        h.parallel_for(
+            sycl::nd_range<1>(num_groups * WARP, WARP),
+            [=](sycl::nd_item<1> item) [[sycl::reqd_sub_group_size(WARP)]] {
+                sycl::sub_group sg     = item.get_sub_group();
+                int             lane   = static_cast<int>(sg.get_local_id()[0]);
+                int             group  = static_cast<int>(item.get_group(0));
+                int             q_slot = group * WARP + lane;
 
-                 bool active = q_slot < num_queries;
-                 int  leaf_rank =
-                     active ? (query_leaf_ids ? query_leaf_ids[q_slot] : q_slot)
-                            : 0; // inactive lanes shadow lane 0's traversal to stay in lockstep
+                bool active = q_slot < num_queries;
+                int  leaf_rank =
+                    active ? (query_leaf_ids ? query_leaf_ids[q_slot] : q_slot)
+                           : 0; // inactive lanes shadow lane 0's traversal to stay in lockstep
 
-                 coord_t px            = leaf_x[leaf_rank];
-                 coord_t py            = leaf_y[leaf_rank];
-                 coord_t pz            = leaf_z[leaf_rank];
-                 int     self_leaf_idx = leaf_rank + num_internal;
+                coord_t px            = leaf_x[leaf_rank];
+                coord_t py            = leaf_y[leaf_rank];
+                coord_t pz            = leaf_z[leaf_rank];
+                int     self_leaf_idx = leaf_rank + num_internal;
 
-                 RegisterMaxHeap<heap_dist_t, int, _MAX_K_> heap;
+                RegisterMaxHeap<heap_dist_t, int, _MAX_K_> heap;
 
-                 int stack[MAX_STACK_DEPTH];
-                 int sp      = 0;
-                 stack[sp++] = 0; // root
+                int stack[MAX_STACK_DEPTH];
+                int sp      = 0;
+                stack[sp++] = 0; // root
 
-                 while (sp > 0) {
-                     int node = stack[--sp];
+                while (sp > 0) {
+                    int node = stack[--sp];
 
-                     auto d2 = node_distance_sq(
-                         px,
-                         py,
-                         pz,
-                         p_min_x[node],
-                         p_max_x[node],
-                         p_min_y[node],
-                         p_max_y[node],
-                         p_min_z[node],
-                         p_max_z[node]
-                     );
+                    auto d2 = node_distance_sq(
+                        px,
+                        py,
+                        pz,
+                        p_min_x[node],
+                        p_max_x[node],
+                        p_min_y[node],
+                        p_max_y[node],
+                        p_min_z[node],
+                        p_max_z[node]
+                    );
 
-                     // Per-lane prune decision, but the GROUP decides whether to
-                     // bother reading children/leaf data at all: if every active
-                     // lane has already pruned this node, skip the work entirely.
-                     bool mine_pruned     = active && heap.should_prune(d2, k);
-                     bool anyone_needs_it = sycl::any_of_group(sg, active && !mine_pruned);
+                    // Per-lane prune decision, but the GROUP decides whether to
+                    // bother reading children/leaf data at all: if every active
+                    // lane has already pruned this node, skip the work entirely.
+                    bool mine_pruned     = active && heap.should_prune(d2, k);
+                    bool anyone_needs_it = sycl::any_of_group(sg, active && !mine_pruned);
 
-                     if (!anyone_needs_it) continue; // whole warp skips together — no divergence
+                    if (!anyone_needs_it) continue; // whole warp skips together — no divergence
 
-                     if (node >= static_cast<int>(n) - 1 && n > 1) {
-                         // Leaf: lanes that already pruned just don't push (branch is
-                         // uniform in *shape*, only the push predicate differs — cheap).
-                         if (active && !mine_pruned) {
-                             if (!(exclude_self && node == self_leaf_idx)) {
+                    if (node >= static_cast<int>(n) - 1 && n > 1) {
+                        // Leaf: lanes that already pruned just don't push (branch is
+                        // uniform in *shape*, only the push predicate differs — cheap).
+                        if (active && !mine_pruned) {
+                            if (!(exclude_self && node == self_leaf_idx)) {
 #ifdef RETURN_ORIG_INDICES
-                                 heap.push(d2, p_orig_idx[node], k);
+                                heap.push(d2, p_orig_idx[node], k);
 #else
-                                 heap.push(d2, node - static_cast<int>(n - 1), k);
+                                heap.push(d2, node - static_cast<int>(n - 1), k);
 #endif
-                             }
-                         }
-                     } else if (n == 1) {
-                         if (active && !mine_pruned && !exclude_self) {
+                            }
+                        }
+                    } else if (n == 1) {
+                        if (active && !mine_pruned && !exclude_self) {
 #ifdef RETURN_ORIG_INDICES
-                             heap.push(d2, p_orig_idx[0], k);
+                            heap.push(d2, p_orig_idx[0], k);
 #else
-                             heap.push(d2, 0, k);
+                            heap.push(d2, 0, k);
 #endif
-                         }
-                     } else {
-                         // Internal node: every lane in the warp reads the SAME
-                         // node's children bounds -> single coalesced/broadcast
-                         // read regardless of divergence in prune state.
-                         int l = p_left[node];
-                         int r = p_right[node];
+                        }
+                    } else {
+                        // Internal node: every lane in the warp reads the SAME
+                        // node's children bounds -> single coalesced/broadcast
+                        // read regardless of divergence in prune state.
+                        int l = p_left[node];
+                        int r = p_right[node];
 
-                         auto ld2 = node_distance_sq(
-                             px,
-                             py,
-                             pz,
-                             p_min_x[l],
-                             p_max_x[l],
-                             p_min_y[l],
-                             p_max_y[l],
-                             p_min_z[l],
-                             p_max_z[l]
-                         );
-                         auto rd2 = node_distance_sq(
-                             px,
-                             py,
-                             pz,
-                             p_min_x[r],
-                             p_max_x[r],
-                             p_min_y[r],
-                             p_max_y[r],
-                             p_min_z[r],
-                             p_max_z[r]
-                         );
+                        auto ld2 = node_distance_sq(
+                            px,
+                            py,
+                            pz,
+                            p_min_x[l],
+                            p_max_x[l],
+                            p_min_y[l],
+                            p_max_y[l],
+                            p_min_z[l],
+                            p_max_z[l]
+                        );
+                        auto rd2 = node_distance_sq(
+                            px,
+                            py,
+                            pz,
+                            p_min_x[r],
+                            p_max_x[r],
+                            p_min_y[r],
+                            p_max_y[r],
+                            p_min_z[r],
+                            p_max_z[r]
+                        );
 
-                         if (sp < MAX_STACK_DEPTH - 2) {
-                             if (ld2 <= rd2) {
-                                 stack[sp++] = r;
-                                 stack[sp++] = l;
-                             } else {
-                                 stack[sp++] = l;
-                                 stack[sp++] = r;
-                             }
-                         }
-                     }
-                 }
+                        if (sp < MAX_STACK_DEPTH - 2) {
+                            if (ld2 <= rd2) {
+                                stack[sp++] = r;
+                                stack[sp++] = l;
+                            } else {
+                                stack[sp++] = l;
+                                stack[sp++] = r;
+                            }
+                        }
+                    }
+                }
 
-                 if (active) {
-                     size_t      offset = static_cast<size_t>(q_slot) * static_cast<size_t>(k);
-                     heap_dist_t sorted_dist[_MAX_K_];
-                     int         sorted_idx[_MAX_K_];
-                     heap.extract_sorted(sorted_dist, sorted_idx, k);
-                     for (int i = 0; i < k; ++i) {
-                         if (sorted_idx[i] >= 0) {
-                             dev_results[offset + i]      = static_cast<size_t>(sorted_idx[i]);
-                             dev_result_dists[offset + i] = static_cast<dist_t>(sorted_dist[i]);
-                         } else {
-                             dev_results[offset + i]      = static_cast<size_t>(-1);
-                             dev_result_dists[offset + i] = type_identity_max<dist_t>();
-                         }
-                     }
-                 }
-             }
-         );
-     }).wait();
+                if (active) {
+                    size_t      offset = static_cast<size_t>(q_slot) * static_cast<size_t>(k);
+                    heap_dist_t sorted_dist[_MAX_K_];
+                    int         sorted_idx[_MAX_K_];
+                    heap.extract_sorted(sorted_dist, sorted_idx, k);
+                    for (int i = 0; i < k; ++i) {
+                        if (sorted_idx[i] >= 0) {
+                            dev_results[offset + i]      = static_cast<size_t>(sorted_idx[i]);
+                            dev_result_dists[offset + i] = static_cast<dist_t>(sorted_dist[i]);
+                        } else {
+                            dev_results[offset + i]      = static_cast<size_t>(-1);
+                            dev_result_dists[offset + i] = type_identity_max<dist_t>();
+                        }
+                    }
+                }
+            }
+        );
+    });
 }
 
 template <int _MAX_K_ = 256, int _GROUP_WIDTH_ = 32>
@@ -1615,134 +1615,134 @@ void self_knn_query_grouped_large_k(
     int num_groups = (num_queries + WARP - 1) / WARP;
 
     q.submit([&](sycl::handler &h) {
-         sycl::local_accessor<heap_dist_t, 1> sh_dist(WARP * k, h);
-         sycl::local_accessor<int, 1>         sh_idx(WARP * k, h);
+        sycl::local_accessor<heap_dist_t, 1> sh_dist(WARP * k, h);
+        sycl::local_accessor<int, 1>         sh_idx(WARP * k, h);
 
-         h.parallel_for(
-             sycl::nd_range<1>(num_groups * WARP, WARP),
-             [=](sycl::nd_item<1> item) [[sycl::reqd_sub_group_size(WARP)]] {
-                 sycl::sub_group sg     = item.get_sub_group();
-                 int             lane   = static_cast<int>(sg.get_local_id()[0]);
-                 int             group  = static_cast<int>(item.get_group(0));
-                 int             q_slot = group * WARP + lane;
+        h.parallel_for(
+            sycl::nd_range<1>(num_groups * WARP, WARP),
+            [=](sycl::nd_item<1> item) [[sycl::reqd_sub_group_size(WARP)]] {
+                sycl::sub_group sg     = item.get_sub_group();
+                int             lane   = static_cast<int>(sg.get_local_id()[0]);
+                int             group  = static_cast<int>(item.get_group(0));
+                int             q_slot = group * WARP + lane;
 
-                 bool active    = q_slot < num_queries;
-                 int  leaf_rank = active ? (query_leaf_ids ? query_leaf_ids[q_slot] : q_slot) : 0;
+                bool active    = q_slot < num_queries;
+                int  leaf_rank = active ? (query_leaf_ids ? query_leaf_ids[q_slot] : q_slot) : 0;
 
-                 coord_t px            = leaf_x[leaf_rank];
-                 coord_t py            = leaf_y[leaf_rank];
-                 coord_t pz            = leaf_z[leaf_rank];
-                 int     self_leaf_idx = leaf_rank + num_internal;
+                coord_t px            = leaf_x[leaf_rank];
+                coord_t py            = leaf_y[leaf_rank];
+                coord_t pz            = leaf_z[leaf_rank];
+                int     self_leaf_idx = leaf_rank + num_internal;
 
-                 LocalMaxHeap<heap_dist_t, int>::init(lane, sh_dist, sh_idx, k);
-                 int count = 0; // private per-lane, mirrors RegisterMaxHeap::count
+                LocalMaxHeap<heap_dist_t, int>::init(lane, sh_dist, sh_idx, k);
+                int count = 0; // private per-lane, mirrors RegisterMaxHeap::count
 
-                 int stack[MAX_STACK_DEPTH];
-                 int sp      = 0;
-                 stack[sp++] = 0;
+                int stack[MAX_STACK_DEPTH];
+                int sp      = 0;
+                stack[sp++] = 0;
 
-                 while (sp > 0) {
-                     int node = stack[--sp];
+                while (sp > 0) {
+                    int node = stack[--sp];
 
-                     auto d2 = node_distance_sq(
-                         px,
-                         py,
-                         pz,
-                         p_min_x[node],
-                         p_max_x[node],
-                         p_min_y[node],
-                         p_max_y[node],
-                         p_min_z[node],
-                         p_max_z[node]
-                     );
+                    auto d2 = node_distance_sq(
+                        px,
+                        py,
+                        pz,
+                        p_min_x[node],
+                        p_max_x[node],
+                        p_min_y[node],
+                        p_max_y[node],
+                        p_min_z[node],
+                        p_max_z[node]
+                    );
 
-                     bool mine_pruned     = active && LocalMaxHeap<heap_dist_t, int>::should_prune(
-                                                          lane, d2, sh_dist, count, k, k
-                                                      );
-                     bool anyone_needs_it = sycl::any_of_group(sg, active && !mine_pruned);
-                     if (!anyone_needs_it) continue;
+                    bool mine_pruned     = active && LocalMaxHeap<heap_dist_t, int>::should_prune(
+                                                         lane, d2, sh_dist, count, k, k
+                                                     );
+                    bool anyone_needs_it = sycl::any_of_group(sg, active && !mine_pruned);
+                    if (!anyone_needs_it) continue;
 
-                     if (node >= static_cast<int>(n) - 1 && n > 1) {
-                         if (active && !mine_pruned && !(exclude_self && node == self_leaf_idx)) {
+                    if (node >= static_cast<int>(n) - 1 && n > 1) {
+                        if (active && !mine_pruned && !(exclude_self && node == self_leaf_idx)) {
 #ifdef RETURN_ORIG_INDICES
-                             LocalMaxHeap<heap_dist_t, int>::push(
-                                 lane, d2, p_orig_idx[node], count, sh_dist, sh_idx, k, k
-                             );
+                            LocalMaxHeap<heap_dist_t, int>::push(
+                                lane, d2, p_orig_idx[node], count, sh_dist, sh_idx, k, k
+                            );
 #else
-                             LocalMaxHeap<heap_dist_t, int>::push(
-                                 lane,
-                                 d2,
-                                 node - static_cast<int>(n - 1),
-                                 count,
-                                 sh_dist,
-                                 sh_idx,
-                                 k,
-                                 k
-                             );
+                            LocalMaxHeap<heap_dist_t, int>::push(
+                                lane,
+                                d2,
+                                node - static_cast<int>(n - 1),
+                                count,
+                                sh_dist,
+                                sh_idx,
+                                k,
+                                k
+                            );
 #endif
-                         }
-                     } else if (n == 1) {
-                         if (active && !mine_pruned && !exclude_self) {
-                             LocalMaxHeap<heap_dist_t, int>::push(
-                                 lane, d2, 0, count, sh_dist, sh_idx, k, k
-                             );
-                         }
-                     } else {
-                         int  l   = p_left[node];
-                         int  r   = p_right[node];
-                         auto ld2 = node_distance_sq(
-                             px,
-                             py,
-                             pz,
-                             p_min_x[l],
-                             p_max_x[l],
-                             p_min_y[l],
-                             p_max_y[l],
-                             p_min_z[l],
-                             p_max_z[l]
-                         );
-                         auto rd2 = node_distance_sq(
-                             px,
-                             py,
-                             pz,
-                             p_min_x[r],
-                             p_max_x[r],
-                             p_min_y[r],
-                             p_max_y[r],
-                             p_min_z[r],
-                             p_max_z[r]
-                         );
-                         if (sp < MAX_STACK_DEPTH - 2) {
-                             if (ld2 <= rd2) {
-                                 stack[sp++] = r;
-                                 stack[sp++] = l;
-                             } else {
-                                 stack[sp++] = l;
-                                 stack[sp++] = r;
-                             }
-                         }
-                     }
-                 }
+                        }
+                    } else if (n == 1) {
+                        if (active && !mine_pruned && !exclude_self) {
+                            LocalMaxHeap<heap_dist_t, int>::push(
+                                lane, d2, 0, count, sh_dist, sh_idx, k, k
+                            );
+                        }
+                    } else {
+                        int  l   = p_left[node];
+                        int  r   = p_right[node];
+                        auto ld2 = node_distance_sq(
+                            px,
+                            py,
+                            pz,
+                            p_min_x[l],
+                            p_max_x[l],
+                            p_min_y[l],
+                            p_max_y[l],
+                            p_min_z[l],
+                            p_max_z[l]
+                        );
+                        auto rd2 = node_distance_sq(
+                            px,
+                            py,
+                            pz,
+                            p_min_x[r],
+                            p_max_x[r],
+                            p_min_y[r],
+                            p_max_y[r],
+                            p_min_z[r],
+                            p_max_z[r]
+                        );
+                        if (sp < MAX_STACK_DEPTH - 2) {
+                            if (ld2 <= rd2) {
+                                stack[sp++] = r;
+                                stack[sp++] = l;
+                            } else {
+                                stack[sp++] = l;
+                                stack[sp++] = r;
+                            }
+                        }
+                    }
+                }
 
-                 if (active) {
-                     size_t offset = static_cast<size_t>(q_slot) * static_cast<size_t>(k);
+                if (active) {
+                    size_t offset = static_cast<size_t>(q_slot) * static_cast<size_t>(k);
 
-                     LocalMaxHeap<heap_dist_t, int>::sort_in_place(lane, count, sh_dist, sh_idx, k);
+                    LocalMaxHeap<heap_dist_t, int>::sort_in_place(lane, count, sh_dist, sh_idx, k);
 
-                     int base = lane * k;
-                     for (int i = 0; i < k; ++i) {
-                         if (i < count && sh_idx[base + i] >= 0) {
-                             dev_results[offset + i]      = static_cast<size_t>(sh_idx[base + i]);
-                             dev_result_dists[offset + i] = static_cast<dist_t>(sh_dist[base + i]);
-                         } else {
-                             dev_results[offset + i]      = static_cast<size_t>(-1);
-                             dev_result_dists[offset + i] = type_identity_max<dist_t>();
-                         }
-                     }
-                 }
-             }
-         );
-     }).wait();
+                    int base = lane * k;
+                    for (int i = 0; i < k; ++i) {
+                        if (i < count && sh_idx[base + i] >= 0) {
+                            dev_results[offset + i]      = static_cast<size_t>(sh_idx[base + i]);
+                            dev_result_dists[offset + i] = static_cast<dist_t>(sh_dist[base + i]);
+                        } else {
+                            dev_results[offset + i]      = static_cast<size_t>(-1);
+                            dev_result_dists[offset + i] = type_identity_max<dist_t>();
+                        }
+                    }
+                }
+            }
+        );
+    });
 }
 
 /**
@@ -2127,16 +2127,15 @@ inline void build_bvh(
     // 3. Allocate and initialize index array [0, 1, ..., n-1]
     size_t *d_indices = sycl::malloc_shared<size_t>(n, q);
     q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) { d_indices[idx] = idx[0]; });
-    q.wait();
 
     // 4. Single-Pass Full GPU Sort using oneDPL
 #if (3 * BITS_PER_DIMENSION) <= 64
     uint64_t *d_sort_keys = sycl::malloc_shared<uint64_t>(n, q);
     sfc_key  *d_smk_ptr   = d_smk;
     q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
-         size_t i       = idx[0];
-         d_sort_keys[i] = to_sort_key(d_smk_ptr[i]);
-     }).wait();
+        size_t i       = idx[0];
+        d_sort_keys[i] = to_sort_key(d_smk_ptr[i]);
+    });
 
     auto zip2_begin = oneapi::dpl::make_zip_iterator(d_sort_keys, d_smk, d_indices);
     auto zip2_end   = zip2_begin + n;
@@ -2191,19 +2190,19 @@ inline void build_bvh(
     int      *tree_orig_idx = tree.orig_idx;
 
     q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
-         size_t i             = idx[0];
-         size_t orig_idx      = d_indices[i];
-         int    leaf_idx      = i + n - 1;
-         tree_min_x[leaf_idx] = dev_pos_x[orig_idx];
-         tree_max_x[leaf_idx] = dev_pos_x[orig_idx];
-         tree_min_y[leaf_idx] = dev_pos_y[orig_idx];
-         tree_max_y[leaf_idx] = dev_pos_y[orig_idx];
-         tree_min_z[leaf_idx] = dev_pos_z[orig_idx];
-         tree_max_z[leaf_idx] = dev_pos_z[orig_idx];
-         if (tree_id) { tree_id[leaf_idx] = dev_p_id[orig_idx]; }
-         if (tree_ghost) { tree_ghost[leaf_idx] = dev_p_ghost[orig_idx]; }
-         if (tree_orig_idx) { tree_orig_idx[leaf_idx] = static_cast<int>(orig_idx); }
-     }).wait();
+        size_t i             = idx[0];
+        size_t orig_idx      = d_indices[i];
+        int    leaf_idx      = i + n - 1;
+        tree_min_x[leaf_idx] = dev_pos_x[orig_idx];
+        tree_max_x[leaf_idx] = dev_pos_x[orig_idx];
+        tree_min_y[leaf_idx] = dev_pos_y[orig_idx];
+        tree_max_y[leaf_idx] = dev_pos_y[orig_idx];
+        tree_min_z[leaf_idx] = dev_pos_z[orig_idx];
+        tree_max_z[leaf_idx] = dev_pos_z[orig_idx];
+        if (tree_id) { tree_id[leaf_idx] = dev_p_id[orig_idx]; }
+        if (tree_ghost) { tree_ghost[leaf_idx] = dev_p_ghost[orig_idx]; }
+        if (tree_orig_idx) { tree_orig_idx[leaf_idx] = static_cast<int>(orig_idx); }
+    });
 
     // 6. Build Tree Topology & Compute Internal Node BBoxes (leaving leaf arrays already set)
     build_tree(q, tree, d_smk);
