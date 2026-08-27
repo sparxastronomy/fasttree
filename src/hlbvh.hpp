@@ -1412,7 +1412,7 @@ inline void knn_query(
 // one function with a runtime branch inside a single kernel).
 // ================================================================
 
-template <int _MAX_K_ = 32>
+template <int _MAX_K_ = 32, int _GROUP_WIDTH_ = 32>
 void self_knn_query_grouped_small_k(
     sycl::queue   &q,
     const TreeSoA &tree,
@@ -1425,8 +1425,7 @@ void self_knn_query_grouped_small_k(
 ) {
     static_assert(_MAX_K_ <= 32, "grouped self-kNN (register path) requires k<=32");
 
-    constexpr int WARP = 32; // matches sub_group size on the intended targets;
-                             // see note on querying sub_group_sizes below.
+    constexpr int WARP = _GROUP_WIDTH_;
 
     size_t   n       = tree.num_leaves;
     coord_t *p_min_x = tree.min_x, *p_max_x = tree.max_x;
@@ -1575,7 +1574,7 @@ void self_knn_query_grouped_small_k(
      }).wait();
 }
 
-template <int _MAX_K_ = 256>
+template <int _MAX_K_ = 256, int _GROUP_WIDTH_ = 32>
 void self_knn_query_grouped_large_k(
     sycl::queue   &q,
     const TreeSoA &tree,
@@ -1588,7 +1587,7 @@ void self_knn_query_grouped_large_k(
 ) {
     static_assert(_MAX_K_ > 32, "use self_knn_query_grouped_small_k for k<=32");
 
-    constexpr int WARP = 32;
+    constexpr int WARP = _GROUP_WIDTH_;
 
     size_t   n       = tree.num_leaves;
     coord_t *p_min_x = tree.min_x, *p_max_x = tree.max_x;
@@ -1746,6 +1745,114 @@ void self_knn_query_grouped_large_k(
      }).wait();
 }
 
+/**
+ * @brief Returns the device's native sub-group size (warp/wavefront/SIMD width).
+ *
+ * Queries the SYCL device for supported sub_group_sizes and picks the maximum
+ * native width (clamped to supported static dispatch widths) to ensure optimal
+ * performance and avoid software sub-group emulation.
+ */
+inline int get_native_sub_group_width(const sycl::queue &q) {
+    auto dev = q.get_device();
+    if constexpr (std::is_same_v<coord_t, double>) {
+        return dev.get_info<sycl::info::device::native_vector_width_double>();
+    } else if constexpr (std::is_same_v<coord_t, float>) {
+        return dev.get_info<sycl::info::device::native_vector_width_float>();
+    } else if constexpr (sizeof(coord_t) == 8) { // uint64_t position rep
+        return dev.get_info<sycl::info::device::native_vector_width_long>();
+    } else { // 32-bit integer position rep
+        return dev.get_info<sycl::info::device::native_vector_width_int>();
+    }
+}
+
+template <int _MAX_K_ = 32>
+inline void dispatch_self_knn_grouped_small_k(
+    sycl::queue   &q,
+    const TreeSoA &tree,
+    const int     *query_leaf_ids,
+    int            num_queries,
+    int            k,
+    size_t        *dev_results,
+    dist_t        *dev_result_dists,
+    bool           exclude_self
+) {
+    bool is_cpu = q.get_device().is_cpu();
+    int  w      = is_cpu ? get_native_sub_group_width(q) : 32;
+
+    switch (w) {
+    case 4:
+        self_knn_query_grouped_small_k<_MAX_K_, 4>(
+            q, tree, query_leaf_ids, num_queries, k, dev_results, dev_result_dists, exclude_self
+        );
+        break;
+    case 8:
+        self_knn_query_grouped_small_k<_MAX_K_, 8>(
+            q, tree, query_leaf_ids, num_queries, k, dev_results, dev_result_dists, exclude_self
+        );
+        break;
+    case 16:
+        self_knn_query_grouped_small_k<_MAX_K_, 16>(
+            q, tree, query_leaf_ids, num_queries, k, dev_results, dev_result_dists, exclude_self
+        );
+        break;
+    case 64:
+        self_knn_query_grouped_small_k<_MAX_K_, 64>(
+            q, tree, query_leaf_ids, num_queries, k, dev_results, dev_result_dists, exclude_self
+        );
+        break;
+    case 32:
+    default:
+        self_knn_query_grouped_small_k<_MAX_K_, 32>(
+            q, tree, query_leaf_ids, num_queries, k, dev_results, dev_result_dists, exclude_self
+        );
+        break;
+    }
+}
+
+template <int _MAX_K_ = 256>
+inline void dispatch_self_knn_grouped_large_k(
+    sycl::queue   &q,
+    const TreeSoA &tree,
+    const int     *query_leaf_ids,
+    int            num_queries,
+    int            k,
+    size_t        *dev_results,
+    dist_t        *dev_result_dists,
+    bool           exclude_self
+) {
+    bool is_cpu = q.get_device().is_cpu();
+    int  w      = is_cpu ? get_native_sub_group_width(q) : 32;
+
+    switch (w) {
+    case 4:
+        self_knn_query_grouped_large_k<_MAX_K_, 4>(
+            q, tree, query_leaf_ids, num_queries, k, dev_results, dev_result_dists, exclude_self
+        );
+        break;
+    case 8:
+        self_knn_query_grouped_large_k<_MAX_K_, 8>(
+            q, tree, query_leaf_ids, num_queries, k, dev_results, dev_result_dists, exclude_self
+        );
+        break;
+    case 16:
+        self_knn_query_grouped_large_k<_MAX_K_, 16>(
+            q, tree, query_leaf_ids, num_queries, k, dev_results, dev_result_dists, exclude_self
+        );
+        break;
+    case 64:
+        self_knn_query_grouped_large_k<_MAX_K_, 64>(
+            q, tree, query_leaf_ids, num_queries, k, dev_results, dev_result_dists, exclude_self
+        );
+        break;
+    case 32:
+    default:
+        self_knn_query_grouped_large_k<_MAX_K_, 32>(
+            q, tree, query_leaf_ids, num_queries, k, dev_results, dev_result_dists, exclude_self
+        );
+        break;
+    }
+}
+
 // Dispatch, mirroring knn_query's existing k<=32 / k>32 split:
 template <int _MAX_K_ = 256>
 inline void self_knn_query(
@@ -1758,12 +1865,17 @@ inline void self_knn_query(
 ) {
     size_t n = tree.num_leaves;
     if (n == 0) return;
+    if (k > _MAX_K_) {
+        throw std::invalid_argument(
+            "k exceeds _MAX_K_ template parameter. Instantiate self_knn_query with larger _MAX_K_."
+        );
+    }
     if (k <= 32) {
-        self_knn_query_grouped_small_k<32>(
+        dispatch_self_knn_grouped_small_k<32>(
             q, tree, nullptr, static_cast<int>(n), k, results, result_dists, exclude_self
         );
     } else {
-        self_knn_query_grouped_large_k<_MAX_K_>(
+        dispatch_self_knn_grouped_large_k<_MAX_K_>(
             q, tree, nullptr, static_cast<int>(n), k, results, result_dists, exclude_self
         );
     }
@@ -1781,12 +1893,18 @@ inline void self_knn_query_subset(
     bool           exclude_self = true
 ) {
     if (num_ids == 0) return;
+    if (k > _MAX_K_) {
+        throw std::invalid_argument(
+            "k exceeds _MAX_K_ template parameter. Instantiate self_knn_query_subset with larger "
+            "_MAX_K_."
+        );
+    }
     if (k <= 32) {
-        self_knn_query_grouped_small_k<32>(
+        dispatch_self_knn_grouped_small_k<32>(
             q, tree, leaf_ids, num_ids, k, results, result_dists, exclude_self
         );
     } else {
-        self_knn_query_grouped_large_k<_MAX_K_>(
+        dispatch_self_knn_grouped_large_k<_MAX_K_>(
             q, tree, leaf_ids, num_ids, k, results, result_dists, exclude_self
         );
     }

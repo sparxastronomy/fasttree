@@ -916,6 +916,10 @@ int main(int argc, char **argv) {
     std::cout << "=================================================================\n";
     std::cout << "FastTree Self-kNN & SortedMergeHeap Release 1.2.0-beta Test Suite\n";
     std::cout << "Device: " << q.get_device().get_info<sycl::info::device::name>() << "\n";
+    auto sg_widths = q.get_device().get_info<sycl::info::device::sub_group_sizes>();
+    std::cout << "Supported Sub-Group Sizes: [ ";
+    for (auto w : sg_widths) std::cout << w << " ";
+    std::cout << "] (Active Native Width: " << get_native_sub_group_width(q) << ")\n";
 #if defined(FASTTREE_INTEGER_COORDS)
     std::cout << "Coordinate Mode: INTEGER (BITS_PER_DIMENSION = " << BITS_PER_DIMENSION << ")\n";
 #else
