@@ -1,16 +1,16 @@
-# Graph Report - fasttree  (2026-08-27)
+# Graph Report - fasttree  (2026-08-28)
 
 ## Corpus Check
-- 73 files · ~172,858 words
+- 62 files · ~173,396 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 452 nodes · 861 edges · 59 communities (18 shown, 41 thin omitted)
-- Extraction: 87% EXTRACTED · 13% INFERRED · 0% AMBIGUOUS · INFERRED: 109 edges (avg confidence: 0.8)
+- 462 nodes · 882 edges · 47 communities (18 shown, 29 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 109 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `dad869be`
+- Built from commit: `6b8b22b7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -21,7 +21,7 @@
 - domain_decomposition.hpp
 - DistT
 - particles
-- Benchmark Comparison (GPU Variations)
+- 4. Comprehensive GPU Benchmark Evaluation (NVIDIA SM_80)
 - visualize_benchmarks.py
 - advance_mpi.cpp
 - test_mpi.cpp
@@ -41,28 +41,17 @@
 - Range and kNN Query Traversal
 - scaling_cpu_double_periodic_off.md
 - scaling_cpu_double_periodic_on.md
-- scaling_cpu_double_self_knn_periodic_off.md
-- scaling_cpu_double_self_knn_periodic_on.md
+- Benchmark Comparison (GPU Variations)
 - scaling_cpu_int32_periodic_off.md
 - scaling_cpu_int32_periodic_on.md
-- scaling_cpu_int32_self_knn_periodic_off.md
-- scaling_cpu_int32_self_knn_periodic_on.md
 - scaling_cpu_int64_periodic_off.md
 - scaling_cpu_int64_periodic_on.md
-- scaling_cpu_int64_self_knn_periodic_off.md
-- scaling_cpu_int64_self_knn_periodic_on.md
 - scaling_gpu_double_periodic_off.md
 - scaling_gpu_double_periodic_on.md
-- scaling_gpu_double_self_knn_periodic_off.md
-- scaling_gpu_double_self_knn_periodic_on.md
 - scaling_gpu_int32_periodic_off.md
 - scaling_gpu_int32_periodic_on.md
-- scaling_gpu_int32_self_knn_periodic_off.md
-- scaling_gpu_int32_self_knn_periodic_on.md
 - scaling_gpu_int64_periodic_off.md
 - scaling_gpu_int64_periodic_on.md
-- scaling_gpu_int64_self_knn_periodic_off.md
-- scaling_gpu_int64_self_knn_periodic_on.md
 - run_gpu_scaling.sh
 - run_single_scaling.sh
 - Graphify Rule Guidelines
@@ -72,7 +61,6 @@
 - SYCL and oneDPL Heterogeneous Backend
 - Testing Framework Documentation
 - FastTree Project Overview
-- main
 
 ## God Nodes (most connected - your core abstractions)
 1. `TreeSoA` - 31 edges
@@ -91,12 +79,12 @@
   DESIGN.md → AGENTS.md
 - `Structure of Arrays Data Layout` --semantically_similar_to--> `Structure of Arrays (SoA) Mandatory Layout`  [INFERRED] [semantically similar]
   DESIGN.md → AGENTS.md
+- `main()` --calls--> `get_deterministic_splitters()`  [INFERRED]
+  test/benchmark/domain_decomposition_scaling.cpp → src/domain_decomposition.hpp
+- `test_mpi_pipeline()` --calls--> `get_deterministic_splitters()`  [INFERRED]
+  test/test_domain_decomposition.cpp → src/domain_decomposition.hpp
 - `BM_GPUSort_Lazy()` --calls--> `sfc_encode()`  [INFERRED]
   test/benchmark/gpu_sort_scaling.cpp → src/hlbvh.hpp
-- `BM_MortonEncode_Lazy()` --calls--> `sfc_encode()`  [INFERRED]
-  test/benchmark/sfc_encoding_scaling.cpp → src/hlbvh.hpp
-- `main()` --calls--> `sfc_encode()`  [INFERRED]
-  test/main.cpp → src/hlbvh.hpp
 
 ## Import Cycles
 - None detected.
@@ -107,23 +95,23 @@
 - **Tree Construction Pipeline Scaling Benchmarks** — docs_benchmark_scaling_morton_encode, docs_benchmark_scaling_radix_sort, docs_benchmark_scaling_tree_build [INFERRED 0.85]
 - **Spatial Traversal & Search Scaling Benchmarks** — docs_benchmark_scaling_chart, docs_benchmark_scaling_knn_query, docs_benchmark_scaling_range_query [INFERRED 0.85]
 
-## Communities (59 total, 41 thin omitted)
+## Communities (47 total, 29 thin omitted)
 
 ### Community 0 - "vector"
 Cohesion: 0.06
 Nodes (54): vector, compute_optimal_knn_batch_size(), fill_particle_coords(), get_available_device_memory(), get_peak_rss(), coord_t, queue, string (+46 more)
 
 ### Community 1 - "hlbvh.hpp"
-Cohesion: 0.09
-Nodes (56): build_bvh(), build_tree(), compute_bbox(), copy_back_and_free(), dispatch_self_knn_grouped_large_k(), dispatch_self_knn_grouped_small_k(), encode_to_sfc1d(), ensure_device_readable() (+48 more)
+Cohesion: 0.08
+Nodes (59): sort_key_t, build_bvh(), build_tree(), compute_bbox(), copy_back_and_free(), dispatch_self_knn_grouped_large_k(), dispatch_self_knn_grouped_small_k(), encode_to_sfc1d() (+51 more)
 
 ### Community 2 - "sfc.peano_hilbert.hpp"
-Cohesion: 0.09
-Nodes (32): MyIntPosType, MyIntPosTypeSigned, PosType, sort_key_t, compact3_u64(), sfc1D, spread3_u64(), convert_to_sfc1d() (+24 more)
+Cohesion: 0.08
+Nodes (39): MyIntPosType, MyIntPosTypeSigned, PosType, get_deterministic_splitters(), compact3_u64(), sfc1D, spread3_u64(), convert_to_sfc1d() (+31 more)
 
 ### Community 3 - "domain_decomposition.hpp"
 Cohesion: 0.09
-Nodes (32): exchange_halos(), generate_splitters(), get_deterministic_splitters(), get_global_bounding_box(), get_global_histogram(), FloatT, MPI_Datatype, queue (+24 more)
+Nodes (30): exchange_halos(), generate_splitters(), get_global_bounding_box(), get_global_histogram(), FloatT, MPI_Datatype, queue, mpi_type_traits (+22 more)
 
 ### Community 4 - "DistT"
 Cohesion: 0.14
@@ -133,9 +121,9 @@ Nodes (19): DistT, IdxT, local_accessor, nd_item, local_bitonic_sort(), local_sw
 Cohesion: 0.15
 Nodes (34): vector, particles, id, is_ghost, pos_x, pos_y, pos_z, BFNeighbor (+26 more)
 
-### Community 6 - "Benchmark Comparison (GPU Variations)"
-Cohesion: 0.10
-Nodes (20): 1. `cpu_double` (Periodic BC: OFF), 1. `gpu_double` (Periodic BC: OFF), 2. `cpu_double` (Periodic BC: ON), 2. `gpu_double` (Periodic BC: ON), 3. `cpu_int32` (Periodic BC: OFF), 3. `gpu_int32` (Periodic BC: OFF), 4. `cpu_int32` (Periodic BC: ON), 4. `gpu_int32` (Periodic BC: ON) (+12 more)
+### Community 6 - "4. Comprehensive GPU Benchmark Evaluation (NVIDIA SM_80)"
+Cohesion: 0.06
+Nodes (31): 1. `cpu_double` (Periodic BC: OFF), 1. Executive Summary & Highlights, 1. `gpu_double` (Periodic BC: OFF), 1. Space-Filling Curve (SFC) Grouped Self-kNN Traversal, 2. `cpu_double` (Periodic BC: ON), 2. Detailed Architectural Features, 2. `gpu_double` (Periodic BC: ON), 2. SIMD-Aware Dynamic Sub-Group Dispatching (+23 more)
 
 ### Community 7 - "visualize_benchmarks.py"
 Cohesion: 0.25
@@ -173,29 +161,29 @@ Nodes (6): Benchmark Scaling Chart, KNNQuery Scaling Benchmark, MortonEncode Sca
 Cohesion: 0.60
 Nodes (3): check_tool(), profile_gpu.sh script, usage()
 
-### Community 58 - "main"
-Cohesion: 0.42
-Nodes (8): coord_t, dist_t, int_dist_sq_to_phys(), int_pos_to_phys(), main(), periodic_dist(), phys_pos_to_int(), phys_radius_to_int()
+### Community 26 - "Benchmark Comparison (GPU Variations)"
+Cohesion: 0.09
+Nodes (22): 1. `cpu_double` (Periodic BC: OFF), 1. `gpu_double` (Periodic BC: OFF), 2. `cpu_double` (Periodic BC: ON), 2. `gpu_double` (Periodic BC: ON), 3. `cpu_int32` (Periodic BC: OFF), 3. `gpu_int32` (Periodic BC: OFF), 4. `cpu_int32` (Periodic BC: ON), 4. `gpu_int32` (Periodic BC: ON) (+14 more)
 
 ## Knowledge Gaps
-- **136 isolated node(s):** `mpi_type_traits`, `pos_x`, `pos_y`, `pos_z`, `id` (+131 more)
+- **149 isolated node(s):** `mpi_type_traits`, `pos_x`, `pos_y`, `pos_z`, `id` (+144 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **41 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **29 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `TreeSoA` connect `hlbvh.hpp` to `particles`?**
-  _High betweenness centrality (0.047) - this node is a cross-community bridge._
-- **Why does `build_bvh()` connect `hlbvh.hpp` to `vector`, `sfc.peano_hilbert.hpp`, `domain_decomposition.hpp`, `particles`, `main`?**
-  _High betweenness centrality (0.047) - this node is a cross-community bridge._
+  _High betweenness centrality (0.045) - this node is a cross-community bridge._
+- **Why does `build_bvh()` connect `hlbvh.hpp` to `vector`, `sfc.peano_hilbert.hpp`, `domain_decomposition.hpp`, `particles`?**
+  _High betweenness centrality (0.045) - this node is a cross-community bridge._
 - **Are the 15 inferred relationships involving `build_bvh()` (e.g. with `to_sort_key()` and `main()`) actually correct?**
   _`build_bvh()` has 15 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `mpi_type_traits`, `pos_x`, `pos_y` to the rest of the system?**
-  _136 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _149 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `vector` be split into smaller, more focused modules?**
   _Cohesion score 0.05803571428571429 - nodes in this community are weakly interconnected._
 - **Should `hlbvh.hpp` be split into smaller, more focused modules?**
-  _Cohesion score 0.08514013749338974 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08076923076923077 - nodes in this community are weakly interconnected._
 - **Should `sfc.peano_hilbert.hpp` be split into smaller, more focused modules?**
-  _Cohesion score 0.09041835357624832 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07585568917668825 - nodes in this community are weakly interconnected._

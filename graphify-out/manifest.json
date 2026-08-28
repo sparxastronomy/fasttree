@@ -5,12 +5,12 @@
     "semantic_hash": ""
   },
   "src/domain_decomposition.hpp": {
-    "mtime": 1787861316.940818,
+    "mtime": 1787861851.662838,
     "ast_hash": "cd898715651332ad9e3a12c78b7e1797",
     "semantic_hash": ""
   },
   "src/hlbvh.hpp": {
-    "mtime": 1787860979.22879,
+    "mtime": 1787861853.474478,
     "ast_hash": "e5ee83a85b0e4cafa100718f1b8b5a43",
     "semantic_hash": ""
   },
@@ -20,7 +20,7 @@
     "semantic_hash": "b5a6ea984ab693ace783a50fd6e2e194"
   },
   "src/sfc.peano_hilbert.hpp": {
-    "mtime": 1787684533.093878,
+    "mtime": 1787861882.383549,
     "ast_hash": "56fcf19c5362561db9a45f4acb988e42",
     "semantic_hash": "56fcf19c5362561db9a45f4acb988e42"
   },
@@ -85,8 +85,8 @@
     "semantic_hash": "30460078326b525067100910ca92f41c"
   },
   "test/main.cpp": {
-    "mtime": 1787860501.08735,
-    "ast_hash": "2988c0dfabce7575af78d61ddf60aa61",
+    "mtime": 1787861864.341717,
+    "ast_hash": "e73461668b84f70f5316c4f5300d6fc4",
     "semantic_hash": ""
   },
   "test/test_bb.cpp": {
@@ -100,7 +100,7 @@
     "semantic_hash": "bfb0eb7ae44b5435a2ece17a9b705217"
   },
   "test/test_domain_decomposition.cpp": {
-    "mtime": 1787861502.650853,
+    "mtime": 1787861849.866084,
     "ast_hash": "ebf7b1f67c5f6db61dc505ec363825c1",
     "semantic_hash": ""
   },
@@ -135,13 +135,13 @@
     "semantic_hash": "34002a33da52c47a5661017f09ea85ff"
   },
   "CMakeLists.txt": {
-    "mtime": 1787813355.993465,
+    "mtime": 1787861877.916717,
     "ast_hash": "0a430974c5cb88d1ee76cfb597c79cf7",
     "semantic_hash": ""
   },
   "DESIGN.md": {
-    "mtime": 1787691003.105264,
-    "ast_hash": "27b73694b0a32899d5f092388e123e45",
+    "mtime": 1787900163.630638,
+    "ast_hash": "82e26da39fb8d1ddf5336e9fb7c253b1",
     "semantic_hash": ""
   },
   "PLAN.md": {
@@ -150,14 +150,14 @@
     "semantic_hash": "aff3b1efec7cb13e2e06762bfc895f01"
   },
   "PROGRESS.md": {
-    "mtime": 1787861421.752808,
-    "ast_hash": "04cb8dd3b9c2a6ffa4d628fd2c77e27d",
+    "mtime": 1787900189.222906,
+    "ast_hash": "400851645a0fdb276ffbd35905fc7148",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1782799202.1144295,
-    "ast_hash": "64618a38b3ee5ceb42e90ad8cf3b5e7c",
-    "semantic_hash": "64618a38b3ee5ceb42e90ad8cf3b5e7c"
+    "mtime": 1787900730.190013,
+    "ast_hash": "038c246c30c63e9f10467d854c7799f1",
+    "semantic_hash": ""
   },
   "docs/API_REFERENCE.md": {
     "mtime": 1785923915.1642156,
@@ -245,33 +245,33 @@
     "semantic_hash": "75e668e753d51f63cfa4d09e03aa7033"
   },
   "docs/benchmark_results/scaling_cpu_double_periodic_off.md": {
-    "mtime": 1786217598.149878,
-    "ast_hash": "f6ed45ab53f0fee67d3a9017b9ea91f0",
+    "mtime": 1787893730.50283,
+    "ast_hash": "fc2cc01a22baa429265b73c007f54f38",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_cpu_double_periodic_on.md": {
-    "mtime": 1786216539.546448,
-    "ast_hash": "b7621f37f4cb7f4a14ddfb5cac69931c",
+    "mtime": 1787893772.850865,
+    "ast_hash": "2918bdd6c30fc31d3bf428d79e695a6b",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_cpu_int32_periodic_off.md": {
-    "mtime": 1786216619.848933,
-    "ast_hash": "dfc3012ca824623a17dce8d2320706ce",
+    "mtime": 1787893792.189248,
+    "ast_hash": "a8997ff5dd4e23fdd32243d963134113",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_cpu_int32_periodic_on.md": {
-    "mtime": 1786216648.030824,
-    "ast_hash": "22896360276e60dfbaf842118ca7b0b4",
+    "mtime": 1787893808.847702,
+    "ast_hash": "ebcc44eda7669d24f5b0c7922dac4de4",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_cpu_int64_periodic_off.md": {
-    "mtime": 1786216686.57965,
-    "ast_hash": "24cf2c83a3ece8927f130b2e7189eea6",
+    "mtime": 1787893829.936442,
+    "ast_hash": "b6492e1e5d6a5215381f60ea56f440e6",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_cpu_int64_periodic_on.md": {
-    "mtime": 1786216953.485988,
-    "ast_hash": "29417e8701a059acdcd4a2dc65dacffc",
+    "mtime": 1787893852.402631,
+    "ast_hash": "8b77f3eab3f0bbf655de15bb5952b433",
     "semantic_hash": ""
   },
   "test/benchmark/run_single_scaling.sh": {
@@ -285,103 +285,48 @@
     "semantic_hash": "e2bf41973101780c6b28159eab68af1b"
   },
   "test/test_self_knn.cpp": {
-    "mtime": 1787860509.333936,
-    "ast_hash": "06f4ade163de8c8dbb82e7bda7b9ab8f",
+    "mtime": 1787861858.862427,
+    "ast_hash": "6a290875ed3d27dcc4b03d9e4cea9159",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_gpu_double_periodic_off.md": {
-    "mtime": 1786216085.388026,
-    "ast_hash": "b4932ae07a82fbb41b713b055cc4df54",
+    "mtime": 1787893917.899815,
+    "ast_hash": "967dbe7b95af846cee977a137c6455bc",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_gpu_double_periodic_on.md": {
-    "mtime": 1786213494.357977,
-    "ast_hash": "80969487c0816e39606df230df097ca4",
+    "mtime": 1787893937.654962,
+    "ast_hash": "ce6383629ac6f4e14557f0aa52e5f49d",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_gpu_int32_periodic_off.md": {
-    "mtime": 1786215092.7073615,
-    "ast_hash": "a3ceab417e167bfe05cde0a92d321e92",
+    "mtime": 1787893984.461948,
+    "ast_hash": "3ccacb035bcdbbd219ea3538de421901",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_gpu_int32_periodic_on.md": {
-    "mtime": 1786216046.830016,
-    "ast_hash": "98ba7db5e58fb47e146560d11a75b5d8",
+    "mtime": 1787894011.628594,
+    "ast_hash": "245d55399aae182a188c907b65040685",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_gpu_int64_periodic_off.md": {
-    "mtime": 1786205197.7748456,
-    "ast_hash": "33716ecca19779b071c38d79a7bde28b",
+    "mtime": 1787894032.339168,
+    "ast_hash": "6ba0ae2ceb8411c938546d7a0335e5ed",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_gpu_int64_periodic_on.md": {
-    "mtime": 1786206191.2780654,
-    "ast_hash": "56a52a1f9f68d8493f2fc6134841f45c",
+    "mtime": 1787894056.269457,
+    "ast_hash": "23c65d5d785259a27e89b6fe1cd090d8",
     "semantic_hash": ""
   },
-  "release_1.2.0-beta1.md": {
-    "mtime": 1787816372.703634,
-    "ast_hash": "4748adff4ef7d3352b912c55b3bc1f5e",
+  "release_notes/releasenote_1.2.0.md": {
+    "mtime": 1787899978.339307,
+    "ast_hash": "879441534210507fae35b7d731ea6fea",
     "semantic_hash": ""
   },
-  "docs/benchmark_results/scaling_cpu_double_self_knn_periodic_off.md": {
-    "mtime": 1787834639.2705047,
-    "ast_hash": "13e5c3918b1d9381d6e065a8f440c77e",
-    "semantic_hash": ""
-  },
-  "docs/benchmark_results/scaling_cpu_double_self_knn_periodic_on.md": {
-    "mtime": 1787834837.6380608,
-    "ast_hash": "73eb9a063d3bb77c18e7881ffd5fe970",
-    "semantic_hash": ""
-  },
-  "docs/benchmark_results/scaling_cpu_int32_self_knn_periodic_off.md": {
-    "mtime": 1787835315.4765441,
-    "ast_hash": "6cfce1d4c7c5a2a920f6785584bf34f8",
-    "semantic_hash": ""
-  },
-  "docs/benchmark_results/scaling_cpu_int32_self_knn_periodic_on.md": {
-    "mtime": 1787835522.2883017,
-    "ast_hash": "7c2b2111b2045bffaaabacbe48579674",
-    "semantic_hash": ""
-  },
-  "docs/benchmark_results/scaling_cpu_int64_self_knn_periodic_off.md": {
-    "mtime": 1787838094.9321496,
-    "ast_hash": "e169f3fb80ae84c419ea39ce61429a62",
-    "semantic_hash": ""
-  },
-  "docs/benchmark_results/scaling_cpu_int64_self_knn_periodic_on.md": {
-    "mtime": 1787838296.273661,
-    "ast_hash": "421d901cd919dc6b2d47ca6b4c4cd775",
-    "semantic_hash": ""
-  },
-  "docs/benchmark_results/scaling_gpu_double_self_knn_periodic_off.md": {
-    "mtime": 1787813588.5408669,
-    "ast_hash": "52f559c1c6686da121a3a2915e1f89e2",
-    "semantic_hash": ""
-  },
-  "docs/benchmark_results/scaling_gpu_double_self_knn_periodic_on.md": {
-    "mtime": 1787813754.8487,
-    "ast_hash": "ce1b8c38a464a0b0d304f8f39a4f519f",
-    "semantic_hash": ""
-  },
-  "docs/benchmark_results/scaling_gpu_int32_self_knn_periodic_off.md": {
-    "mtime": 1787813928.7367947,
-    "ast_hash": "ed9c632e5a0ec78213184abad2f830e5",
-    "semantic_hash": ""
-  },
-  "docs/benchmark_results/scaling_gpu_int32_self_knn_periodic_on.md": {
-    "mtime": 1787814097.1425695,
-    "ast_hash": "eaf42f753fd79bbc4e22db97ba2b8b5b",
-    "semantic_hash": ""
-  },
-  "docs/benchmark_results/scaling_gpu_int64_self_knn_periodic_off.md": {
-    "mtime": 1787814277.841438,
-    "ast_hash": "af9c86eb37f302683ca407487fd6f4df",
-    "semantic_hash": ""
-  },
-  "docs/benchmark_results/scaling_gpu_int64_self_knn_periodic_on.md": {
-    "mtime": 1787814449.1902819,
-    "ast_hash": "0d08f0a09a4331ef73e08145b0677560",
+  "release_notes/supp_releasenotes_1.2.0-beta1.md": {
+    "mtime": 1787897445.791142,
+    "ast_hash": "2fd1c5f4d55675114cd50c5c42ef0611",
     "semantic_hash": ""
   }
 }
