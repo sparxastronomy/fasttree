@@ -103,7 +103,7 @@ The project is designed to be included as a Git submodule. The core implementati
   - Adding support for using integer coordinates instead of floating point coordinates for tree construction. This allows for native downstream usage of this tree utility in cosmological simulations
   - From from Priority Queue to a more efficient Max-Heap structure. This should improve the performance of the batched query.
 
-- [ ] **v.1.2.0-beta1 :** This release focuss on improving the performance of the self-kNN query, which is used in the Voronoi mesh generation. This release will focus on two major changes:
+- [ ] **v.1.2.0 :** This release focuss on improving the performance of the self-kNN query, which is used in the Voronoi mesh generation. This release will focus on two major changes:
   - SFC-grouped `self_knn_query` to improve the performance of the self-kNN query by grouping queries based on their spatial locality.
   - Warp-merge shared heap to improve the performance of the self-kNN query by merging the results of multiple queries into a single shared heap.
-  - See `release_1.2.0-beta1.md` for more details on the changes and the test plan.
+  - See `release_notes/supp_releasenotes_1.2.0-beta1.md` for more details on the changes and the test plan.
