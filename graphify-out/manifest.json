@@ -1,53 +1,53 @@
 {
   ".gemini/settings.json": {
     "mtime": 1785923915.155658,
-    "ast_hash": "15e6a27decf18d1f3f689160f770e031",
-    "semantic_hash": "15e6a27decf18d1f3f689160f770e031"
+    "ast_hash": "",
+    "semantic_hash": ""
   },
   "src/domain_decomposition.hpp": {
-    "mtime": 1785923915.1721857,
-    "ast_hash": "0fcf3aa62e25ff4e761c8d23773e332c",
-    "semantic_hash": "0fcf3aa62e25ff4e761c8d23773e332c"
+    "mtime": 1787861851.662838,
+    "ast_hash": "cd898715651332ad9e3a12c78b7e1797",
+    "semantic_hash": ""
   },
   "src/hlbvh.hpp": {
-    "mtime": 1786011999.598229,
-    "ast_hash": "1165392c6efc1602ed2e58f50efb842f",
+    "mtime": 1787861853.474478,
+    "ast_hash": "e5ee83a85b0e4cafa100718f1b8b5a43",
     "semantic_hash": ""
   },
   "src/sfc.morton.hpp": {
     "mtime": 1785956694.5147848,
     "ast_hash": "b5a6ea984ab693ace783a50fd6e2e194",
-    "semantic_hash": ""
+    "semantic_hash": "b5a6ea984ab693ace783a50fd6e2e194"
   },
   "src/sfc.peano_hilbert.hpp": {
-    "mtime": 1786016745.117982,
-    "ast_hash": "c243eea1c1dc81f3fb3e864b2e11a657",
-    "semantic_hash": ""
+    "mtime": 1787861882.383549,
+    "ast_hash": "56fcf19c5362561db9a45f4acb988e42",
+    "semantic_hash": "56fcf19c5362561db9a45f4acb988e42"
   },
   "test/advance_mpi.cpp": {
     "mtime": 1785923915.176598,
     "ast_hash": "44b83c460d964b2409503ecbc57c7d66",
-    "semantic_hash": ""
+    "semantic_hash": "44b83c460d964b2409503ecbc57c7d66"
   },
   "test/benchmark/BenchmarkUtils.hpp": {
-    "mtime": 1786096621.01038,
-    "ast_hash": "843cb5643661667eb5a78ad8d88b3572",
-    "semantic_hash": ""
+    "mtime": 1786204103.701937,
+    "ast_hash": "7ca19e706c18308dceada9a41e960ce7",
+    "semantic_hash": "7ca19e706c18308dceada9a41e960ce7"
   },
   "test/benchmark/domain_decomposition_scaling.cpp": {
     "mtime": 1785956811.35778,
     "ast_hash": "8852b7f5e6359ab8c93e09324ed7a562",
-    "semantic_hash": ""
+    "semantic_hash": "8852b7f5e6359ab8c93e09324ed7a562"
   },
   "test/benchmark/gpu_sort_scaling.cpp": {
     "mtime": 1786094700.138677,
     "ast_hash": "0fe75a526f6c62719ce8e2766bfb7884",
-    "semantic_hash": ""
+    "semantic_hash": "0fe75a526f6c62719ce8e2766bfb7884"
   },
   "test/benchmark/knn_query_scaling.cpp": {
     "mtime": 1786094709.5726647,
     "ast_hash": "30134a5a1240ad378ecf360b9edcc231",
-    "semantic_hash": ""
+    "semantic_hash": "30134a5a1240ad378ecf360b9edcc231"
   },
   "test/benchmark/profile_cpu.sh": {
     "mtime": 1782799202.123576,
@@ -62,12 +62,12 @@
   "test/benchmark/range_query_scaling.cpp": {
     "mtime": 1786094707.3064642,
     "ast_hash": "e7a2f23e963e03e4d8cf9321c88e754c",
-    "semantic_hash": ""
+    "semantic_hash": "e7a2f23e963e03e4d8cf9321c88e754c"
   },
   "test/benchmark/rebuild_scaling.cpp": {
     "mtime": 1786094704.3420603,
     "ast_hash": "12231314abc1291c3013af0d0ee6a04e",
-    "semantic_hash": ""
+    "semantic_hash": "12231314abc1291c3013af0d0ee6a04e"
   },
   "test/benchmark/run_all_variations.sh": {
     "mtime": 1782799202.12503,
@@ -77,47 +77,47 @@
   "test/benchmark/sfc_encoding_scaling.cpp": {
     "mtime": 1786094697.2531805,
     "ast_hash": "6d1af2190c03bf914a6961abffea4beb",
-    "semantic_hash": ""
+    "semantic_hash": "6d1af2190c03bf914a6961abffea4beb"
   },
   "test/benchmark/tree_build_scaling.cpp": {
     "mtime": 1786094702.065264,
     "ast_hash": "30460078326b525067100910ca92f41c",
-    "semantic_hash": ""
+    "semantic_hash": "30460078326b525067100910ca92f41c"
   },
   "test/main.cpp": {
-    "mtime": 1785956793.027003,
-    "ast_hash": "71c46511f8dc93778ef7784d6d890ce0",
+    "mtime": 1787861864.341717,
+    "ast_hash": "e73461668b84f70f5316c4f5300d6fc4",
     "semantic_hash": ""
   },
   "test/test_bb.cpp": {
     "mtime": 1785956794.819348,
     "ast_hash": "69605cfb1c2c1b9bc0ee15d2288218c7",
-    "semantic_hash": ""
+    "semantic_hash": "69605cfb1c2c1b9bc0ee15d2288218c7"
   },
   "test/test_depth.cpp": {
     "mtime": 1785956796.1158385,
     "ast_hash": "bfb0eb7ae44b5435a2ece17a9b705217",
-    "semantic_hash": ""
+    "semantic_hash": "bfb0eb7ae44b5435a2ece17a9b705217"
   },
   "test/test_domain_decomposition.cpp": {
-    "mtime": 1785956797.367381,
-    "ast_hash": "ca7106826d2eb3001fafef7b708a1b07",
+    "mtime": 1787861849.866084,
+    "ast_hash": "ebf7b1f67c5f6db61dc505ec363825c1",
     "semantic_hash": ""
   },
   "test/test_mpi.cpp": {
     "mtime": 1785956798.810724,
     "ast_hash": "0721cfa6c42213d823aa7a783014942d",
-    "semantic_hash": ""
+    "semantic_hash": "0721cfa6c42213d823aa7a783014942d"
   },
   "test/test_query.cpp": {
-    "mtime": 1785956800.3798332,
-    "ast_hash": "2d6e214c8fb854b055f9f94654f64812",
-    "semantic_hash": ""
+    "mtime": 1787724126.7135947,
+    "ast_hash": "0a7e5c87e27bdd118466866e0557f468",
+    "semantic_hash": "0a7e5c87e27bdd118466866e0557f468"
   },
   "test/test_sycl.cpp": {
     "mtime": 1785956802.2427022,
     "ast_hash": "571f075cd0066e2e17ae0357b396697e",
-    "semantic_hash": ""
+    "semantic_hash": "571f075cd0066e2e17ae0357b396697e"
   },
   ".agents/rules/graphify.md": {
     "mtime": 1785923915.1541772,
@@ -135,29 +135,29 @@
     "semantic_hash": "34002a33da52c47a5661017f09ea85ff"
   },
   "CMakeLists.txt": {
-    "mtime": 1786095280.420839,
-    "ast_hash": "cef6d79be93b4a481833182a9918b47b",
+    "mtime": 1787861877.916717,
+    "ast_hash": "0a430974c5cb88d1ee76cfb597c79cf7",
     "semantic_hash": ""
   },
   "DESIGN.md": {
-    "mtime": 1785923915.1607866,
-    "ast_hash": "00983273f26182e3df6823c955dac9d4",
-    "semantic_hash": "00983273f26182e3df6823c955dac9d4"
+    "mtime": 1787900163.630638,
+    "ast_hash": "82e26da39fb8d1ddf5336e9fb7c253b1",
+    "semantic_hash": ""
   },
   "PLAN.md": {
-    "mtime": 1782799202.1136975,
+    "mtime": 1787690143.601192,
     "ast_hash": "aff3b1efec7cb13e2e06762bfc895f01",
     "semantic_hash": "aff3b1efec7cb13e2e06762bfc895f01"
   },
   "PROGRESS.md": {
-    "mtime": 1786197785.509391,
-    "ast_hash": "b69b29f4f26d45aa46a9cbc51e8a9e52",
+    "mtime": 1787900189.222906,
+    "ast_hash": "400851645a0fdb276ffbd35905fc7148",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1782799202.1144295,
-    "ast_hash": "64618a38b3ee5ceb42e90ad8cf3b5e7c",
-    "semantic_hash": "64618a38b3ee5ceb42e90ad8cf3b5e7c"
+    "mtime": 1787900730.190013,
+    "ast_hash": "038c246c30c63e9f10467d854c7799f1",
+    "semantic_hash": ""
   },
   "docs/API_REFERENCE.md": {
     "mtime": 1785923915.1642156,
@@ -200,8 +200,8 @@
     "semantic_hash": "93ddaa665567763f5f53efa8998b7e88"
   },
   "test/benchmark/CMakeLists.txt": {
-    "mtime": 1786094924.364511,
-    "ast_hash": "1d082d96dfe6406af83bb21491bcd43e",
+    "mtime": 1786201295.1690238,
+    "ast_hash": "10b486d37d613eb3f9ccf38dba7e3cb4",
     "semantic_hash": ""
   },
   "docs/HLBVH-final.pdf": {
@@ -215,9 +215,9 @@
     "semantic_hash": "f21e4e1d0fe14580af1e3eba9c069705"
   },
   "src/maxheap.hpp": {
-    "mtime": 1785956688.197122,
-    "ast_hash": "f073ab1c3111a8d886fa734e3d95c9bc",
-    "semantic_hash": ""
+    "mtime": 1787774064.526591,
+    "ast_hash": "167d020e23f525f47b8aed5f9852b4af",
+    "semantic_hash": "167d020e23f525f47b8aed5f9852b4af"
   },
   ".agents/rules/ponytail.md": {
     "mtime": 1785923915.1544304,
@@ -225,53 +225,108 @@
     "semantic_hash": ""
   },
   "test/benchmark/run_cpu_scaling.sh": {
-    "mtime": 1786105261.523964,
-    "ast_hash": "825dbb2be4385beaebbb33cde32a1358",
-    "semantic_hash": ""
+    "mtime": 1786201298.6762686,
+    "ast_hash": "db21f141c73e7625b6e5790d5bcc757d",
+    "semantic_hash": "db21f141c73e7625b6e5790d5bcc757d"
   },
   "scripts/generate_benchmark_plots.py": {
     "mtime": 1786104000.022019,
     "ast_hash": "9e27abb2af573670c749d2747618b1fc",
-    "semantic_hash": ""
+    "semantic_hash": "9e27abb2af573670c749d2747618b1fc"
   },
   "scripts/visualize_benchmarks.py": {
-    "mtime": 1786105248.795968,
-    "ast_hash": "6647870ca0df987f85ddcf82fd489b23",
-    "semantic_hash": ""
+    "mtime": 1786219987.198588,
+    "ast_hash": "948d36703b53948329ed8c762933862a",
+    "semantic_hash": "948d36703b53948329ed8c762933862a"
   },
   "test/benchmark/run_gpu_scaling.sh": {
-    "mtime": 1786197708.127275,
-    "ast_hash": "c0b46e269fe610e87288d171ec85c10e",
-    "semantic_hash": ""
+    "mtime": 1786220065.0090728,
+    "ast_hash": "75e668e753d51f63cfa4d09e03aa7033",
+    "semantic_hash": "75e668e753d51f63cfa4d09e03aa7033"
   },
   "docs/benchmark_results/scaling_cpu_double_periodic_off.md": {
-    "mtime": 1786098219.245785,
-    "ast_hash": "d530a12f0a55f360781b666836e51d5a",
+    "mtime": 1787893730.50283,
+    "ast_hash": "fc2cc01a22baa429265b73c007f54f38",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_cpu_double_periodic_on.md": {
-    "mtime": 1786098751.6292238,
-    "ast_hash": "7623619cf40aeeac319102fe30936116",
+    "mtime": 1787893772.850865,
+    "ast_hash": "2918bdd6c30fc31d3bf428d79e695a6b",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_cpu_int32_periodic_off.md": {
-    "mtime": 1786099319.1764746,
-    "ast_hash": "068defc8a1ec2078a9516cec11a4fa30",
+    "mtime": 1787893792.189248,
+    "ast_hash": "a8997ff5dd4e23fdd32243d963134113",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_cpu_int32_periodic_on.md": {
-    "mtime": 1786099898.1043916,
-    "ast_hash": "f22e466dc60982d2f20efd0c1d546123",
+    "mtime": 1787893808.847702,
+    "ast_hash": "ebcc44eda7669d24f5b0c7922dac4de4",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_cpu_int64_periodic_off.md": {
-    "mtime": 1786100469.8952382,
-    "ast_hash": "525fe2a1aa894c78af098e3020766f63",
+    "mtime": 1787893829.936442,
+    "ast_hash": "b6492e1e5d6a5215381f60ea56f440e6",
     "semantic_hash": ""
   },
   "docs/benchmark_results/scaling_cpu_int64_periodic_on.md": {
-    "mtime": 1786101056.2083073,
-    "ast_hash": "c0383b6bed22f994fbbdba8ab4ede6c0",
+    "mtime": 1787893852.402631,
+    "ast_hash": "8b77f3eab3f0bbf655de15bb5952b433",
+    "semantic_hash": ""
+  },
+  "test/benchmark/run_single_scaling.sh": {
+    "mtime": 1787839197.434833,
+    "ast_hash": "1cfae869588c45bb9a213f6de84385b6",
+    "semantic_hash": "1cfae869588c45bb9a213f6de84385b6"
+  },
+  "test/benchmark/self_knn_query_scaling.cpp": {
+    "mtime": 1787839204.385496,
+    "ast_hash": "e2bf41973101780c6b28159eab68af1b",
+    "semantic_hash": "e2bf41973101780c6b28159eab68af1b"
+  },
+  "test/test_self_knn.cpp": {
+    "mtime": 1787861858.862427,
+    "ast_hash": "6a290875ed3d27dcc4b03d9e4cea9159",
+    "semantic_hash": ""
+  },
+  "docs/benchmark_results/scaling_gpu_double_periodic_off.md": {
+    "mtime": 1787893917.899815,
+    "ast_hash": "967dbe7b95af846cee977a137c6455bc",
+    "semantic_hash": ""
+  },
+  "docs/benchmark_results/scaling_gpu_double_periodic_on.md": {
+    "mtime": 1787893937.654962,
+    "ast_hash": "ce6383629ac6f4e14557f0aa52e5f49d",
+    "semantic_hash": ""
+  },
+  "docs/benchmark_results/scaling_gpu_int32_periodic_off.md": {
+    "mtime": 1787893984.461948,
+    "ast_hash": "3ccacb035bcdbbd219ea3538de421901",
+    "semantic_hash": ""
+  },
+  "docs/benchmark_results/scaling_gpu_int32_periodic_on.md": {
+    "mtime": 1787894011.628594,
+    "ast_hash": "245d55399aae182a188c907b65040685",
+    "semantic_hash": ""
+  },
+  "docs/benchmark_results/scaling_gpu_int64_periodic_off.md": {
+    "mtime": 1787894032.339168,
+    "ast_hash": "6ba0ae2ceb8411c938546d7a0335e5ed",
+    "semantic_hash": ""
+  },
+  "docs/benchmark_results/scaling_gpu_int64_periodic_on.md": {
+    "mtime": 1787894056.269457,
+    "ast_hash": "23c65d5d785259a27e89b6fe1cd090d8",
+    "semantic_hash": ""
+  },
+  "release_notes/releasenote_1.2.0.md": {
+    "mtime": 1787899978.339307,
+    "ast_hash": "879441534210507fae35b7d731ea6fea",
+    "semantic_hash": ""
+  },
+  "release_notes/supp_releasenotes_1.2.0-beta1.md": {
+    "mtime": 1787897445.791142,
+    "ast_hash": "2fd1c5f4d55675114cd50c5c42ef0611",
     "semantic_hash": ""
   }
 }

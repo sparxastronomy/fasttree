@@ -1,4 +1,4 @@
-#include "../src/hlbvh.hpp"
+#include "hlbvh.hpp"
 #include <sycl/sycl.hpp>
 #include <algorithm>
 #include <cmath>
@@ -70,8 +70,8 @@ static double periodic_dist(double a, double b, double box_size) {
 
 // ----------------------------------------------------------------
 int main() {
-    auto        *q_ptr = new sycl::queue(sycl::default_selector_v);
-    sycl::queue &q     = *q_ptr;
+    auto *q_ptr    = new sycl::queue(sycl::default_selector_v, sycl::property::queue::in_order{});
+    sycl::queue &q = *q_ptr;
     std::cout << "Selected Device: " << q.get_device().get_info<sycl::info::device::name>() << "\n";
 
     const double box_min  = 0.0;

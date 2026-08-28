@@ -1,4 +1,4 @@
-#include "../src/hlbvh.hpp"
+#include "hlbvh.hpp"
 #include <iostream>
 
 using namespace fasttree;

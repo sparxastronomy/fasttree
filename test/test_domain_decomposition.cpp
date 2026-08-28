@@ -509,7 +509,7 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    sycl::queue q;
+    sycl::queue q{sycl::default_selector_v, sycl::property::queue::in_order{}};
 
     if (rank == 0) {
         std::cout << "=== Standalone CPU/GPU Splitter Tests ===" << std::endl;

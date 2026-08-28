@@ -1,111 +1,90 @@
-# Graph Report - fasttree  (2026-08-08)
+# Graph Report - fasttree  (2026-08-28)
 
 ## Corpus Check
-- 51 files · ~141,547 words
+- 62 files · ~173,396 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 340 nodes · 522 edges · 68 communities (16 shown, 52 thin omitted)
-- Extraction: 84% EXTRACTED · 16% INFERRED · 0% AMBIGUOUS · INFERRED: 83 edges (avg confidence: 0.8)
+- 462 nodes · 882 edges · 47 communities (18 shown, 29 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 109 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8570383c`
+- Built from commit: `6b8b22b7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- Utilities & Benchmark Helpers
-- HLBVH Tree Construction
-- Morton Encoding & Key Sorting
-- Domain Decomposition & MPI Halos
-- BoundingBox
-- Particle SoA & Field Storage
-- Bounding Box & Spatial Bounds
-- IEEE 754 Floating-Point Traits
-- MPI Datatype Traits & Communication
-- CPU Profiling Scripts & Options
-- MPI Testing Suite
-- Architecture & Design Specifications
-- CPU/GPU Benchmark Reports
-- Scaling & Performance Benchmarks
-- GPU Profiling Tools
-- Variation Runner Scripts
-- Pointer-Free Tree Architecture
-- Structure of Arrays (SoA) Standard
-- CMake Build System
-- Range & kNN Traversal API
-- SYCL Test Suite
-- Graphify Rule System
-- Graphify Workflow Operations
-- Compress-Sort-Decompress (CSD) Pattern
-- Intra-Voxel Local Memory Sort
-- SYCL & oneDPL Backend Setup
-- Testing Infrastructure Guidelines
-- main
-- FastTree Core Overview
+- vector
+- hlbvh.hpp
+- sfc.peano_hilbert.hpp
+- domain_decomposition.hpp
+- DistT
+- particles
+- 4. Comprehensive GPU Benchmark Evaluation (NVIDIA SM_80)
+- visualize_benchmarks.py
+- advance_mpi.cpp
+- test_mpi.cpp
+- ieee754_traits<double>
+- profile_cpu.sh
+- HPC C++ & SYCL Developer Role
+- Profiling Analysis Report
+- Benchmark Scaling Chart
+- profile_gpu.sh
+- generate_benchmark_plots.py
+- run_all_variations.sh
+- run_cpu_scaling.sh
+- Pointer-Free Prime Directive
+- ponytail.md
+- Structure of Arrays (SoA) Mandatory Layout
+- Root CMake Build System
+- Range and kNN Query Traversal
 - scaling_cpu_double_periodic_off.md
 - scaling_cpu_double_periodic_on.md
+- Benchmark Comparison (GPU Variations)
 - scaling_cpu_int32_periodic_off.md
 - scaling_cpu_int32_periodic_on.md
 - scaling_cpu_int64_periodic_off.md
 - scaling_cpu_int64_periodic_on.md
+- scaling_gpu_double_periodic_off.md
+- scaling_gpu_double_periodic_on.md
+- scaling_gpu_int32_periodic_off.md
+- scaling_gpu_int32_periodic_on.md
+- scaling_gpu_int64_periodic_off.md
+- scaling_gpu_int64_periodic_on.md
 - run_gpu_scaling.sh
-- ponytail.md
-- FloatT
-- MPI_Datatype
-- queue
-- coord_t
-- dist_t
-- FloatT
-- queue
-- sfc1D
-- T
-- vector
-- sfc1D
-- FloatT
-- MPI_Datatype
-- string
-- State
-- string
-- State
-- string
-- State
-- string
-- State
-- string
-- State
-- string
-- State
-- string
-- coord_t
-- dist_t
-- queue
-- MPI_Datatype
+- run_single_scaling.sh
+- Graphify Rule Guidelines
+- Graphify Workflow
+- Compress-Sort-Decompress (CSD) Pattern
+- Intra-Voxel Local Memory Sort
+- SYCL and oneDPL Heterogeneous Backend
+- Testing Framework Documentation
+- FastTree Project Overview
 
 ## God Nodes (most connected - your core abstractions)
-1. `TreeSoA` - 23 edges
-2. `build_bvh()` - 19 edges
-3. `sfc_encode()` - 17 edges
-4. `RegisterMaxHeap` - 15 edges
-5. `build_tree()` - 14 edges
-6. `range_query()` - 14 edges
-7. `ParticleData` - 14 edges
-8. `BoundingBox` - 13 edges
-9. `sfc_key` - 12 edges
-10. `test_mpi_pipeline()` - 12 edges
+1. `TreeSoA` - 31 edges
+2. `build_bvh()` - 26 edges
+3. `particles` - 23 edges
+4. `sfc_encode()` - 20 edges
+5. `sfc_key` - 18 edges
+6. `build_tree()` - 16 edges
+7. `range_query()` - 16 edges
+8. `RegisterMaxHeap` - 15 edges
+9. `BoundingBox` - 14 edges
+10. `ParticleData` - 14 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Pointer-Free Tree Topologies` --semantically_similar_to--> `Pointer-Free Prime Directive`  [INFERRED] [semantically similar]
   DESIGN.md → AGENTS.md
 - `Structure of Arrays Data Layout` --semantically_similar_to--> `Structure of Arrays (SoA) Mandatory Layout`  [INFERRED] [semantically similar]
   DESIGN.md → AGENTS.md
+- `main()` --calls--> `get_deterministic_splitters()`  [INFERRED]
+  test/benchmark/domain_decomposition_scaling.cpp → src/domain_decomposition.hpp
+- `test_mpi_pipeline()` --calls--> `get_deterministic_splitters()`  [INFERRED]
+  test/test_domain_decomposition.cpp → src/domain_decomposition.hpp
 - `BM_GPUSort_Lazy()` --calls--> `sfc_encode()`  [INFERRED]
   test/benchmark/gpu_sort_scaling.cpp → src/hlbvh.hpp
-- `BM_MortonEncode_Lazy()` --calls--> `sfc_encode()`  [INFERRED]
-  test/benchmark/sfc_encoding_scaling.cpp → src/hlbvh.hpp
-- `main()` --calls--> `sfc_encode()`  [INFERRED]
-  test/main.cpp → src/hlbvh.hpp
 
 ## Import Cycles
 - None detected.
@@ -116,87 +95,95 @@
 - **Tree Construction Pipeline Scaling Benchmarks** — docs_benchmark_scaling_morton_encode, docs_benchmark_scaling_radix_sort, docs_benchmark_scaling_tree_build [INFERRED 0.85]
 - **Spatial Traversal & Search Scaling Benchmarks** — docs_benchmark_scaling_chart, docs_benchmark_scaling_knn_query, docs_benchmark_scaling_range_query [INFERRED 0.85]
 
-## Communities (68 total, 52 thin omitted)
+## Communities (47 total, 29 thin omitted)
 
-### Community 0 - "Utilities & Benchmark Helpers"
+### Community 0 - "vector"
+Cohesion: 0.06
+Nodes (54): vector, compute_optimal_knn_batch_size(), fill_particle_coords(), get_available_device_memory(), get_peak_rss(), coord_t, queue, string (+46 more)
+
+### Community 1 - "hlbvh.hpp"
 Cohesion: 0.08
-Nodes (36): fill_particle_coords(), get_peak_rss(), coord_t, string, T, vector, load_hdf5_data(), ParticleData (+28 more)
+Nodes (59): sort_key_t, build_bvh(), build_tree(), compute_bbox(), copy_back_and_free(), dispatch_self_knn_grouped_large_k(), dispatch_self_knn_grouped_small_k(), encode_to_sfc1d() (+51 more)
 
-### Community 1 - "HLBVH Tree Construction"
-Cohesion: 0.07
-Nodes (46): uint64_t, build_bvh(), build_tree(), compute_bbox(), copy_back_and_free(), encode_to_sfc1d(), ensure_device_readable(), ensure_device_writable() (+38 more)
-
-### Community 2 - "Morton Encoding & Key Sorting"
-Cohesion: 0.11
-Nodes (27): MyIntPosType, MyIntPosTypeSigned, PosType, sort_key_t, convert_to_sfc1d(), convert_to_sfc1d_impl(), float_to_int_rep(), get_lo_word() (+19 more)
-
-### Community 3 - "Domain Decomposition & MPI Halos"
+### Community 2 - "sfc.peano_hilbert.hpp"
 Cohesion: 0.08
-Nodes (28): exchange_halos(), generate_splitters(), get_deterministic_splitters(), get_global_bounding_box(), get_global_histogram(), mpi_type_traits, mpi_type_traits<double>, mpi_type_traits<float> (+20 more)
+Nodes (39): MyIntPosType, MyIntPosTypeSigned, PosType, get_deterministic_splitters(), compact3_u64(), sfc1D, spread3_u64(), convert_to_sfc1d() (+31 more)
 
-### Community 5 - "Particle SoA & Field Storage"
-Cohesion: 0.16
-Nodes (17): DistT, IdxT, local_accessor, nd_item, local_bitonic_sort(), local_heap_sift_down(), local_heap_sift_up(), local_swap() (+9 more)
+### Community 3 - "domain_decomposition.hpp"
+Cohesion: 0.09
+Nodes (30): exchange_halos(), generate_splitters(), get_global_bounding_box(), get_global_histogram(), FloatT, MPI_Datatype, queue, mpi_type_traits (+22 more)
 
-### Community 6 - "Bounding Box & Spatial Bounds"
+### Community 4 - "DistT"
+Cohesion: 0.14
+Nodes (19): DistT, IdxT, local_accessor, nd_item, local_bitonic_sort(), local_swap(), LocalMaxHeap, DIST_MAX (+11 more)
+
+### Community 5 - "particles"
+Cohesion: 0.15
+Nodes (34): vector, particles, id, is_ghost, pos_x, pos_y, pos_z, BFNeighbor (+26 more)
+
+### Community 6 - "4. Comprehensive GPU Benchmark Evaluation (NVIDIA SM_80)"
+Cohesion: 0.06
+Nodes (31): 1. `cpu_double` (Periodic BC: OFF), 1. Executive Summary & Highlights, 1. `gpu_double` (Periodic BC: OFF), 1. Space-Filling Curve (SFC) Grouped Self-kNN Traversal, 2. `cpu_double` (Periodic BC: ON), 2. Detailed Architectural Features, 2. `gpu_double` (Periodic BC: ON), 2. SIMD-Aware Dynamic Sub-Group Dispatching (+23 more)
+
+### Community 7 - "visualize_benchmarks.py"
 Cohesion: 0.25
-Nodes (6): hex_to_rgba(), load_all_benchmark_files(), parse_benchmark_file(), Scans and parses all markdown benchmark result files., Convert hex color to rgba string for Plotly shaded fills, Parses Google Benchmark results from markdown files in docs/benchmark_results/
+Nodes (9): cache_data, get_latest_release(), hex_to_rgba(), load_all_benchmark_files(), parse_benchmark_file(), parse_mpi_benchmark_file(), Scans and parses all markdown benchmark result files., Convert hex color to rgba string for Plotly shaded fills (+1 more)
 
-### Community 7 - "IEEE 754 Floating-Point Traits"
+### Community 8 - "advance_mpi.cpp"
+Cohesion: 0.32
+Nodes (4): MPI_Datatype, mpi_type_traits, mpi_type_traits<double>, mpi_type_traits<float>
+
+### Community 9 - "test_mpi.cpp"
+Cohesion: 0.32
+Nodes (4): MPI_Datatype, mpi_type_traits, mpi_type_traits<double>, mpi_type_traits<float>
+
+### Community 10 - "ieee754_traits<double>"
 Cohesion: 0.29
-Nodes (7): uint_type, ieee754_traits<double>, mantissa_bits, mantissa_mask, ieee754_traits<float>, mantissa_bits, mantissa_mask
+Nodes (7): ieee754_traits<double>, mantissa_bits, mantissa_mask, ieee754_traits<float>, mantissa_bits, mantissa_mask, uint_type
 
-### Community 8 - "MPI Datatype Traits & Communication"
-Cohesion: 0.25
-Nodes (4): main(), mpi_type_traits, mpi_type_traits<double>, mpi_type_traits<float>
-
-### Community 9 - "CPU Profiling Scripts & Options"
-Cohesion: 0.29
-Nodes (3): mpi_type_traits, mpi_type_traits<double>, mpi_type_traits<float>
-
-### Community 10 - "MPI Testing Suite"
+### Community 11 - "profile_cpu.sh"
 Cohesion: 0.38
 Nodes (5): check_tool(), OMP_PLACES, OMP_PROC_BIND, profile_cpu.sh script, usage()
 
-### Community 11 - "Architecture & Design Specifications"
+### Community 12 - "HPC C++ & SYCL Developer Role"
 Cohesion: 0.33
 Nodes (6): HPC C++ & SYCL Developer Role, HLBVH Pipeline Algorithm, System Design SYCL-HLBVH, HLBVH Pantaleoni & Luebke Paper, FastTree Implementation Roadmap, Project Progress Tracking
 
-### Community 12 - "CPU/GPU Benchmark Reports"
+### Community 13 - "Profiling Analysis Report"
 Cohesion: 0.33
 Nodes (6): CPU Benchmark Results (All Variations), GPU Benchmark Results (All Variations), MPI CPU Benchmark Results, MPI GPU Benchmark Results, Profiling Guidelines & Setup, Profiling Analysis Report
 
-### Community 13 - "Scaling & Performance Benchmarks"
+### Community 14 - "Benchmark Scaling Chart"
 Cohesion: 0.47
 Nodes (6): Benchmark Scaling Chart, KNNQuery Scaling Benchmark, MortonEncode Scaling Benchmark, RadixSort Scaling Benchmark, RangeQuery Scaling Benchmark, TreeBuild Scaling Benchmark
 
-### Community 14 - "GPU Profiling Tools"
-Cohesion: 0.52
-Nodes (6): int_dist_sq_to_phys(), int_pos_to_phys(), main(), periodic_dist(), phys_pos_to_int(), phys_radius_to_int()
-
-### Community 15 - "Variation Runner Scripts"
+### Community 15 - "profile_gpu.sh"
 Cohesion: 0.60
 Nodes (3): check_tool(), profile_gpu.sh script, usage()
 
+### Community 26 - "Benchmark Comparison (GPU Variations)"
+Cohesion: 0.09
+Nodes (22): 1. `cpu_double` (Periodic BC: OFF), 1. `gpu_double` (Periodic BC: OFF), 2. `cpu_double` (Periodic BC: ON), 2. `gpu_double` (Periodic BC: ON), 3. `cpu_int32` (Periodic BC: OFF), 3. `gpu_int32` (Periodic BC: OFF), 4. `cpu_int32` (Periodic BC: ON), 4. `gpu_int32` (Periodic BC: ON) (+14 more)
+
 ## Knowledge Gaps
-- **91 isolated node(s):** `mpi_type_traits`, `pos_x`, `pos_y`, `pos_z`, `id` (+86 more)
+- **149 isolated node(s):** `mpi_type_traits`, `pos_x`, `pos_y`, `pos_z`, `id` (+144 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **52 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **29 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `build_bvh()` connect `HLBVH Tree Construction` to `Utilities & Benchmark Helpers`, `Morton Encoding & Key Sorting`, `Domain Decomposition & MPI Halos`, `GPU Profiling Tools`?**
+- **Why does `TreeSoA` connect `hlbvh.hpp` to `particles`?**
   _High betweenness centrality (0.045) - this node is a cross-community bridge._
-- **Are the 10 inferred relationships involving `build_bvh()` (e.g. with `to_sort_key()` and `main()`) actually correct?**
-  _`build_bvh()` has 10 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 8 inferred relationships involving `sfc_encode()` (e.g. with `get_deterministic_splitters()` and `get_global_histogram()`) actually correct?**
-  _`sfc_encode()` has 8 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `build_bvh()` connect `hlbvh.hpp` to `vector`, `sfc.peano_hilbert.hpp`, `domain_decomposition.hpp`, `particles`?**
+  _High betweenness centrality (0.045) - this node is a cross-community bridge._
+- **Are the 15 inferred relationships involving `build_bvh()` (e.g. with `to_sort_key()` and `main()`) actually correct?**
+  _`build_bvh()` has 15 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `mpi_type_traits`, `pos_x`, `pos_y` to the rest of the system?**
-  _91 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Utilities & Benchmark Helpers` be split into smaller, more focused modules?**
-  _Cohesion score 0.0786308973172988 - nodes in this community are weakly interconnected._
-- **Should `HLBVH Tree Construction` be split into smaller, more focused modules?**
-  _Cohesion score 0.07127882599580712 - nodes in this community are weakly interconnected._
-- **Should `Morton Encoding & Key Sorting` be split into smaller, more focused modules?**
-  _Cohesion score 0.10606060606060606 - nodes in this community are weakly interconnected._
+  _149 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `vector` be split into smaller, more focused modules?**
+  _Cohesion score 0.05803571428571429 - nodes in this community are weakly interconnected._
+- **Should `hlbvh.hpp` be split into smaller, more focused modules?**
+  _Cohesion score 0.08076923076923077 - nodes in this community are weakly interconnected._
+- **Should `sfc.peano_hilbert.hpp` be split into smaller, more focused modules?**
+  _Cohesion score 0.07585568917668825 - nodes in this community are weakly interconnected._
