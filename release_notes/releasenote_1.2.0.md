@@ -1,4 +1,4 @@
-# FastTree Release 1.2.0-beta1 Release Notes
+# FastTree Release 1.2.0 Release Notes
 
 **Release Date:** August 28, 2026  
 **Release Target:** Release 1.2.0
