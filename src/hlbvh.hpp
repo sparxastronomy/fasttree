@@ -655,19 +655,92 @@ struct TreeSoA {
      * @param[in] q SYCL queue.
      */
     void free(sycl::queue &q) {
-        if (num_leaves + num_internal == 0) return;
-        sycl::free(min_x, q);
-        sycl::free(max_x, q);
-        sycl::free(min_y, q);
-        sycl::free(max_y, q);
-        sycl::free(min_z, q);
-        sycl::free(max_z, q);
-        sycl::free(left_child, q);
-        sycl::free(right_child, q);
-        sycl::free(parent, q);
-        if (id) sycl::free(id, q);
-        if (is_ghost) sycl::free(is_ghost, q);
-        if (orig_idx) sycl::free(orig_idx, q);
+        if (!min_x) return;
+        sycl::free(min_x, q); min_x = nullptr;
+        sycl::free(max_x, q); max_x = nullptr;
+        sycl::free(min_y, q); min_y = nullptr;
+        sycl::free(max_y, q); max_y = nullptr;
+        sycl::free(min_z, q); min_z = nullptr;
+        sycl::free(max_z, q); max_z = nullptr;
+        sycl::free(left_child, q); left_child = nullptr;
+        sycl::free(right_child, q); right_child = nullptr;
+        sycl::free(parent, q); parent = nullptr;
+        if (id) { sycl::free(id, q); id = nullptr; }
+        if (is_ghost) { sycl::free(is_ghost, q); is_ghost = nullptr; }
+        if (orig_idx) { sycl::free(orig_idx, q); orig_idx = nullptr; }
+        num_leaves = num_internal = 0;
+    }
+};
+
+/**
+ * @brief Persistent wrapper around TreeSoA.
+ *
+ * Replaces the per-step `TreeSoA tree(q, n_total)` + `tree.free(q)` pattern.
+ * Reallocates only when n_total exceeds the current leaf capacity.
+ * All 12 USM arrays are preserved across steps.
+ */
+struct TreePool {
+    TreeSoA *tree     = nullptr;
+    size_t   capacity = 0;  // current num_leaves capacity
+
+    /**
+     * Ensure the tree can hold n_total leaves.
+     * Reallocates all 12 USM arrays if n_total > capacity.
+     * Returns a reference to the internal tree (valid until next ensure() call).
+     */
+    TreeSoA &ensure(sycl::queue &q, size_t n_total) {
+        if (n_total > capacity) {
+            if (tree) {
+                tree->free(q);
+                delete tree;
+            }
+            size_t new_cap = n_total + n_total / 2 + 1024;
+            tree     = new TreeSoA(q, new_cap);
+            capacity = new_cap;
+        }
+        // Update active leaf/internal counts for this step's n_total
+        tree->num_leaves   = n_total;
+        tree->num_internal = (n_total > 0) ? n_total - 1 : 0;
+        return *tree;
+    }
+
+    void free_all(sycl::queue &q) {
+        if (tree) {
+            tree->free(q);
+            delete tree;
+            tree = nullptr;
+        }
+        capacity = 0;
+    }
+};
+
+/**
+ * @brief Persistent scratch buffers for BVH construction.
+ */
+struct BvhScratch {
+    sfc_key  *d_smk        = nullptr;
+    size_t   *d_indices    = nullptr;
+    uint64_t *d_sort_keys  = nullptr;
+    size_t    capacity     = 0;
+
+    void ensure(size_t n, sycl::queue &q) {
+        if (n > capacity) {
+            if (d_smk)       sycl::free(d_smk, q);
+            if (d_indices)   sycl::free(d_indices, q);
+            if (d_sort_keys) sycl::free(d_sort_keys, q);
+            size_t nc = n + n / 2 + 1024;
+            d_smk       = sycl::malloc_shared<sfc_key>(nc, q);
+            d_indices   = sycl::malloc_shared<size_t>(nc, q);
+            d_sort_keys = sycl::malloc_shared<uint64_t>(nc, q);
+            capacity    = nc;
+        }
+    }
+
+    void free_all(sycl::queue &q) {
+        if (d_smk)       { sycl::free(d_smk, q);       d_smk       = nullptr; }
+        if (d_indices)   { sycl::free(d_indices, q);   d_indices   = nullptr; }
+        if (d_sort_keys) { sycl::free(d_sort_keys, q); d_sort_keys = nullptr; }
+        capacity = 0;
     }
 };
 
@@ -1853,8 +1926,7 @@ inline void dispatch_self_knn_grouped_large_k(
     }
 }
 
-// Dispatch, mirroring knn_query's existing k<=32 / k>32 split:
-template <int _MAX_K_ = 256>
+template <int _MAX_K_ = 32>
 inline void self_knn_query(
     sycl::queue   &q,
     const TreeSoA &tree,
@@ -1870,8 +1942,8 @@ inline void self_knn_query(
             "k exceeds _MAX_K_ template parameter. Instantiate self_knn_query with larger _MAX_K_."
         );
     }
-    if (k <= 32) {
-        dispatch_self_knn_grouped_small_k<32>(
+    if constexpr (_MAX_K_ <= 32) {
+        dispatch_self_knn_grouped_small_k<_MAX_K_>(
             q, tree, nullptr, static_cast<int>(n), k, results, result_dists, exclude_self
         );
     } else {
@@ -1899,8 +1971,8 @@ inline void self_knn_query_subset(
             "_MAX_K_."
         );
     }
-    if (k <= 32) {
-        dispatch_self_knn_grouped_small_k<32>(
+    if constexpr (_MAX_K_ <= 32) {
+        dispatch_self_knn_grouped_small_k<_MAX_K_>(
             q, tree, leaf_ids, num_ids, k, results, result_dists, exclude_self
         );
     } else {
@@ -2094,6 +2166,7 @@ inline void build_bvh(
     sycl::queue              &q,
     const particles<coord_t> &p,
     TreeSoA                  &tree,
+    BvhScratch               &scratch,
     BoundingBox<coord_t>     *bbox = nullptr,
     sfc_key                  *key  = nullptr
 ) {
@@ -2105,6 +2178,8 @@ inline void build_bvh(
             "Particle count n exceeds maximum supported tree size (INT_MAX / 2)."
         );
     }
+
+    scratch.ensure(n, q);
 
     // 1. Single-Pass Host-to-Device Staging Buffer
     bool           x_alloc = false, y_alloc = false, z_alloc = false;
@@ -2119,18 +2194,18 @@ inline void build_bvh(
         bbox       = &local_bbox;
     }
 
-    // 2. Allocate and initialize SFC key array on device
+    // 2. SFC key array on device (pool/scratch or provided)
     bool     key_owner = (key == nullptr);
-    sfc_key *d_smk     = key_owner ? sycl::malloc_shared<sfc_key>(n, q) : key;
+    sfc_key *d_smk     = key_owner ? scratch.d_smk : key;
     if (key_owner) { sfc_encode(q, dev_pos_x, dev_pos_y, dev_pos_z, n, d_smk, *bbox); }
 
-    // 3. Allocate and initialize index array [0, 1, ..., n-1]
-    size_t *d_indices = sycl::malloc_shared<size_t>(n, q);
+    // 3. Index array [0, 1, ..., n-1]
+    size_t *d_indices = scratch.d_indices;
     q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) { d_indices[idx] = idx[0]; });
 
     // 4. Single-Pass Full GPU Sort using oneDPL
 #if (3 * BITS_PER_DIMENSION) <= 64
-    uint64_t *d_sort_keys = sycl::malloc_shared<uint64_t>(n, q);
+    uint64_t *d_sort_keys = scratch.d_sort_keys;
     sfc_key  *d_smk_ptr   = d_smk;
     q.parallel_for(sycl::range<1>(n), [=](sycl::id<1> idx) {
         size_t i       = idx[0];
@@ -2145,7 +2220,6 @@ inline void build_bvh(
         }
     );
     q.wait();
-    sycl::free(d_sort_keys, q);
 #else
     auto policy    = oneapi::dpl::execution::make_device_policy(q);
     auto zip_begin = oneapi::dpl::make_zip_iterator(d_smk, d_indices);
@@ -2207,15 +2281,24 @@ inline void build_bvh(
     // 6. Build Tree Topology & Compute Internal Node BBoxes (leaving leaf arrays already set)
     build_tree(q, tree, d_smk);
 
-    // Cleanup
+    // Cleanup staging buffers
     free_device_readable(q, dev_pos_x, x_alloc);
     free_device_readable(q, dev_pos_y, y_alloc);
     free_device_readable(q, dev_pos_z, z_alloc);
     free_device_readable(q, dev_p_id, id_alloc);
     free_device_readable(q, dev_p_ghost, ghost_alloc);
+}
 
-    if (key_owner) { sycl::free(d_smk, q); }
-    sycl::free(d_indices, q);
+inline void build_bvh(
+    sycl::queue              &q,
+    const particles<coord_t> &p,
+    TreeSoA                  &tree,
+    BoundingBox<coord_t>     *bbox = nullptr,
+    sfc_key                  *key  = nullptr
+) {
+    BvhScratch scratch;
+    build_bvh(q, p, tree, scratch, bbox, key);
+    scratch.free_all(q);
 }
 
 } // namespace fasttree
